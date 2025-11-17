@@ -1,78 +1,113 @@
-// ===============================
-// TEXTURE PLACEHOLDERS
-// ===============================
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import { PointerLockControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+
+// ====================================================================
+// TEXTURE URLS
+// ====================================================================
 const TEXTURES = {
-    scene1_floor: "<UPLOAD_LATER>",
-    scene1_wall: "<UPLOAD_LATER>",
-    scene1_door: "<UPLOAD_LATER>",
-    scene1_exitSign: "<UPLOAD_LATER>",
-    scene1_key1: "<UPLOAD_LATER>",
-    scene1_key2: "<UPLOAD_LATER>",
-    scene1_card: "<UPLOAD_LATER>",
-
-    scene2_floor: "<UPLOAD_LATER>",
-    scene2_wall: "<UPLOAD_LATER>",
-    scene2_console: "<UPLOAD_LATER>",
-    scene2_door: "<UPLOAD_LATER>",
-
-    scene3_floor: "<UPLOAD_LATER>",
-    scene3_wall: "<UPLOAD_LATER>",
-    scene3_water: "<UPLOAD_LATER>",
-    scene3_portal: "<UPLOAD_LATER>",
-
-    ending_room_wall: "<UPLOAD_LATER>",
-    ending_room_door: "<UPLOAD_LATER>"
+    scene1_floor: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/8c6952697396504b8aa23247d0a822fd2f946340/Screenshot%202025-11-16%20at%2022.51.42.png',
+    scene1_wall: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/44ebc1274ca1099f2da11fc8d188c978b4e06d9c/Screenshot%202025-11-16%20at%2022.53.11.png',
+    scene1_door: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/af6d3787ad8d805c5381d5c308c37c6ecb8387a4/Screenshot%202025-11-16%20at%2022.54.35.png',
+    scene1_exit: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/0bb7f69d2a004aaac9d57b42d97eeb0c440783e6/Screenshot%202025-11-16%20at%2022.55.14.png',
+    scene2_floor: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/65229e54cc1ec812e488d460e933fd2518352e3b/Screenshot%202025-11-16%20at%2022.56.00.png'
 };
 
-// ===============================
+// ====================================================================
+// GAME STATE
+// ====================================================================
+const gameState = {
+    currentScene: 'industrialHall',
+    hasAccessCard: false,
+    doorUnlocked: false,
+    inventory: new Set(),
+};
+
+const scenes = {
+    industrialHall: {
+        objects: [],
+        cleanup: null,
+    }
+};
+
+// ====================================================================
 // GLOBAL VARIABLES
-// ===============================
+// ====================================================================
 let scene, camera, renderer, controls;
-let raycaster, mouse;
+let raycaster, clock;
 let interactiveObjects = [];
-let flashingLights = [];
-let animatedObjects = [];
-let currentScene = "scene1";
-let gameStarted = false;
-let clock = new THREE.Clock();
+let currentHoveredObject = null;
 
-// Inventory
-let inventory = {
-    key1: false,
-    key2: false,
-    card: false,
-    controlKey: false
-};
-
-// Player movement
+// Movement
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let velocity = new THREE.Vector3();
-let direction = new THREE.Vector3();
-const PLAYER_SPEED = 15.0;
-const PLAYER_HEIGHT = 2.0;
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+const PLAYER_SPEED = 10.0;
+const PLAYER_HEIGHT = 1.6;
 
-// Scene boundaries
-let sceneBounds = { minX: -20, maxX: 20, minZ: -20, maxZ: 20 };
+// Double-click detection
+let lastClickTime = 0;
+const DOUBLE_CLICK_THRESHOLD = 250;
 
-// ===============================
+// Door animation
+let doorAnimating = false;
+let doorRotation = 0;
+const DOOR_TARGET_ROTATION = Math.PI / 2;
+const DOOR_ANIMATION_SPEED = 2.0;
+
+// Alarm lights
+let alarmLights = [];
+
+// Texture loader
+const textureLoader = new THREE.TextureLoader();
+
+// ====================================================================
+// TEXTURE LOADING
+// ====================================================================
+function loadTexture(url, repeatX = 1, repeatY = 1) {
+    return new Promise((resolve) => {
+        textureLoader.load(
+            url,
+            (texture) => {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.repeat.set(repeatX, repeatY);
+                texture.encoding = THREE.sRGBEncoding;
+                resolve(texture);
+            },
+            undefined,
+            (error) => {
+                console.warn(`Failed to load texture: ${url}`, error);
+                resolve(null);
+            }
+        );
+    });
+}
+
+// ====================================================================
 // INITIALIZATION
-// ===============================
-function init() {
+// ====================================================================
+async function init() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x333333);
-    scene.fog = new THREE.Fog(0x333333, 10, 50);
+    scene.background = new THREE.Color(0x1a1a1a);
+    scene.fog = new THREE.FogExp2(0x1a1a1a, 0.015);
 
     // Camera
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, PLAYER_HEIGHT, 8);
+    camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+    camera.position.set(0, PLAYER_HEIGHT, 15);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -81,71 +116,36 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Controls
-    controls = new THREE.PointerLockControls(camera, document.body);
+    controls = new PointerLockControls(camera, document.body);
 
-    // Raycaster
-    raycaster = new THREE.Raycaster();
-    raycaster.far = 5;
-    mouse = new THREE.Vector2();
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.camera.near = 0.1;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -20;
-    directionalLight.shadow.camera.right = 20;
-    directionalLight.shadow.camera.top = 20;
-    directionalLight.shadow.camera.bottom = -20;
-    scene.add(directionalLight);
-
-    // Event Listeners
-    setupEventListeners();
-
-    // Update UI
-    updateInventoryUI();
-
-    // Animation loop
-    animate();
-}
-
-// ===============================
-// EVENT LISTENERS
-// ===============================
-function setupEventListeners() {
-    // Auto-start the game
-    gameStarted = true;
-    loadScene('scene1');
-
-    // Click anywhere to lock pointer (required by browser security)
-    document.addEventListener('click', () => {
+    // Click to lock pointer
+    document.body.addEventListener('click', () => {
         if (!controls.isLocked) {
             controls.lock();
         }
-    }, { once: true });
-
-    // Restart button
-    document.getElementById('restart-btn').addEventListener('click', () => {
-        document.getElementById('end-screen').style.display = 'none';
-        inventory = { key1: false, key2: false, card: false, controlKey: false };
-        updateInventoryUI();
-        controls.lock();
-        loadScene('scene1');
     });
 
-    // Pointer lock
-    controls.addEventListener('lock', () => {
-        console.log('Pointer locked');
-    });
+    // Raycaster
+    raycaster = new THREE.Raycaster();
+    raycaster.far = 3.5;
 
-    controls.addEventListener('unlock', () => {
-        console.log('Pointer unlocked');
-    });
+    // Clock
+    clock = new THREE.Clock();
 
+    // Event listeners
+    setupEventListeners();
+
+    // Build scene
+    await buildIndustrialHallScene();
+
+    // Start animation
+    animate();
+}
+
+// ====================================================================
+// EVENT LISTENERS
+// ====================================================================
+function setupEventListeners() {
     // Keyboard
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
@@ -153,11 +153,17 @@ function setupEventListeners() {
     // Mouse click for interactions
     document.addEventListener('click', onMouseClick);
 
-    // Mouse move for hover detection
-    document.addEventListener('mousemove', onMouseMove);
-
     // Window resize
     window.addEventListener('resize', onWindowResize);
+
+    // Inventory UI
+    document.getElementById('inventory-button').addEventListener('click', () => {
+        document.getElementById('inventory-panel').classList.toggle('hidden');
+    });
+
+    document.getElementById('close-inventory').addEventListener('click', () => {
+        document.getElementById('inventory-panel').classList.add('hidden');
+    });
 }
 
 function onKeyDown(event) {
@@ -205,18 +211,17 @@ function onKeyUp(event) {
 function onMouseClick(event) {
     if (!controls.isLocked) return;
 
-    // Cast ray from camera center
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(interactiveObjects, true);
+    const currentTime = Date.now();
+    const isDoubleClick = currentTime - lastClickTime < DOUBLE_CLICK_THRESHOLD;
+    lastClickTime = currentTime;
 
-    if (intersects.length > 0) {
-        const object = intersects[0].object;
-        handleInteraction(object);
+    if (currentHoveredObject && currentHoveredObject.onClick) {
+        currentHoveredObject.onClick();
     }
-}
 
-function onMouseMove(event) {
-    // No hover hints
+    if (isDoubleClick && currentHoveredObject && currentHoveredObject.onDoubleClick) {
+        currentHoveredObject.onDoubleClick();
+    }
 }
 
 function onWindowResize() {
@@ -225,579 +230,316 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// ===============================
-// INTERACTION HANDLER
-// ===============================
-function handleInteraction(object) {
-    const userData = object.userData;
+// ====================================================================
+// BUILD INDUSTRIAL HALL SCENE
+// ====================================================================
+async function buildIndustrialHallScene() {
+    // Load textures
+    const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
+    const wallTexture = await loadTexture(TEXTURES.scene1_wall, 2, 1);
+    const doorTexture = await loadTexture(TEXTURES.scene1_door, 1, 1);
+    const exitTexture = await loadTexture(TEXTURES.scene1_exit, 1, 1);
 
-    if (userData.type === 'pickup') {
-        // Pick up item
-        if (userData.id === 'key1') {
-            inventory.key1 = true;
-            showMessage('Picked up Key 1');
-        } else if (userData.id === 'key2') {
-            inventory.key2 = true;
-            showMessage('Picked up Key 2');
-        } else if (userData.id === 'card') {
-            inventory.card = true;
-            showMessage('Picked up Access Card');
-        } else if (userData.id === 'controlKey') {
-            inventory.controlKey = true;
-            showMessage('Picked up Control Key');
+    // Floor
+    const floorGeometry = new THREE.PlaneGeometry(40, 40);
+    const floorMaterial = new THREE.MeshStandardMaterial({
+        map: floorTexture,
+        color: floorTexture ? 0xffffff : 0x444444,
+        roughness: 0.8,
+        metalness: 0.2,
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Walls
+    const wallHeight = 6;
+    const wallMaterial = new THREE.MeshStandardMaterial({
+        map: wallTexture,
+        color: wallTexture ? 0xffffff : 0x555555,
+        roughness: 0.9,
+    });
+
+    // Back wall
+    const backWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(40, wallHeight),
+        wallMaterial
+    );
+    backWall.position.set(0, wallHeight / 2, -20);
+    backWall.receiveShadow = true;
+    scene.add(backWall);
+
+    // Front wall (with door gap)
+    const frontWallLeft = new THREE.Mesh(
+        new THREE.PlaneGeometry(12, wallHeight),
+        wallMaterial
+    );
+    frontWallLeft.position.set(-14, wallHeight / 2, 20);
+    frontWallLeft.rotation.y = Math.PI;
+    scene.add(frontWallLeft);
+
+    const frontWallRight = new THREE.Mesh(
+        new THREE.PlaneGeometry(12, wallHeight),
+        wallMaterial
+    );
+    frontWallRight.position.set(14, wallHeight / 2, 20);
+    frontWallRight.rotation.y = Math.PI;
+    scene.add(frontWallRight);
+
+    // Left wall
+    const leftWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(40, wallHeight),
+        wallMaterial
+    );
+    leftWall.position.set(-20, wallHeight / 2, 0);
+    leftWall.rotation.y = Math.PI / 2;
+    scene.add(leftWall);
+
+    // Right wall
+    const rightWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(40, wallHeight),
+        wallMaterial
+    );
+    rightWall.position.set(20, wallHeight / 2, 0);
+    rightWall.rotation.y = -Math.PI / 2;
+    scene.add(rightWall);
+
+    // Ceiling
+    const ceilingGeometry = new THREE.PlaneGeometry(40, 40);
+    const ceilingMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.9,
+    });
+    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+    ceiling.position.y = wallHeight;
+    ceiling.rotation.x = Math.PI / 2;
+    scene.add(ceiling);
+
+    // Light panels on ceiling
+    for (let i = 0; i < 3; i++) {
+        const lightPanel = new THREE.Mesh(
+            new THREE.BoxGeometry(4, 0.1, 2),
+            new THREE.MeshStandardMaterial({
+                color: 0xffffee,
+                emissive: 0xffffee,
+                emissiveIntensity: 0.5,
+            })
+        );
+        lightPanel.position.set((i - 1) * 8, wallHeight - 0.1, 0);
+        scene.add(lightPanel);
+
+        const light = new THREE.PointLight(0xffffee, 1, 20);
+        light.position.set((i - 1) * 8, wallHeight - 1, 0);
+        light.castShadow = true;
+        scene.add(light);
+    }
+
+    // Ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambientLight);
+
+    // Main door
+    const doorGroup = new THREE.Group();
+    doorGroup.position.set(-2, 0, 19.8);
+    scene.add(doorGroup);
+
+    const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
+    const doorMaterial = new THREE.MeshStandardMaterial({
+        map: doorTexture,
+        color: doorTexture ? 0xffffff : 0x666666,
+        metalness: 0.3,
+        roughness: 0.7,
+    });
+    const door = new THREE.Mesh(doorGeometry, doorMaterial);
+    door.position.set(2, 2.5, 0);
+    door.castShadow = true;
+    doorGroup.add(door);
+
+    // Store door reference for animation
+    window.gameDoor = doorGroup;
+
+    // Exit sign
+    const exitSign = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 0.5, 0.1),
+        new THREE.MeshStandardMaterial({
+            map: exitTexture,
+            color: exitTexture ? 0xffffff : 0x00ff00,
+            emissive: 0x00ff00,
+            emissiveIntensity: 0.5,
+        })
+    );
+    exitSign.position.set(0, 5.5, 19.5);
+    scene.add(exitSign);
+
+    // Access card board on wall
+    const cardBoard = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 2, 0.2),
+        new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+    );
+    cardBoard.position.set(-10, 2, 19.7);
+    scene.add(cardBoard);
+
+    // Decorative keys
+    const keyMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFFD700,
+        metalness: 0.8,
+        roughness: 0.2,
+    });
+    const key1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.1), keyMaterial);
+    key1.position.set(-10.8, 2.5, 19.9);
+    scene.add(key1);
+
+    const key2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.1), keyMaterial);
+    key2.position.set(-9.2, 2.5, 19.9);
+    scene.add(key2);
+
+    // Access card (interactive)
+    const cardGeometry = new THREE.BoxGeometry(0.6, 0.9, 0.05);
+    const cardMaterial = new THREE.MeshStandardMaterial({
+        color: 0x00BFFF,
+        emissive: 0x00BFFF,
+        emissiveIntensity: 0.5,
+        metalness: 0.5,
+        roughness: 0.3,
+    });
+    const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
+    accessCard.position.set(-10, 1.5, 19.9);
+    scene.add(accessCard);
+
+    // Card glow light
+    const cardLight = new THREE.PointLight(0x00BFFF, 0.5, 3);
+    cardLight.position.set(-10, 1.5, 20);
+    scene.add(cardLight);
+
+    // Interactive card object
+    const cardInteractive = {
+        mesh: accessCard,
+        type: 'card',
+        id: 'scene1_card_access',
+        hintText: 'Double-click to pick up access card',
+        onDoubleClick: () => {
+            gameState.hasAccessCard = true;
+            gameState.inventory.add('Access Card');
+            scene.remove(accessCard);
+            scene.remove(cardLight);
+            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
+            updateInventoryUI();
+            console.log('Access card collected');
         }
+    };
+    interactiveObjects.push(cardInteractive);
 
-        // Remove object from scene
-        scene.remove(object);
-        interactiveObjects = interactiveObjects.filter(obj => obj !== object);
-        updateInventoryUI();
+    // Card reader near door
+    const readerGroup = new THREE.Group();
+    readerGroup.position.set(3, 1.3, 19.5);
+    scene.add(readerGroup);
 
-    } else if (userData.type === 'door') {
-        // Check requirements
-        if (userData.requires) {
-            if (!inventory[userData.requires]) {
-                showMessage(`You need ${userData.requiresName || userData.requires} to open this door`);
+    const readerBox = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.5, 0.2),
+        new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            metalness: 0.7,
+            roughness: 0.3,
+        })
+    );
+    readerGroup.add(readerBox);
+
+    // Indicator light
+    const indicator = new THREE.Mesh(
+        new THREE.CircleGeometry(0.08, 16),
+        new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 1.0,
+        })
+    );
+    indicator.position.set(0, 0.15, 0.11);
+    readerGroup.add(indicator);
+
+    // Store indicator reference
+    window.cardReaderIndicator = indicator;
+
+    // Interactive card reader
+    const cardReaderInteractive = {
+        mesh: readerBox,
+        type: 'cardReader',
+        id: 'scene1_card_reader',
+        hintText: 'Click to use card reader',
+        onClick: () => {
+            if (!gameState.hasAccessCard) {
+                console.log('You need an access card');
                 return;
             }
-        }
-
-        // Open door and transition
-        showMessage('Opening door...');
-        setTimeout(() => {
-            loadScene(userData.nextScene);
-        }, 500);
-
-    } else if (userData.type === 'vortex') {
-        // Loop ending - back to scene 1
-        showMessage('Entering the vortex...');
-        setTimeout(() => {
-            loadScene('scene1');
-        }, 1000);
-
-    } else if (userData.type === 'endDoor') {
-        // Show end screen
-        showEndScreen();
-    }
-}
-
-// ===============================
-// UI FUNCTIONS
-// ===============================
-function updateInventoryUI() {
-    const inventoryDiv = document.getElementById('inventory-items');
-    inventoryDiv.innerHTML = '';
-
-    let count = 0;
-    for (let key in inventory) {
-        if (inventory[key]) {
-            count++;
-            const item = document.createElement('div');
-            item.className = 'inventory-item';
-            item.textContent = formatItemName(key);
-            inventoryDiv.appendChild(item);
-        }
-    }
-
-    if (count === 0) {
-        inventoryDiv.innerHTML = '<p style="color: #888;">No items</p>';
-    }
-}
-
-function formatItemName(key) {
-    const names = {
-        key1: '🔑 Key 1',
-        key2: '🔑 Key 2',
-        card: '💳 Access Card',
-        controlKey: '🔑 Control Key'
-    };
-    return names[key] || key;
-}
-
-function showMessage(text) {
-    // No messages
-}
-
-function updateSceneTitle(title) {
-    document.getElementById('scene-title').textContent = title;
-}
-
-function showEndScreen() {
-    controls.unlock();
-    document.getElementById('end-screen').style.display = 'flex';
-}
-
-// ===============================
-// SCENE MANAGER
-// ===============================
-function loadScene(name) {
-    clearScene();
-    currentScene = name;
-
-    switch (name) {
-        case 'scene1':
-            buildScene1();
-            break;
-        case 'scene2':
-            buildScene2();
-            break;
-        case 'scene3':
-            buildScene3();
-            break;
-        case 'ending':
-            buildEndingRoom();
-            break;
-    }
-}
-
-function clearScene() {
-    // Remove all objects
-    interactiveObjects = [];
-    flashingLights = [];
-    animatedObjects = [];
-
-    // Remove all meshes from scene (keep lights and camera)
-    const objectsToRemove = [];
-    scene.traverse((object) => {
-        if (object.isMesh) {
-            objectsToRemove.push(object);
-        }
-    });
-
-    objectsToRemove.forEach(object => {
-        if (object.geometry) object.geometry.dispose();
-        if (object.material) {
-            if (Array.isArray(object.material)) {
-                object.material.forEach(mat => mat.dispose());
-            } else {
-                object.material.dispose();
+            if (!gameState.doorUnlocked) {
+                gameState.doorUnlocked = true;
+                // Change indicator to green
+                indicator.material.color.setHex(0x00ff00);
+                indicator.material.emissive.setHex(0x00ff00);
+                // Start door animation
+                doorAnimating = true;
+                console.log('Door unlocked');
             }
         }
-        scene.remove(object);
-    });
-
-    // Reset player position
-    camera.position.set(0, PLAYER_HEIGHT, 5);
-    velocity.set(0, 0, 0);
-}
-
-// ===============================
-// SCENE 1 - INDUSTRIAL HALL
-// ===============================
-function buildScene1() {
-    updateSceneTitle('Industrial Hall');
-    sceneBounds = { minX: -15, maxX: 15, minZ: -15, maxZ: 15 };
-
-    // Floor
-    const floorGeometry = new THREE.PlaneGeometry(30, 30);
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.8,
-        metalness: 0.2
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Walls
-    createWall(0, 2.5, -15, 30, 5, 0.5, 0x444444); // Back
-    createWall(0, 2.5, 15, 30, 5, 0.5, 0x444444);  // Front (with door gap)
-    createWall(-15, 2.5, 0, 0.5, 5, 30, 0x444444); // Left
-    createWall(15, 2.5, 0, 0.5, 5, 30, 0x444444);  // Right
-
-    // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(30, 30);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        color: 0x222222,
-        roughness: 0.9
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = 5;
-    scene.add(ceiling);
-
-    // Keys on wall
-    if (!inventory.key1) {
-        const key1 = createPickupItem(-10, 1.5, -14, 0xFFD700, 'key1', 'pick up');
-        scene.add(key1);
-        interactiveObjects.push(key1);
-    }
-
-    if (!inventory.key2) {
-        const key2 = createPickupItem(10, 1.5, -14, 0xFFD700, 'key2', 'pick up');
-        scene.add(key2);
-        interactiveObjects.push(key2);
-    }
-
-    // Access card on table
-    if (!inventory.card) {
-        // Table
-        const tableGeometry = new THREE.BoxGeometry(2, 1, 2);
-        const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-        const table = new THREE.Mesh(tableGeometry, tableMaterial);
-        table.position.set(-5, 0.5, 0);
-        table.castShadow = true;
-        scene.add(table);
-
-        // Card on table
-        const card = createPickupItem(-5, 1.2, 0, 0x00FFFF, 'card', 'pick up');
-        scene.add(card);
-        interactiveObjects.push(card);
-
-        // Glow
-        const cardLight = new THREE.PointLight(0x00FFFF, 1, 5);
-        cardLight.position.set(-5, 1.5, 0);
-        scene.add(cardLight);
-    }
-
-    // Door to Scene 2 (front center)
-    const door = createDoor(0, 2, 14, 'card', 'Access Card', 'scene2');
-    scene.add(door);
-    interactiveObjects.push(door);
-
-    // Exit sign above door
-    const signGeometry = new THREE.BoxGeometry(2, 0.5, 0.2);
-    const signMaterial = new THREE.MeshStandardMaterial({
-        color: 0x00FF00,
-        emissive: 0x00FF00,
-        emissiveIntensity: 0.5
-    });
-    const sign = new THREE.Mesh(signGeometry, signMaterial);
-    sign.position.set(0, 4, 14);
-    scene.add(sign);
-
-    // Four red flashing corner warning lights
-    createFlashingLight(-12, 4, -12, 0xFF0000);
-    createFlashingLight(12, 4, -12, 0xFF0000);
-    createFlashingLight(-12, 4, 12, 0xFF0000);
-    createFlashingLight(12, 4, 12, 0xFF0000);
-}
-
-// ===============================
-// SCENE 2 - CONTROL OFFICE
-// ===============================
-function buildScene2() {
-    updateSceneTitle('Control Office');
-    sceneBounds = { minX: -12, maxX: 12, minZ: -12, maxZ: 12 };
-
-    // Dim ambient
-    scene.fog = new THREE.Fog(0x0a0a0a, 5, 30);
-
-    // Floor
-    const floorGeometry = new THREE.PlaneGeometry(24, 24);
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x222222,
-        roughness: 0.9
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Walls
-    createWall(0, 2, -12, 24, 4, 0.5, 0x2a2a2a);
-    createWall(0, 2, 12, 24, 4, 0.5, 0x2a2a2a);
-    createWall(-12, 2, 0, 0.5, 4, 24, 0x2a2a2a);
-    createWall(12, 2, 0, 0.5, 4, 24, 0x2a2a2a);
-
-    // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(24, 24);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        color: 0x1a1a1a
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = 4;
-    scene.add(ceiling);
-
-    // Console panels (decoration)
-    for (let i = 0; i < 3; i++) {
-        const consoleGeometry = new THREE.BoxGeometry(2, 1.5, 0.5);
-        const consoleMaterial = new THREE.MeshStandardMaterial({
-            color: 0x333333,
-            emissive: 0x0066FF,
-            emissiveIntensity: 0.2
-        });
-        const console = new THREE.Mesh(consoleGeometry, consoleMaterial);
-        console.position.set(-8 + i * 4, 0.75, -10);
-        console.castShadow = true;
-        scene.add(console);
-
-        // Small light on console
-        const consoleLight = new THREE.PointLight(0x0066FF, 0.5, 3);
-        consoleLight.position.set(-8 + i * 4, 1.5, -10);
-        scene.add(consoleLight);
-    }
-
-    // Control key
-    if (!inventory.controlKey) {
-        const controlKey = createPickupItem(5, 1, -5, 0xFFD700, 'controlKey', 'pick up');
-        scene.add(controlKey);
-        interactiveObjects.push(controlKey);
-
-        // Spotlight on key
-        const keyLight = new THREE.PointLight(0xFFD700, 1, 5);
-        keyLight.position.set(5, 2, -5);
-        scene.add(keyLight);
-    }
-
-    // Door to Scene 3 (requires control key)
-    const door = createDoor(0, 1.5, 11, 'controlKey', 'Control Key', 'scene3');
-    scene.add(door);
-    interactiveObjects.push(door);
-
-    // Soft emissive lighting
-    const emissiveLight = new THREE.HemisphereLight(0x0066FF, 0x000000, 0.3);
-    scene.add(emissiveLight);
-}
-
-// ===============================
-// SCENE 3 - WATER LOOP CHAMBER
-// ===============================
-function buildScene3() {
-    updateSceneTitle('Water Loop Chamber');
-    sceneBounds = { minX: -18, maxX: 18, minZ: -18, maxZ: 18 };
-
-    // Dark fog
-    scene.fog = new THREE.Fog(0x000a0a, 8, 40);
-
-    // Wet floor
-    const floorGeometry = new THREE.PlaneGeometry(36, 36);
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x0a0a0a,
-        roughness: 0.3,
-        metalness: 0.7
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Water puddles (flat geometry with animated UV)
-    for (let i = 0; i < 5; i++) {
-        const puddleGeometry = new THREE.CircleGeometry(2 + Math.random() * 2, 32);
-        const puddleMaterial = new THREE.MeshStandardMaterial({
-            color: 0x001a1a,
-            roughness: 0.1,
-            metalness: 0.9,
-            transparent: true,
-            opacity: 0.8
-        });
-        const puddle = new THREE.Mesh(puddleGeometry, puddleMaterial);
-        puddle.rotation.x = -Math.PI / 2;
-        puddle.position.set(
-            (Math.random() - 0.5) * 30,
-            0.01,
-            (Math.random() - 0.5) * 30
-        );
-        scene.add(puddle);
-        animatedObjects.push({ obj: puddle, type: 'puddle' });
-    }
-
-    // Walls
-    createWall(0, 2.5, -18, 36, 5, 0.5, 0x1a1a1a);
-    createWall(0, 2.5, 18, 36, 5, 0.5, 0x1a1a1a);
-    createWall(-18, 2.5, 0, 0.5, 5, 36, 0x1a1a1a);
-    createWall(18, 2.5, 0, 0.5, 5, 36, 0x1a1a1a);
-
-    // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(36, 36);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        color: 0x0a0a0a
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = 5;
-    scene.add(ceiling);
-
-    // Central vortex portal (loop ending)
-    const vortexGeometry = new THREE.CylinderGeometry(3, 3, 0.5, 32);
-    const vortexMaterial = new THREE.MeshStandardMaterial({
-        color: 0x00FFFF,
-        emissive: 0x00FFFF,
-        emissiveIntensity: 1.0,
-        transparent: true,
-        opacity: 0.7
-    });
-    const vortex = new THREE.Mesh(vortexGeometry, vortexMaterial);
-    vortex.position.set(0, 0.25, 0);
-    vortex.userData = { type: 'vortex', action: 'enter vortex' };
-    scene.add(vortex);
-    interactiveObjects.push(vortex);
-    animatedObjects.push({ obj: vortex, type: 'vortex' });
-
-    // Vortex light
-    const vortexLight = new THREE.PointLight(0x00FFFF, 2, 15);
-    vortexLight.position.set(0, 1, 0);
-    scene.add(vortexLight);
-
-    // Door back to Scene 2 (behind player)
-    const doorBack = createDoor(0, 2, 17, null, null, 'scene2');
-    doorBack.userData.action = 'go back';
-    scene.add(doorBack);
-    interactiveObjects.push(doorBack);
-
-    // Hidden side door to ending (true exit)
-    const hiddenDoor = createDoor(17, 2, 0, null, null, 'ending');
-    hiddenDoor.userData.action = 'enter hidden door';
-    hiddenDoor.material.color.setHex(0x00FF00);
-    hiddenDoor.material.emissive.setHex(0x00FF00);
-    hiddenDoor.material.emissiveIntensity = 0.3;
-    scene.add(hiddenDoor);
-    interactiveObjects.push(hiddenDoor);
-}
-
-// ===============================
-// ENDING ROOM
-// ===============================
-function buildEndingRoom() {
-    updateSceneTitle('Exit Chamber');
-    sceneBounds = { minX: -8, maxX: 8, minZ: -8, maxZ: 8 };
-
-    // Clean white room
-    scene.fog = new THREE.Fog(0xffffff, 10, 30);
-
-    // Floor
-    const floorGeometry = new THREE.PlaneGeometry(16, 16);
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        color: 0xeeeeee,
-        roughness: 0.5
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Walls
-    createWall(0, 2.5, -8, 16, 5, 0.5, 0xffffff);
-    createWall(0, 2.5, 8, 16, 5, 0.5, 0xffffff);
-    createWall(-8, 2.5, 0, 0.5, 5, 16, 0xffffff);
-    createWall(8, 2.5, 0, 0.5, 5, 16, 0xffffff);
-
-    // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(16, 16);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = 5;
-    scene.add(ceiling);
-
-    // Text: "You Found the True Exit"
-    // (Using a simple box as text placeholder)
-    const textBoard = new THREE.BoxGeometry(6, 1, 0.2);
-    const textMaterial = new THREE.MeshStandardMaterial({
-        color: 0x4CAF50,
-        emissive: 0x4CAF50,
-        emissiveIntensity: 0.5
-    });
-    const textMesh = new THREE.Mesh(textBoard, textMaterial);
-    textMesh.position.set(0, 3, -7);
-    scene.add(textMesh);
-
-    showMessage('You Found the True Exit!');
-
-    // End door
-    const endDoor = new THREE.BoxGeometry(2, 3, 0.3);
-    const endDoorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x4CAF50,
-        emissive: 0x4CAF50,
-        emissiveIntensity: 0.3
-    });
-    const endDoorMesh = new THREE.Mesh(endDoor, endDoorMaterial);
-    endDoorMesh.position.set(0, 1.5, 7);
-    endDoorMesh.userData = { type: 'endDoor', action: 'finish game' };
-    scene.add(endDoorMesh);
-    interactiveObjects.push(endDoorMesh);
-
-    // Bright ambient light
-    const brightLight = new THREE.AmbientLight(0xffffff, 1.0);
-    scene.add(brightLight);
-}
-
-// ===============================
-// HELPER FUNCTIONS
-// ===============================
-function createWall(x, y, z, width, height, depth, color) {
-    const geometry = new THREE.BoxGeometry(width, height, depth);
-    const material = new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: 0.8
-    });
-    const wall = new THREE.Mesh(geometry, material);
-    wall.position.set(x, y, z);
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    scene.add(wall);
-    return wall;
-}
-
-function createPickupItem(x, y, z, color, id, action) {
-    const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.2);
-    const material = new THREE.MeshStandardMaterial({
-        color: color,
-        emissive: color,
-        emissiveIntensity: 0.5
-    });
-    const item = new THREE.Mesh(geometry, material);
-    item.position.set(x, y, z);
-    item.castShadow = true;
-    item.userData = { type: 'pickup', id: id, action: action };
-    animatedObjects.push({ obj: item, type: 'float' });
-    return item;
-}
-
-function createDoor(x, y, z, requiresItem, requiresName, nextScene) {
-    const geometry = new THREE.BoxGeometry(3, 4, 0.5);
-    const material = new THREE.MeshStandardMaterial({
-        color: 0x0088FF,
-        transparent: true,
-        opacity: 0.6,
-        emissive: 0x0088FF,
-        emissiveIntensity: 0.3
-    });
-    const door = new THREE.Mesh(geometry, material);
-    door.position.set(x, y, z);
-    door.castShadow = true;
-    door.userData = {
-        type: 'door',
-        requires: requiresItem,
-        requiresName: requiresName,
-        nextScene: nextScene,
-        action: 'open door'
     };
-    return door;
+    interactiveObjects.push(cardReaderInteractive);
+
+    // Red corner alarm lights
+    const alarmPositions = [
+        [-18, 5.5, -18],
+        [18, 5.5, -18],
+        [-18, 5.5, 18],
+        [18, 5.5, 18],
+    ];
+
+    alarmPositions.forEach(pos => {
+        const alarmMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 16, 16),
+            new THREE.MeshStandardMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 1.0,
+            })
+        );
+        alarmMesh.position.set(...pos);
+        scene.add(alarmMesh);
+
+        const alarmLight = new THREE.PointLight(0xff0000, 1, 10);
+        alarmLight.position.set(...pos);
+        scene.add(alarmLight);
+
+        alarmLights.push({ mesh: alarmMesh, light: alarmLight });
+    });
+
+    console.log('Industrial Hall scene built');
 }
 
-function createFlashingLight(x, y, z, color) {
-    const lightGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-    const lightMaterial = new THREE.MeshStandardMaterial({
-        color: color,
-        emissive: color,
-        emissiveIntensity: 1.0
-    });
-    const lightMesh = new THREE.Mesh(lightGeometry, lightMaterial);
-    lightMesh.position.set(x, y, z);
-    scene.add(lightMesh);
+// ====================================================================
+// UPDATE INVENTORY UI
+// ====================================================================
+function updateInventoryUI() {
+    const itemsDiv = document.getElementById('inventory-items');
+    itemsDiv.innerHTML = '';
 
-    const pointLight = new THREE.PointLight(color, 1, 10);
-    pointLight.position.set(x, y, z);
-    scene.add(pointLight);
-
-    flashingLights.push({
-        mesh: lightMesh,
-        light: pointLight,
-        color: color
-    });
+    if (gameState.inventory.size === 0) {
+        itemsDiv.innerHTML = '<p class="empty-message">Inventory is empty</p>';
+    } else {
+        gameState.inventory.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'inventory-item';
+            itemDiv.textContent = item;
+            itemsDiv.appendChild(itemDiv);
+        });
+    }
 }
 
-// ===============================
-// PLAYER MOVEMENT
-// ===============================
-function updatePlayer(delta) {
+// ====================================================================
+// UPDATE FUNCTION
+// ====================================================================
+function update(delta) {
     if (!controls.isLocked) return;
 
+    // Movement
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
@@ -805,62 +547,84 @@ function updatePlayer(delta) {
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * PLAYER_SPEED * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * PLAYER_SPEED * delta;
+    if (moveForward || moveBackward) {
+        velocity.z -= direction.z * PLAYER_SPEED * delta;
+    }
+    if (moveLeft || moveRight) {
+        velocity.x -= direction.x * PLAYER_SPEED * delta;
+    }
 
     const prevPosition = controls.getObject().position.clone();
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 
-    // Boundary checking
+    // Collision detection (simple boundary)
     const pos = controls.getObject().position;
-    if (pos.x < sceneBounds.minX || pos.x > sceneBounds.maxX ||
-        pos.z < sceneBounds.minZ || pos.z > sceneBounds.maxZ) {
+    if (pos.x < -18 || pos.x > 18 || pos.z < -18 || pos.z > 18) {
         controls.getObject().position.copy(prevPosition);
     }
 
     // Keep player at correct height
     controls.getObject().position.y = PLAYER_HEIGHT;
+
+    // Raycasting for interactive objects
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.intersectObjects(
+        interactiveObjects.map(obj => obj.mesh)
+    );
+
+    const hintText = document.getElementById('hint-text');
+    if (intersects.length > 0) {
+        const intersectedMesh = intersects[0].object;
+        const interactiveObj = interactiveObjects.find(
+            obj => obj.mesh === intersectedMesh
+        );
+
+        if (interactiveObj) {
+            currentHoveredObject = interactiveObj;
+            hintText.textContent = interactiveObj.hintText;
+            hintText.classList.add('visible');
+        } else {
+            currentHoveredObject = null;
+            hintText.classList.remove('visible');
+        }
+    } else {
+        currentHoveredObject = null;
+        hintText.classList.remove('visible');
+    }
+
+    // Door animation
+    if (doorAnimating && window.gameDoor) {
+        doorRotation += DOOR_ANIMATION_SPEED * delta;
+        if (doorRotation >= DOOR_TARGET_ROTATION) {
+            doorRotation = DOOR_TARGET_ROTATION;
+            doorAnimating = false;
+        }
+        window.gameDoor.rotation.y = doorRotation;
+    }
+
+    // Alarm lights pulsing
+    const time = clock.getElapsedTime();
+    alarmLights.forEach(alarm => {
+        const intensity = Math.sin(time * 3) * 0.5 + 0.5;
+        alarm.mesh.material.emissiveIntensity = intensity;
+        alarm.light.intensity = intensity * 2;
+    });
 }
 
-// ===============================
+// ====================================================================
 // ANIMATION LOOP
-// ===============================
+// ====================================================================
 function animate() {
     requestAnimationFrame(animate);
 
     const delta = clock.getDelta();
-    const elapsed = clock.getElapsedTime();
-
-    // Update player movement
-    if (gameStarted) {
-        updatePlayer(delta);
-    }
-
-    // Animate flashing lights
-    flashingLights.forEach(light => {
-        const intensity = Math.sin(elapsed * 3) * 0.5 + 0.5;
-        light.mesh.material.emissiveIntensity = intensity;
-        light.light.intensity = intensity * 2;
-    });
-
-    // Animate objects
-    animatedObjects.forEach(item => {
-        if (item.type === 'float') {
-            item.obj.position.y += Math.sin(elapsed * 2) * 0.001;
-            item.obj.rotation.y += 0.01;
-        } else if (item.type === 'vortex') {
-            item.obj.rotation.y += 0.02;
-            item.obj.material.emissiveIntensity = Math.sin(elapsed * 2) * 0.3 + 0.7;
-        } else if (item.type === 'puddle') {
-            item.obj.material.opacity = Math.sin(elapsed + item.obj.position.x) * 0.1 + 0.7;
-        }
-    });
+    update(delta);
 
     renderer.render(scene, camera);
 }
 
-// ===============================
-// START GAME
-// ===============================
+// ====================================================================
+// START
+// ====================================================================
 init();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exploration Room Game</title>
+    <title>Industrial Hall - Exploration Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,23 +12,37 @@
         <!-- Scene Title -->
         <div id="scene-title">Industrial Hall</div>
 
-        <!-- Inventory -->
-        <div id="inventory-panel">
-            <h3>Inventory</h3>
-            <div id="inventory-items"></div>
+        <!-- Controls Panel -->
+        <div id="controls-panel">
+            <h3>Controls</h3>
+            <p>WASD / Arrows - Move</p>
+            <p>Mouse - Look</p>
+            <p>Click - Lock pointer</p>
+            <p>Double-click - Pick up items</p>
+            <p>ESC - Unlock pointer</p>
         </div>
+
+        <!-- Inventory Button -->
+        <div id="inventory-button">Inventory</div>
+
+        <!-- Inventory Panel (hidden by default) -->
+        <div id="inventory-panel" class="hidden">
+            <div class="panel-header">
+                <h3>Inventory</h3>
+                <button id="close-inventory">×</button>
+            </div>
+            <div id="inventory-items">
+                <p class="empty-message">Inventory is empty</p>
+            </div>
+        </div>
+
+        <!-- Crosshair -->
+        <div id="crosshair"></div>
+
+        <!-- Hint Text -->
+        <div id="hint-text"></div>
     </div>
 
-    <!-- End Screen -->
-    <div id="end-screen" style="display: none;">
-        <h1>THE END</h1>
-        <p>Thanks for Playing</p>
-        <button id="restart-btn">Play Again</button>
-    </div>
-
-    <!-- Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

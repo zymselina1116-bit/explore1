@@ -5,7 +5,7 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     overflow: hidden;
     background: #000;
     color: #fff;
@@ -28,103 +28,211 @@ canvas {
     z-index: 100;
 }
 
+#ui-overlay > * {
+    pointer-events: auto;
+}
+
 /* Scene Title */
 #scene-title {
     position: absolute;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 28px;
+    font-size: 24px;
     font-weight: bold;
     color: #fff;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
-    background: rgba(0, 0, 0, 0.5);
-    padding: 10px 30px;
-    border-radius: 5px;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 12px 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Controls Panel */
+#controls-panel {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+#controls-panel h3 {
+    margin-bottom: 10px;
+    color: #4CAF50;
+    font-size: 16px;
+}
+
+#controls-panel p {
+    font-size: 13px;
+    margin: 5px 0;
+    color: #ddd;
+}
+
+/* Inventory Button */
+#inventory-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: 2px solid #FFC107;
+    cursor: pointer;
+    font-weight: bold;
+    color: #FFC107;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+#inventory-button:hover {
+    background: rgba(255, 193, 7, 0.2);
+    transform: scale(1.05);
 }
 
 /* Inventory Panel */
 #inventory-panel {
     position: absolute;
-    bottom: 20px;
+    bottom: 80px;
     left: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 15px;
+    width: 300px;
+    background: rgba(0, 0, 0, 0.9);
     border-radius: 8px;
-    border: 2px solid #555;
-    min-width: 200px;
-}
-
-#inventory-panel h3 {
-    margin-bottom: 10px;
-    color: #FFC107;
-    font-size: 16px;
-}
-
-#inventory-items {
-    font-size: 14px;
-    color: #ddd;
-}
-
-.inventory-item {
-    margin: 5px 0;
-    padding: 5px;
-    background: rgba(76, 175, 80, 0.3);
-    border-radius: 3px;
-}
-
-/* End Screen */
-#end-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background: linear-gradient(135deg, #000000 0%, #1a1a2e 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-#end-screen h1 {
-    font-size: 64px;
-    margin-bottom: 30px;
-    color: #4CAF50;
-    text-shadow: 0 0 30px rgba(76, 175, 80, 0.8);
-}
-
-#end-screen p {
-    font-size: 28px;
-    color: #ddd;
-    margin-bottom: 40px;
-}
-
-#restart-btn {
-    padding: 15px 40px;
-    font-size: 20px;
-    background: #4CAF50;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
+    border: 2px solid #FFC107;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
     transition: all 0.3s;
 }
 
-#restart-btn:hover {
-    background: #45a049;
-    transform: scale(1.1);
+#inventory-panel.hidden {
+    display: none;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.panel-header h3 {
+    color: #FFC107;
+    font-size: 18px;
+    margin: 0;
+}
+
+#close-inventory {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    line-height: 24px;
+    transition: all 0.2s;
+}
+
+#close-inventory:hover {
+    color: #FFC107;
+    transform: scale(1.2);
+}
+
+#inventory-items {
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.inventory-item {
+    margin: 8px 0;
+    padding: 10px;
+    background: rgba(76, 175, 80, 0.2);
+    border-radius: 5px;
+    border-left: 3px solid #4CAF50;
+    color: #fff;
+}
+
+.empty-message {
+    color: #888;
+    font-style: italic;
+    text-align: center;
 }
 
 /* Crosshair */
-#ui-overlay::before {
-    content: '+';
+#crosshair {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 32px;
-    color: rgba(255, 255, 255, 0.5);
+    width: 20px;
+    height: 20px;
     pointer-events: none;
+}
+
+#crosshair::before,
+#crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#crosshair::before {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+#crosshair::after {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    transform: translateX(-50%);
+}
+
+/* Hint Text */
+#hint-text {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    color: #FFC107;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: 2px solid #FFC107;
+    display: none;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+#hint-text.visible {
+    display: block;
+}
+
+/* Scrollbar styling */
+#inventory-items::-webkit-scrollbar {
+    width: 8px;
+}
+
+#inventory-items::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#inventory-items::-webkit-scrollbar-thumb {
+    background: rgba(255, 193, 7, 0.5);
+    border-radius: 4px;
+}
+
+#inventory-items::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 193, 7, 0.7);
 }
