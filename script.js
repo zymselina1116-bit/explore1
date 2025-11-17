@@ -148,6 +148,32 @@ async function init() {
     await buildIndustrialHallScene();
     console.log('Scene built successfully');
 
+    // Debug: Print all meshes in the scene
+    console.log('\n========== SCENE MESH DEBUG ==========');
+    scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+            const name = object.name || 'Unnamed';
+            const geomType = object.geometry.type;
+            const pos = object.position;
+            const mat = object.material;
+
+            let materialInfo = '';
+            if (mat.map) {
+                materialInfo = `Textured (${mat.map ? 'has texture' : 'no texture'})`;
+            } else {
+                materialInfo = `Plain color: ${mat.color ? '#' + mat.color.getHexString() : 'none'}`;
+            }
+
+            console.log(`Mesh: "${name}"`);
+            console.log(`  Geometry: ${geomType}`);
+            console.log(`  Position: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+            console.log(`  Material: ${materialInfo}`);
+            console.log(`  Has texture map: ${!!mat.map}`);
+            console.log('---');
+        }
+    });
+    console.log('========== END MESH DEBUG ==========\n');
+
     // Start animation
     console.log('Starting animation loop');
     animate();
