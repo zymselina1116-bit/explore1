@@ -44,7 +44,7 @@ let moveLeft = false;
 let moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const PLAYER_SPEED = 10.0;
+const PLAYER_SPEED = 25.0;
 const PLAYER_HEIGHT = 1.6;
 
 // Double-click detection
@@ -53,9 +53,9 @@ const DOUBLE_CLICK_THRESHOLD = 250;
 
 // Door animation
 let doorAnimating = false;
-let doorRotation = 0;
-const DOOR_TARGET_ROTATION = Math.PI / 2;
-const DOOR_ANIMATION_SPEED = 2.0;
+let doorPosition = 0;
+const DOOR_TARGET_POSITION = 5;
+const DOOR_ANIMATION_SPEED = 3.0;
 
 // Alarm lights
 let alarmLights = [];
@@ -339,25 +339,23 @@ async function buildIndustrialHallScene() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambientLight);
 
-    // Main door
-    const doorGroup = new THREE.Group();
-    doorGroup.position.set(-2, 0, 19.8);
-    scene.add(doorGroup);
-
+    // Main door (glass sliding door)
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
     const doorMaterial = new THREE.MeshStandardMaterial({
         map: doorTexture,
-        color: doorTexture ? 0xffffff : 0x666666,
+        color: doorTexture ? 0xffffff : 0x888888,
         metalness: 0.3,
-        roughness: 0.7,
+        roughness: 0.4,
+        transparent: true,
+        opacity: 0.7,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(2, 2.5, 0);
+    door.position.set(0, 2.5, 19.8);
     door.castShadow = true;
-    doorGroup.add(door);
+    scene.add(door);
 
     // Store door reference for animation
-    window.gameDoor = doorGroup;
+    window.gameDoor = door;
 
     // Exit sign
     const exitSign = new THREE.Mesh(
@@ -372,45 +370,77 @@ async function buildIndustrialHallScene() {
     exitSign.position.set(0, 5.5, 19.5);
     scene.add(exitSign);
 
-    // Access card board on wall
-    const cardBoard = new THREE.Mesh(
-        new THREE.BoxGeometry(3, 2, 0.2),
-        new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+    // Metal key board on wall
+    const keyBoard = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 3, 0.15),
+        new THREE.MeshStandardMaterial({
+            color: 0x555555,
+            metalness: 0.9,
+            roughness: 0.3,
+        })
     );
-    cardBoard.position.set(-10, 2, 19.7);
-    scene.add(cardBoard);
+    keyBoard.position.set(-10, 2.5, 19.75);
+    keyBoard.castShadow = true;
+    scene.add(keyBoard);
 
-    // Decorative keys
-    const keyMaterial = new THREE.MeshStandardMaterial({
-        color: 0xFFD700,
-        metalness: 0.8,
-        roughness: 0.2,
+    // Decorative keys (various shapes and materials)
+    const keyPositions = [
+        [-11.2, 3.2, 19.9],
+        [-10.6, 3.5, 19.9],
+        [-10.0, 3.3, 19.9],
+        [-9.4, 3.6, 19.9],
+        [-8.8, 3.4, 19.9],
+        [-11.3, 2.5, 19.9],
+        [-10.2, 2.6, 19.9],
+        [-9.1, 2.4, 19.9],
+        [-11.5, 1.8, 19.9],
+        [-10.5, 1.7, 19.9],
+        [-9.5, 1.9, 19.9],
+        [-8.7, 1.6, 19.9],
+    ];
+
+    const keyMaterials = [
+        new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.2 }), // Gold
+        new THREE.MeshStandardMaterial({ color: 0xC0C0C0, metalness: 0.85, roughness: 0.25 }), // Silver
+        new THREE.MeshStandardMaterial({ color: 0x8B7355, metalness: 0.6, roughness: 0.4 }), // Bronze
+        new THREE.MeshStandardMaterial({ color: 0x4A4A4A, metalness: 0.7, roughness: 0.3 }), // Dark iron
+    ];
+
+    keyPositions.forEach((pos, i) => {
+        const material = keyMaterials[i % keyMaterials.length];
+        const keyShape = i % 3 === 0 ?
+            new THREE.BoxGeometry(0.15, 0.5, 0.08) :
+            i % 3 === 1 ?
+            new THREE.BoxGeometry(0.2, 0.6, 0.06) :
+            new THREE.BoxGeometry(0.12, 0.45, 0.07);
+
+        const key = new THREE.Mesh(keyShape, material);
+        key.position.set(...pos);
+        key.rotation.z = (Math.random() - 0.5) * 0.3;
+        key.castShadow = true;
+        scene.add(key);
     });
-    const key1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.1), keyMaterial);
-    key1.position.set(-10.8, 2.5, 19.9);
-    scene.add(key1);
 
-    const key2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.1), keyMaterial);
-    key2.position.set(-9.2, 2.5, 19.9);
-    scene.add(key2);
-
-    // Access card (interactive)
-    const cardGeometry = new THREE.BoxGeometry(0.6, 0.9, 0.05);
+    // Access card (interactive) - distinct from keys
+    const cardGeometry = new THREE.BoxGeometry(0.5, 0.8, 0.03);
     const cardMaterial = new THREE.MeshStandardMaterial({
-        color: 0x00BFFF,
-        emissive: 0x00BFFF,
-        emissiveIntensity: 0.5,
-        metalness: 0.5,
-        roughness: 0.3,
+        color: 0x2C3E50,
+        metalness: 0.3,
+        roughness: 0.6,
+        emissive: 0x1a4d6d,
+        emissiveIntensity: 0.2,
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
-    accessCard.position.set(-10, 1.5, 19.9);
+    accessCard.position.set(-10, 2.2, 19.9);
     scene.add(accessCard);
 
-    // Card glow light
-    const cardLight = new THREE.PointLight(0x00BFFF, 0.5, 3);
-    cardLight.position.set(-10, 1.5, 20);
-    scene.add(cardLight);
+    // Card stripe
+    const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.15, 0.01),
+        new THREE.MeshStandardMaterial({ color: 0x000000 })
+    );
+    stripe.position.set(-10, 2.4, 19.92);
+    scene.add(stripe);
 
     // Interactive card object
     const cardInteractive = {
@@ -419,13 +449,28 @@ async function buildIndustrialHallScene() {
         id: 'scene1_card_access',
         hintText: 'Double-click to pick up access card',
         onDoubleClick: () => {
-            gameState.hasAccessCard = true;
-            gameState.inventory.add('Access Card');
-            scene.remove(accessCard);
-            scene.remove(cardLight);
-            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
-            updateInventoryUI();
-            console.log('Access card collected');
+            // Lift animation
+            const startZ = accessCard.position.z;
+            const startScale = 1;
+            let liftProgress = 0;
+
+            const liftInterval = setInterval(() => {
+                liftProgress += 0.05;
+                if (liftProgress >= 1) {
+                    clearInterval(liftInterval);
+                    gameState.hasAccessCard = true;
+                    gameState.inventory.add('Access Card');
+                    scene.remove(accessCard);
+                    scene.remove(stripe);
+                    interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
+                    updateInventoryUI();
+                } else {
+                    accessCard.position.z = startZ + liftProgress * 0.5;
+                    accessCard.material.emissiveIntensity = 0.2 + liftProgress * 0.8;
+                    const scale = startScale + liftProgress * 0.2;
+                    accessCard.scale.set(scale, scale, scale);
+                }
+            }, 20);
         }
     };
     interactiveObjects.push(cardInteractive);
@@ -484,12 +529,25 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(cardReaderInteractive);
 
-    // Red corner alarm lights
+    // Red alarm lights (more coverage)
     const alarmPositions = [
+        // Corners
         [-18, 5.5, -18],
         [18, 5.5, -18],
         [-18, 5.5, 18],
         [18, 5.5, 18],
+        // Wall midpoints
+        [0, 5.5, -18],
+        [-18, 5.5, 0],
+        [18, 5.5, 0],
+        [10, 5.5, 18],
+        // Additional scattered lights
+        [-10, 5.3, -10],
+        [10, 5.3, -10],
+        [-10, 5.3, 10],
+        [8, 5.3, 8],
+        [-15, 5.2, -5],
+        [15, 5.2, 5],
     ];
 
     alarmPositions.forEach(pos => {
@@ -593,14 +651,14 @@ function update(delta) {
         hintText.classList.remove('visible');
     }
 
-    // Door animation
+    // Door animation (slide to the right)
     if (doorAnimating && window.gameDoor) {
-        doorRotation += DOOR_ANIMATION_SPEED * delta;
-        if (doorRotation >= DOOR_TARGET_ROTATION) {
-            doorRotation = DOOR_TARGET_ROTATION;
+        doorPosition += DOOR_ANIMATION_SPEED * delta;
+        if (doorPosition >= DOOR_TARGET_POSITION) {
+            doorPosition = DOOR_TARGET_POSITION;
             doorAnimating = false;
         }
-        window.gameDoor.rotation.y = doorRotation;
+        window.gameDoor.position.x = doorPosition;
     }
 
     // Alarm lights pulsing
