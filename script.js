@@ -139,9 +139,6 @@ async function init() {
     // Event listeners
     setupEventListeners();
 
-    // Update UI
-    updateInventoryUI();
-
     // Build scene
     console.log('Building scene...');
     await buildIndustrialHallScene();
@@ -168,17 +165,6 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener('resize', onWindowResize);
-
-    // Inventory UI
-    document.getElementById('inventory-button').addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.getElementById('inventory-panel').classList.toggle('hidden');
-    });
-
-    document.getElementById('close-inventory').addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.getElementById('inventory-panel').classList.add('hidden');
-    });
 }
 
 function onKeyDown(event) {
@@ -244,14 +230,13 @@ function onMouseMove(event) {
         previousMousePosition = { x: event.clientX, y: event.clientY };
     }
 
-    // Update hover hint (only when not dragging)
+    // Update hover object (only when not dragging)
     if (!isDragging && controls.isLocked) {
         raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
         const intersects = raycaster.intersectObjects(
             interactiveObjects.map(obj => obj.mesh)
         );
 
-        const hintText = document.getElementById('hint-text');
         if (intersects.length > 0) {
             const intersectedMesh = intersects[0].object;
             const interactiveObj = interactiveObjects.find(
@@ -260,15 +245,11 @@ function onMouseMove(event) {
 
             if (interactiveObj) {
                 currentHoveredObject = interactiveObj;
-                hintText.textContent = interactiveObj.hintText;
-                hintText.classList.add('visible');
             } else {
                 currentHoveredObject = null;
-                hintText.classList.remove('visible');
             }
         } else {
             currentHoveredObject = null;
-            hintText.classList.remove('visible');
         }
     }
 }
@@ -309,8 +290,9 @@ async function buildIndustrialHallScene() {
     const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
     console.log('Floor texture loaded:', !!floorTexture);
 
-    // Floor
-    const floorGeometry = new THREE.PlaneGeometry(40, 40);
+    // Floor (smaller room)
+    const roomSize = 25;
+    const floorGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
     const floorMaterial = new THREE.MeshStandardMaterial({
         map: floorTexture,
         color: floorTexture ? 0xffffff : 0x444444,
@@ -323,6 +305,7 @@ async function buildIndustrialHallScene() {
 
     // Walls (brushed metal - no texture to save GPU)
     const wallHeight = 6;
+    const halfRoom = roomSize / 2;
     const wallMaterial = new THREE.MeshStandardMaterial({
         color: 0x666666,
         metalness: 0.6,
@@ -331,49 +314,49 @@ async function buildIndustrialHallScene() {
 
     // Back wall
     const backWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(40, wallHeight),
+        new THREE.PlaneGeometry(roomSize, wallHeight),
         wallMaterial
     );
-    backWall.position.set(0, wallHeight / 2, -20);
+    backWall.position.set(0, wallHeight / 2, -halfRoom);
     scene.add(backWall);
 
     // Front wall (with door gap)
     const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(12, wallHeight),
+        new THREE.PlaneGeometry(8, wallHeight),
         wallMaterial
     );
-    frontWallLeft.position.set(-14, wallHeight / 2, 20);
+    frontWallLeft.position.set(-8.5, wallHeight / 2, halfRoom);
     frontWallLeft.rotation.y = Math.PI;
     scene.add(frontWallLeft);
 
     const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(12, wallHeight),
+        new THREE.PlaneGeometry(8, wallHeight),
         wallMaterial
     );
-    frontWallRight.position.set(14, wallHeight / 2, 20);
+    frontWallRight.position.set(8.5, wallHeight / 2, halfRoom);
     frontWallRight.rotation.y = Math.PI;
     scene.add(frontWallRight);
 
     // Left wall
     const leftWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(40, wallHeight),
+        new THREE.PlaneGeometry(roomSize, wallHeight),
         wallMaterial
     );
-    leftWall.position.set(-20, wallHeight / 2, 0);
+    leftWall.position.set(-halfRoom, wallHeight / 2, 0);
     leftWall.rotation.y = Math.PI / 2;
     scene.add(leftWall);
 
     // Right wall
     const rightWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(40, wallHeight),
+        new THREE.PlaneGeometry(roomSize, wallHeight),
         wallMaterial
     );
-    rightWall.position.set(20, wallHeight / 2, 0);
+    rightWall.position.set(halfRoom, wallHeight / 2, 0);
     rightWall.rotation.y = -Math.PI / 2;
     scene.add(rightWall);
 
     // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(40, 40);
+    const ceilingGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
     const ceilingMaterial = new THREE.MeshStandardMaterial({
         color: 0x333333,
         roughness: 0.9,
@@ -384,44 +367,44 @@ async function buildIndustrialHallScene() {
     scene.add(ceiling);
 
     // Single ceiling light (reduced for performance)
-    const light = new THREE.PointLight(0xffddcc, 1.5, 30);
+    const light = new THREE.PointLight(0xffddcc, 2.5, 25);
     light.position.set(0, wallHeight - 1, 0);
     light.castShadow = false; // Disable shadows for performance
     scene.add(light);
 
-    // Ambient light (with red tint, brighter)
-    const ambientLight = new THREE.AmbientLight(0xff6666, 0.7);
+    // Ambient light (with red tint, much brighter)
+    const ambientLight = new THREE.AmbientLight(0xff4444, 1.5);
     scene.add(ambientLight);
 
-    // Two large red ceiling warning lights with gradient
-    const mainRedLight1 = new THREE.SpotLight(0xff0000, 8, 25, Math.PI / 4, 0.5, 2);
-    mainRedLight1.position.set(-8, wallHeight - 0.5, -5);
-    mainRedLight1.target.position.set(-8, 0, -5);
+    // Two large red ceiling warning lights with gradient (much brighter)
+    const mainRedLight1 = new THREE.SpotLight(0xff0000, 15, 20, Math.PI / 4, 0.5, 2);
+    mainRedLight1.position.set(-6, wallHeight - 0.5, -4);
+    mainRedLight1.target.position.set(-6, 0, -4);
     scene.add(mainRedLight1);
     scene.add(mainRedLight1.target);
 
-    // Shared geometry and material for large red lights (optimized)
+    // Shared geometry and material for large red lights (optimized, brighter)
     const largeRedGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24);
     const largeRedMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
         emissive: 0xff0000,
-        emissiveIntensity: 2.5,
+        emissiveIntensity: 3.5,
     });
 
     // Visual mesh for first large red light
     const largeRedMesh1 = new THREE.Mesh(largeRedGeometry, largeRedMaterial);
-    largeRedMesh1.position.set(-8, wallHeight - 0.5, -5);
+    largeRedMesh1.position.set(-6, wallHeight - 0.5, -4);
     scene.add(largeRedMesh1);
 
-    const mainRedLight2 = new THREE.SpotLight(0xff0000, 8, 25, Math.PI / 4, 0.5, 2);
-    mainRedLight2.position.set(8, wallHeight - 0.5, 5);
-    mainRedLight2.target.position.set(8, 0, 5);
+    const mainRedLight2 = new THREE.SpotLight(0xff0000, 15, 20, Math.PI / 4, 0.5, 2);
+    mainRedLight2.position.set(6, wallHeight - 0.5, 4);
+    mainRedLight2.target.position.set(6, 0, 4);
     scene.add(mainRedLight2);
     scene.add(mainRedLight2.target);
 
     // Visual mesh for second large red light
     const largeRedMesh2 = new THREE.Mesh(largeRedGeometry, largeRedMaterial);
-    largeRedMesh2.position.set(8, wallHeight - 0.5, 5);
+    largeRedMesh2.position.set(6, wallHeight - 0.5, 4);
     scene.add(largeRedMesh2);
 
     // Store for animation
@@ -440,7 +423,7 @@ async function buildIndustrialHallScene() {
         opacity: 0.6,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, 2.5, 19.8);
+    door.position.set(0, 2.5, halfRoom - 0.7);
     scene.add(door);
 
     // Store door reference for animation
@@ -455,7 +438,7 @@ async function buildIndustrialHallScene() {
             emissiveIntensity: 0.8,
         })
     );
-    exitSign.position.set(0, 5.5, 19.5);
+    exitSign.position.set(0, 5.5, halfRoom - 1);
     scene.add(exitSign);
 
     // Metal key board on wall
@@ -467,13 +450,13 @@ async function buildIndustrialHallScene() {
             roughness: 0.3,
         })
     );
-    keyBoard.position.set(-10, 2.5, 19.75);
+    keyBoard.position.set(-8, 2.5, halfRoom - 0.75);
     scene.add(keyBoard);
 
-    // Small spotlight lamp above key board
-    const keyBoardSpotlight = new THREE.SpotLight(0xffddaa, 2, 8, Math.PI / 6, 0.3, 1.5);
-    keyBoardSpotlight.position.set(-10, 4.8, 19.5);
-    keyBoardSpotlight.target.position.set(-10, 2.5, 19.75);
+    // Spotlight lamp just above key board (brighter yellow light)
+    const keyBoardSpotlight = new THREE.SpotLight(0xffff44, 6, 6, Math.PI / 5, 0.4, 1.5);
+    keyBoardSpotlight.position.set(-8, 3.8, halfRoom - 1.5);
+    keyBoardSpotlight.target.position.set(-8, 2.5, halfRoom - 0.75);
     scene.add(keyBoardSpotlight);
     scene.add(keyBoardSpotlight.target);
 
@@ -486,24 +469,24 @@ async function buildIndustrialHallScene() {
             roughness: 0.3,
         })
     );
-    lampFixture.position.set(-10, 4.9, 19.5);
+    lampFixture.position.set(-8, 3.9, halfRoom - 1.5);
     lampFixture.rotation.x = Math.PI / 6;
     scene.add(lampFixture);
 
     // Decorative keys (various shapes and materials)
     const keyPositions = [
-        [-11.2, 3.2, 19.9],
-        [-10.6, 3.5, 19.9],
-        [-10.0, 3.3, 19.9],
-        [-9.4, 3.6, 19.9],
-        [-8.8, 3.4, 19.9],
-        [-11.3, 2.5, 19.9],
-        [-10.2, 2.6, 19.9],
-        [-9.1, 2.4, 19.9],
-        [-11.5, 1.8, 19.9],
-        [-10.5, 1.7, 19.9],
-        [-9.5, 1.9, 19.9],
-        [-8.7, 1.6, 19.9],
+        [-9.2, 3.2, halfRoom - 0.6],
+        [-8.6, 3.5, halfRoom - 0.6],
+        [-8.0, 3.3, halfRoom - 0.6],
+        [-7.4, 3.6, halfRoom - 0.6],
+        [-6.8, 3.4, halfRoom - 0.6],
+        [-9.3, 2.5, halfRoom - 0.6],
+        [-8.2, 2.6, halfRoom - 0.6],
+        [-7.1, 2.4, halfRoom - 0.6],
+        [-9.5, 1.8, halfRoom - 0.6],
+        [-8.5, 1.7, halfRoom - 0.6],
+        [-7.5, 1.9, halfRoom - 0.6],
+        [-6.7, 1.6, halfRoom - 0.6],
     ];
 
     // Shared key materials (optimized for GPU)
@@ -541,7 +524,7 @@ async function buildIndustrialHallScene() {
         emissiveIntensity: 0.2,
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
-    accessCard.position.set(-10, 2.2, 19.9);
+    accessCard.position.set(-8, 2.2, halfRoom - 0.6);
     scene.add(accessCard);
 
     // Card stripe
@@ -549,7 +532,7 @@ async function buildIndustrialHallScene() {
         new THREE.BoxGeometry(0.5, 0.15, 0.01),
         new THREE.MeshStandardMaterial({ color: 0x000000 })
     );
-    stripe.position.set(-10, 2.4, 19.92);
+    stripe.position.set(-8, 2.4, halfRoom - 0.58);
     scene.add(stripe);
 
     // Interactive card object
@@ -573,7 +556,6 @@ async function buildIndustrialHallScene() {
                     scene.remove(accessCard);
                     scene.remove(stripe);
                     interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
-                    updateInventoryUI();
                 } else {
                     accessCard.position.z = startZ + liftProgress * 0.5;
                     accessCard.material.emissiveIntensity = 0.2 + liftProgress * 0.8;
@@ -587,7 +569,7 @@ async function buildIndustrialHallScene() {
 
     // Card reader near door
     const readerGroup = new THREE.Group();
-    readerGroup.position.set(3, 1.3, 19.5);
+    readerGroup.position.set(3, 1.3, halfRoom - 1);
     scene.add(readerGroup);
 
     const readerBox = new THREE.Mesh(
@@ -639,19 +621,19 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(cardReaderInteractive);
 
-    // Red alarm lights (reduced for performance)
+    // Red alarm lights (reduced for performance, adjusted for smaller room)
     const alarmPositions = [
-        [-18, 5.5, -18],
-        [18, 5.5, -18],
-        [-18, 5.5, 18],
-        [18, 5.5, 18],
+        [-11, 5.5, -11],
+        [11, 5.5, -11],
+        [-11, 5.5, 11],
+        [11, 5.5, 11],
     ];
 
-    // Shared material for all alarm lights (reduces GPU load)
+    // Shared material for all alarm lights (reduces GPU load, brighter)
     const alarmMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
         emissive: 0xff0000,
-        emissiveIntensity: 2.0,
+        emissiveIntensity: 3.0,
     });
 
     alarmPositions.forEach(pos => {
@@ -662,7 +644,7 @@ async function buildIndustrialHallScene() {
         alarmMesh.position.set(...pos);
         scene.add(alarmMesh);
 
-        const alarmLight = new THREE.PointLight(0xff0000, 3, 20);
+        const alarmLight = new THREE.PointLight(0xff0000, 5, 18);
         alarmLight.position.set(...pos);
         alarmLight.castShadow = false; // Disable shadows for performance
         scene.add(alarmLight);
@@ -671,25 +653,6 @@ async function buildIndustrialHallScene() {
     });
 
     console.log('Industrial Hall scene built');
-}
-
-// ====================================================================
-// UPDATE INVENTORY UI
-// ====================================================================
-function updateInventoryUI() {
-    const itemsDiv = document.getElementById('inventory-items');
-    itemsDiv.innerHTML = '';
-
-    if (gameState.inventory.size === 0) {
-        itemsDiv.innerHTML = '<p class="empty-message">Inventory is empty</p>';
-    } else {
-        gameState.inventory.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'inventory-item';
-            itemDiv.textContent = item;
-            itemsDiv.appendChild(itemDiv);
-        });
-    }
 }
 
 // ====================================================================
@@ -726,8 +689,8 @@ function update(delta) {
     camera.position.x += moveX * delta;
     camera.position.z += moveZ * delta;
 
-    // Collision detection (simple boundary)
-    if (camera.position.x < -18 || camera.position.x > 18 || camera.position.z < -18 || camera.position.z > 18) {
+    // Collision detection (simple boundary for smaller room)
+    if (camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11 || camera.position.z > 11) {
         camera.position.copy(prevPosition);
     }
 
@@ -740,7 +703,6 @@ function update(delta) {
         interactiveObjects.map(obj => obj.mesh)
     );
 
-    const hintText = document.getElementById('hint-text');
     if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object;
         const interactiveObj = interactiveObjects.find(
@@ -749,15 +711,11 @@ function update(delta) {
 
         if (interactiveObj) {
             currentHoveredObject = interactiveObj;
-            hintText.textContent = interactiveObj.hintText;
-            hintText.classList.add('visible');
         } else {
             currentHoveredObject = null;
-            hintText.classList.remove('visible');
         }
     } else {
         currentHoveredObject = null;
-        hintText.classList.remove('visible');
     }
 
     // Door animation (slide to the right)
@@ -770,23 +728,23 @@ function update(delta) {
         window.gameDoor.position.x = doorPosition;
     }
 
-    // Main red ceiling lights - slow rhythmic breathing
+    // Main red ceiling lights - slow rhythmic breathing (brighter)
     const time = clock.getElapsedTime();
     if (window.mainRedLights) {
         const breathe = Math.sin(time * 0.8) * 0.3 + 0.7; // Slow pulse (0.4 to 1.0)
         window.mainRedLights.forEach(redLight => {
-            redLight.light.intensity = 6 + breathe * 4;
-            redLight.mesh.material.emissiveIntensity = 2 + breathe * 1.5;
+            redLight.light.intensity = 12 + breathe * 6;
+            redLight.mesh.material.emissiveIntensity = 3 + breathe * 2;
         });
     }
 
-    // Smaller alarm lights pulsing (dramatic flashing)
+    // Smaller alarm lights pulsing (dramatic flashing, brighter)
     alarmLights.forEach((alarm, index) => {
         const offset = index * 0.5;
         const intensity = Math.abs(Math.sin(time * 4 + offset));
         const sparkle = Math.random() * 0.3;
-        alarm.mesh.material.emissiveIntensity = 1.5 + intensity * 2 + sparkle;
-        alarm.light.intensity = 2 + intensity * 6 + sparkle;
+        alarm.mesh.material.emissiveIntensity = 2.5 + intensity * 3 + sparkle;
+        alarm.light.intensity = 4 + intensity * 8 + sparkle;
     });
 }
 
