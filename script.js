@@ -8,7 +8,9 @@ const TEXTURES = {
     scene1_wall: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/44ebc1274ca1099f2da11fc8d188c978b4e06d9c/Screenshot%202025-11-16%20at%2022.53.11.png',
     scene1_door: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/af6d3787ad8d805c5381d5c308c37c6ecb8387a4/Screenshot%202025-11-16%20at%2022.54.35.png',
     scene1_exit: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/0bb7f69d2a004aaac9d57b42d97eeb0c440783e6/Screenshot%202025-11-16%20at%2022.55.14.png',
-    scene2_floor: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/65229e54cc1ec812e488d460e933fd2518352e3b/Screenshot%202025-11-16%20at%2022.56.00.png'
+    scene2_floor: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/65229e54cc1ec812e488d460e933fd2518352e3b/Screenshot%202025-11-16%20at%2022.56.00.png',
+    keyBoard: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/9ab3c168a10a41d2fe3597c3822f637864d4cd87/Screenshot%202025-11-17%20at%2011.10.47.png',
+    accessCard: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/9ab3c168a10a41d2fe3597c3822f637864d4cd87/Screenshot%202025-11-16%20at%2023.30.10.png'
 };
 
 // ====================================================================
@@ -306,7 +308,9 @@ async function buildIndustrialHallScene() {
     const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
     const doorTexture = await loadTexture(TEXTURES.scene1_door, 1, 1);
     const exitTexture = await loadTexture(TEXTURES.scene1_exit, 1, 1);
-    console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture);
+    const keyBoardTexture = await loadTexture(TEXTURES.keyBoard, 1, 1);
+    const accessCardTexture = await loadTexture(TEXTURES.accessCard, 1, 1);
+    console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture);
 
     // Floor (smaller room)
     const roomSize = 25;
@@ -448,6 +452,20 @@ async function buildIndustrialHallScene() {
     // Store door reference for animation
     window.gameDoor = door;
 
+    // Interactive door - shows message if no card
+    const doorInteractive = {
+        mesh: door,
+        type: 'door',
+        id: 'scene1_main_door',
+        hintText: 'Click to open door',
+        onClick: () => {
+            if (!gameState.hasAccessCard) {
+                alert('Find the key');
+            }
+        }
+    };
+    interactiveObjects.push(doorInteractive);
+
     // Exit sign (with texture)
     const exitSign = new THREE.Mesh(
         new THREE.BoxGeometry(2, 0.5, 0.1),
@@ -461,13 +479,14 @@ async function buildIndustrialHallScene() {
     exitSign.position.set(0, 5.5, halfRoom - 1);
     scene.add(exitSign);
 
-    // Metal key board on wall
+    // Metal key board on wall (with texture)
     const keyBoard = new THREE.Mesh(
         new THREE.BoxGeometry(4, 3, 0.15),
         new THREE.MeshStandardMaterial({
-            color: 0x555555,
-            metalness: 0.9,
-            roughness: 0.3,
+            map: keyBoardTexture,
+            color: keyBoardTexture ? 0xffffff : 0x555555,
+            metalness: 0.3,
+            roughness: 0.5,
         })
     );
     keyBoard.position.set(-8, 2.5, halfRoom - 0.75);
@@ -503,71 +522,20 @@ async function buildIndustrialHallScene() {
     lampFixture.rotation.x = Math.PI / 6;
     scene.add(lampFixture);
 
-    // Decorative keys (various shapes and materials) - in front of board
-    const keyPositions = [
-        [-9.2, 3.2, halfRoom - 0.65],
-        [-8.6, 3.5, halfRoom - 0.65],
-        [-8.0, 3.3, halfRoom - 0.65],
-        [-7.4, 3.6, halfRoom - 0.65],
-        [-6.8, 3.4, halfRoom - 0.65],
-        [-9.3, 2.5, halfRoom - 0.65],
-        [-8.2, 2.6, halfRoom - 0.65],
-        [-7.1, 2.4, halfRoom - 0.65],
-        [-9.5, 1.8, halfRoom - 0.65],
-        [-8.5, 1.7, halfRoom - 0.65],
-        [-7.5, 1.9, halfRoom - 0.65],
-        [-6.7, 1.6, halfRoom - 0.65],
-    ];
-
-    // Shared key materials (optimized for GPU)
-    const keyMaterials = [
-        new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.2 }), // Gold
-        new THREE.MeshStandardMaterial({ color: 0xC0C0C0, metalness: 0.85, roughness: 0.25 }), // Silver
-        new THREE.MeshStandardMaterial({ color: 0x8B7355, metalness: 0.6, roughness: 0.4 }), // Bronze
-        new THREE.MeshStandardMaterial({ color: 0x4A4A4A, metalness: 0.7, roughness: 0.3 }), // Dark iron
-    ];
-
-    // Shared key geometries (optimized for GPU)
-    const keyGeometries = [
-        new THREE.BoxGeometry(0.15, 0.5, 0.08),
-        new THREE.BoxGeometry(0.2, 0.6, 0.06),
-        new THREE.BoxGeometry(0.12, 0.45, 0.07)
-    ];
-
-    keyPositions.forEach((pos, i) => {
-        const material = keyMaterials[i % keyMaterials.length];
-        const keyShape = keyGeometries[i % keyGeometries.length];
-
-        const key = new THREE.Mesh(keyShape, material);
-        key.position.set(...pos);
-        key.rotation.z = (Math.random() - 0.5) * 0.3;
-        scene.add(key);
-    });
-
-    // Access card (interactive) - distinct from keys, in front of board
-    const cardGeometry = new THREE.BoxGeometry(0.5, 0.8, 0.03);
+    // Access card (interactive with texture) - positioned on key board
+    const cardGeometry = new THREE.BoxGeometry(0.6, 0.9, 0.03);
     const cardMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2C3E50,
-        metalness: 0.3,
+        map: accessCardTexture,
+        color: accessCardTexture ? 0xffffff : 0x2C3E50,
+        metalness: 0.1,
         roughness: 0.6,
-        emissive: 0x1a4d6d,
-        emissiveIntensity: 0.2,
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
-    accessCard.position.set(-8, 2.2, halfRoom - 0.65);
+    accessCard.position.set(-8, 2.5, halfRoom - 0.65);
     scene.add(accessCard);
 
-    // Card stripe
-    const stripe = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5, 0.15, 0.01),
-        new THREE.MeshStandardMaterial({ color: 0x000000 })
-    );
-    stripe.position.set(-8, 2.4, halfRoom - 0.63);
-    scene.add(stripe);
-
-    // Store card references
+    // Store card reference
     window.accessCardMesh = accessCard;
-    window.cardStripeMesh = stripe;
 
     // Interactive key board - click to zoom in
     const keyBoardInteractive = {
@@ -610,7 +578,6 @@ async function buildIndustrialHallScene() {
                     gameState.hasAccessCard = true;
                     gameState.inventory.add('Access Card');
                     scene.remove(accessCard);
-                    scene.remove(stripe);
                     interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
                     // Auto zoom out after collecting
                     isZoomedIn = false;
@@ -621,7 +588,6 @@ async function buildIndustrialHallScene() {
                     }
                 } else {
                     accessCard.position.z = startZ + liftProgress * 0.5;
-                    accessCard.material.emissiveIntensity = 0.2 + liftProgress * 0.8;
                     const scale = startScale + liftProgress * 0.2;
                     accessCard.scale.set(scale, scale, scale);
                 }
