@@ -63,12 +63,12 @@ let sceneBounds = { minX: -20, maxX: 20, minZ: -20, maxZ: 20 };
 function init() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);
-    scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
+    scene.background = new THREE.Color(0x333333);
+    scene.fog = new THREE.Fog(0x333333, 10, 50);
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, PLAYER_HEIGHT, 5);
+    camera.position.set(0, PLAYER_HEIGHT, 8);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -89,10 +89,10 @@ function init() {
     mouse = new THREE.Vector2();
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 10, 5);
     directionalLight.castShadow = true;
     directionalLight.shadow.camera.near = 0.1;
