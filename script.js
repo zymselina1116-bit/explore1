@@ -301,6 +301,22 @@ function onWindowResize() {
 }
 
 // ====================================================================
+// MESSAGE DISPLAY
+// ====================================================================
+function showMessage(text) {
+    const messageDiv = document.getElementById('message-display');
+    if (messageDiv) {
+        messageDiv.textContent = text;
+        messageDiv.style.display = 'block';
+
+        // Hide message after 2 seconds
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 2000);
+    }
+}
+
+// ====================================================================
 // BUILD INDUSTRIAL HALL SCENE
 // ====================================================================
 async function buildIndustrialHallScene() {
@@ -460,7 +476,7 @@ async function buildIndustrialHallScene() {
         hintText: 'Click to open door',
         onClick: () => {
             if (!gameState.hasAccessCard) {
-                alert('Find the key');
+                showMessage('Find the key');
             }
         }
     };
@@ -532,6 +548,7 @@ async function buildIndustrialHallScene() {
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
     accessCard.position.set(-8, 2.5, halfRoom - 0.65);
+    accessCard.rotation.y = Math.PI; // Rotate 180 degrees to face the room
     scene.add(accessCard);
 
     // Store card reference
