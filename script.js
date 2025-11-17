@@ -119,8 +119,7 @@ async function init() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = false; // Disabled for GPU performance
     document.body.appendChild(renderer.domElement);
     console.log('Renderer added to DOM');
 
@@ -320,7 +319,6 @@ async function buildIndustrialHallScene() {
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
     scene.add(floor);
 
     // Walls (brushed metal - no texture to save GPU)
@@ -337,7 +335,6 @@ async function buildIndustrialHallScene() {
         wallMaterial
     );
     backWall.position.set(0, wallHeight / 2, -20);
-    backWall.receiveShadow = true;
     scene.add(backWall);
 
     // Front wall (with door gap)
@@ -400,38 +397,30 @@ async function buildIndustrialHallScene() {
     const mainRedLight1 = new THREE.SpotLight(0xff0000, 8, 25, Math.PI / 4, 0.5, 2);
     mainRedLight1.position.set(-8, wallHeight - 0.5, -5);
     mainRedLight1.target.position.set(-8, 0, -5);
-    mainRedLight1.castShadow = true;
     scene.add(mainRedLight1);
     scene.add(mainRedLight1.target);
 
+    // Shared geometry and material for large red lights (optimized)
+    const largeRedGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24);
+    const largeRedMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 2.5,
+    });
+
     // Visual mesh for first large red light
-    const largeRedMesh1 = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.6, 0.6, 0.3, 32),
-        new THREE.MeshStandardMaterial({
-            color: 0xff0000,
-            emissive: 0xff0000,
-            emissiveIntensity: 2.5,
-        })
-    );
+    const largeRedMesh1 = new THREE.Mesh(largeRedGeometry, largeRedMaterial);
     largeRedMesh1.position.set(-8, wallHeight - 0.5, -5);
     scene.add(largeRedMesh1);
 
     const mainRedLight2 = new THREE.SpotLight(0xff0000, 8, 25, Math.PI / 4, 0.5, 2);
     mainRedLight2.position.set(8, wallHeight - 0.5, 5);
     mainRedLight2.target.position.set(8, 0, 5);
-    mainRedLight2.castShadow = true;
     scene.add(mainRedLight2);
     scene.add(mainRedLight2.target);
 
     // Visual mesh for second large red light
-    const largeRedMesh2 = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.6, 0.6, 0.3, 32),
-        new THREE.MeshStandardMaterial({
-            color: 0xff0000,
-            emissive: 0xff0000,
-            emissiveIntensity: 2.5,
-        })
-    );
+    const largeRedMesh2 = new THREE.Mesh(largeRedGeometry, largeRedMaterial);
     largeRedMesh2.position.set(8, wallHeight - 0.5, 5);
     scene.add(largeRedMesh2);
 
@@ -452,7 +441,6 @@ async function buildIndustrialHallScene() {
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
     door.position.set(0, 2.5, 19.8);
-    door.castShadow = true;
     scene.add(door);
 
     // Store door reference for animation
@@ -480,14 +468,12 @@ async function buildIndustrialHallScene() {
         })
     );
     keyBoard.position.set(-10, 2.5, 19.75);
-    keyBoard.castShadow = true;
     scene.add(keyBoard);
 
     // Small spotlight lamp above key board
     const keyBoardSpotlight = new THREE.SpotLight(0xffddaa, 2, 8, Math.PI / 6, 0.3, 1.5);
     keyBoardSpotlight.position.set(-10, 4.8, 19.5);
     keyBoardSpotlight.target.position.set(-10, 2.5, 19.75);
-    keyBoardSpotlight.castShadow = true;
     scene.add(keyBoardSpotlight);
     scene.add(keyBoardSpotlight.target);
 
@@ -520,6 +506,7 @@ async function buildIndustrialHallScene() {
         [-8.7, 1.6, 19.9],
     ];
 
+    // Shared key materials (optimized for GPU)
     const keyMaterials = [
         new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.2 }), // Gold
         new THREE.MeshStandardMaterial({ color: 0xC0C0C0, metalness: 0.85, roughness: 0.25 }), // Silver
@@ -527,18 +514,20 @@ async function buildIndustrialHallScene() {
         new THREE.MeshStandardMaterial({ color: 0x4A4A4A, metalness: 0.7, roughness: 0.3 }), // Dark iron
     ];
 
+    // Shared key geometries (optimized for GPU)
+    const keyGeometries = [
+        new THREE.BoxGeometry(0.15, 0.5, 0.08),
+        new THREE.BoxGeometry(0.2, 0.6, 0.06),
+        new THREE.BoxGeometry(0.12, 0.45, 0.07)
+    ];
+
     keyPositions.forEach((pos, i) => {
         const material = keyMaterials[i % keyMaterials.length];
-        const keyShape = i % 3 === 0 ?
-            new THREE.BoxGeometry(0.15, 0.5, 0.08) :
-            i % 3 === 1 ?
-            new THREE.BoxGeometry(0.2, 0.6, 0.06) :
-            new THREE.BoxGeometry(0.12, 0.45, 0.07);
+        const keyShape = keyGeometries[i % keyGeometries.length];
 
         const key = new THREE.Mesh(keyShape, material);
         key.position.set(...pos);
         key.rotation.z = (Math.random() - 0.5) * 0.3;
-        key.castShadow = true;
         scene.add(key);
     });
 
