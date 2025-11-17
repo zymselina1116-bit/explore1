@@ -138,7 +138,7 @@ async function init() {
 
     // Raycaster
     raycaster = new THREE.Raycaster();
-    raycaster.far = 3.5;
+    raycaster.far = 20; // Increased range to detect objects across the room
 
     // Clock
     clock = new THREE.Clock();
