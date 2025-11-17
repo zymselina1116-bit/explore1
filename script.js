@@ -354,9 +354,10 @@ async function buildIndustrialHallScene() {
     const halfRoom = roomSize / 2;
     const wallMaterial = new THREE.MeshStandardMaterial({
         map: wallTexture,
-        color: wallTexture ? 0xffffff : 0x666666,
+        color: wallTexture ? 0xffffff : 0xff0000, // Red if texture fails to load
         metalness: 0.6,
         roughness: 0.4,
+        side: THREE.DoubleSide, // Render both sides
     });
 
     // Back wall
@@ -443,11 +444,11 @@ async function buildIndustrialHallScene() {
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
     const doorMaterial = new THREE.MeshStandardMaterial({
         map: doorTexture,
-        color: doorTexture ? 0xffffff : 0x88aacc,
+        color: doorTexture ? 0xffffff : 0xff0000, // Red if texture fails
         metalness: 0.3,
         roughness: 0.4,
-        transparent: doorTexture ? false : true,
-        opacity: doorTexture ? 1.0 : 0.6,
+        transparent: false,
+        opacity: 1.0,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
     door.name = 'Door';
@@ -489,11 +490,12 @@ async function buildIndustrialHallScene() {
         new THREE.BoxGeometry(4, 3, 0.15),
         new THREE.MeshStandardMaterial({
             map: keyBoardTexture,
-            color: keyBoardTexture ? 0xffffff : 0x555555,
+            color: keyBoardTexture ? 0xffffff : 0xff0000, // Red if texture fails
             metalness: 0.3,
             roughness: 0.5,
         })
     );
+    keyBoard.name = 'KeyBoard';
     keyBoard.position.set(-8, 2.5, halfRoom - 0.75);
     scene.add(keyBoard);
 
@@ -516,18 +518,7 @@ async function buildIndustrialHallScene() {
     scene.add(flashlightTarget);
     flashlight.target = flashlightTarget;
 
-    // Lamp fixture visual
-    const lampFixture = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.2, 0.3, 16),
-        new THREE.MeshStandardMaterial({
-            color: 0x333333,
-            metalness: 0.8,
-            roughness: 0.3,
-        })
-    );
-    lampFixture.position.set(-8, 4.3, halfRoom - 1.2);
-    lampFixture.rotation.x = Math.PI / 6;
-    scene.add(lampFixture);
+    // Lamp fixture removed - no grey objects allowed
 
     // Decorative keys on board - facing the room (with texture)
     const keyPositions = [
