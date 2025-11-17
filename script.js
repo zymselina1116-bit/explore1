@@ -300,13 +300,14 @@ function showMessage(text) {
 async function buildIndustrialHallScene() {
     // Load textures
     const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
+    const wallTexture = await loadTexture(TEXTURES.scene1_wall, 2, 2);
     const doorTexture = await loadTexture(TEXTURES.scene1_door, 1, 1);
     const exitTexture = await loadTexture(TEXTURES.scene1_exit, 1, 1);
     const keyBoardTexture = await loadTexture(TEXTURES.keyBoard, 1, 1);
     const accessCardTexture = await loadTexture(TEXTURES.accessCard, 1, 1);
     const keyTexture = await loadTexture(TEXTURES.key, 1, 1);
     const cardReaderTexture = await loadTexture(TEXTURES.cardReader, 1, 1);
-    console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture, 'CardReader:', !!cardReaderTexture);
+    console.log('Textures loaded - Floor:', !!floorTexture, 'Wall:', !!wallTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture, 'CardReader:', !!cardReaderTexture);
 
     // Floor (extended beyond door for walkway)
     const roomSize = 25;
@@ -321,11 +322,12 @@ async function buildIndustrialHallScene() {
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // Walls (brushed metal - no texture to save GPU)
+    // Walls (with texture)
     const wallHeight = 6;
     const halfRoom = roomSize / 2;
     const wallMaterial = new THREE.MeshStandardMaterial({
-        color: 0x666666,
+        map: wallTexture,
+        color: wallTexture ? 0xffffff : 0x666666,
         metalness: 0.6,
         roughness: 0.4,
     });
