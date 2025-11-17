@@ -4,13 +4,13 @@ import * as THREE from 'https://esm.sh/three@0.160.0';
 // TEXTURE URLS
 // ====================================================================
 const TEXTURES = {
-    scene1_floor: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/8c6952697396504b8aa23247d0a822fd2f946340/Screenshot%202025-11-16%20at%2022.51.42.png',
-    scene1_wall: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/44ebc1274ca1099f2da11fc8d188c978b4e06d9c/Screenshot%202025-11-16%20at%2022.53.11.png',
-    scene1_door: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/af6d3787ad8d805c5381d5c308c37c6ecb8387a4/Screenshot%202025-11-16%20at%2022.54.35.png',
-    scene1_exit: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/0bb7f69d2a004aaac9d57b42d97eeb0c440783e6/Screenshot%202025-11-16%20at%2022.55.14.png',
-    scene2_floor: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/65229e54cc1ec812e488d460e933fd2518352e3b/Screenshot%202025-11-16%20at%2022.56.00.png',
-    keyBoard: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/9ab3c168a10a41d2fe3597c3822f637864d4cd87/Screenshot%202025-11-17%20at%2011.10.47.png',
-    accessCard: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/9ab3c168a10a41d2fe3597c3822f637864d4cd87/Screenshot%202025-11-16%20at%2023.30.10.png'
+    scene1_floor: './Screenshot 2025-11-16 at 22.51.42.png',
+    scene1_wall: './Screenshot 2025-11-16 at 22.53.11.png',
+    scene1_door: './Screenshot 2025-11-16 at 22.54.35.png',
+    scene1_exit: './Screenshot 2025-11-16 at 22.55.14.png',
+    scene2_floor: './Screenshot 2025-11-16 at 22.56.00.png',
+    keyBoard: './Screenshot 2025-11-16 at 23.31.20.png',
+    accessCard: './Screenshot 2025-11-16 at 23.30.10.png'
 };
 
 // ====================================================================
