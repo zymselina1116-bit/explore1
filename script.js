@@ -11,7 +11,8 @@ const TEXTURES = {
     scene2_floor: './Screenshot 2025-11-16 at 22.56.00.png',
     keyBoard: './Screenshot 2025-11-16 at 23.31.20.png',
     accessCard: './card-new.png',
-    key: './key-new.png'
+    key: './key-new.png',
+    cardReader: './card-reader.png'
 };
 
 // ====================================================================
@@ -303,7 +304,8 @@ async function buildIndustrialHallScene() {
     const keyBoardTexture = await loadTexture(TEXTURES.keyBoard, 1, 1);
     const accessCardTexture = await loadTexture(TEXTURES.accessCard, 1, 1);
     const keyTexture = await loadTexture(TEXTURES.key, 1, 1);
-    console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture);
+    const cardReaderTexture = await loadTexture(TEXTURES.cardReader, 1, 1);
+    console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture, 'CardReader:', !!cardReaderTexture);
 
     // Floor (smaller room)
     const roomSize = 25;
@@ -597,54 +599,36 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(cardInteractive);
 
-    // Card reader near door
-    const readerGroup = new THREE.Group();
-    readerGroup.position.set(3, 1.3, halfRoom - 1);
-    scene.add(readerGroup);
-
-    const readerBox = new THREE.Mesh(
-        new THREE.BoxGeometry(0.3, 0.5, 0.2),
+    // Card reader near door (with texture, matching image proportions)
+    const cardReaderMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.4, 0.6),
         new THREE.MeshStandardMaterial({
-            color: 0x444444,
-            metalness: 0.7,
-            roughness: 0.3,
+            map: cardReaderTexture,
+            transparent: true,
+            metalness: 0.2,
+            roughness: 0.6,
         })
     );
-    readerGroup.add(readerBox);
-
-    // Indicator light
-    const indicator = new THREE.Mesh(
-        new THREE.CircleGeometry(0.08, 16),
-        new THREE.MeshStandardMaterial({
-            color: 0xff0000,
-            emissive: 0xff0000,
-            emissiveIntensity: 1.0,
-        })
-    );
-    indicator.position.set(0, 0.15, 0.11);
-    readerGroup.add(indicator);
-
-    // Store indicator reference
-    window.cardReaderIndicator = indicator;
+    cardReaderMesh.position.set(3.5, 1.5, halfRoom - 0.85);
+    cardReaderMesh.rotation.y = Math.PI; // Face the room
+    scene.add(cardReaderMesh);
 
     // Interactive card reader
     const cardReaderInteractive = {
-        mesh: readerBox,
+        mesh: cardReaderMesh,
         type: 'cardReader',
         id: 'scene1_card_reader',
         hintText: 'Click to use card reader',
         onClick: () => {
             if (!gameState.hasAccessCard) {
-                console.log('You need an access card');
+                showMessage('You need an access card');
                 return;
             }
             if (!gameState.doorUnlocked) {
                 gameState.doorUnlocked = true;
-                // Change indicator to green
-                indicator.material.color.setHex(0x00ff00);
-                indicator.material.emissive.setHex(0x00ff00);
-                // Start door animation
+                // Start door opening animation
                 doorAnimating = true;
+                showMessage('Door unlocked');
                 console.log('Door unlocked');
             }
         }
