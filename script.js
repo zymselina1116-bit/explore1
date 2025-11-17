@@ -293,8 +293,22 @@ function onMouseUp(event) {
 function onMouseClick(event) {
     if (isDragging) return; // Don't interact if we were dragging
 
-    if (currentHoveredObject && currentHoveredObject.onClick) {
-        currentHoveredObject.onClick();
+    // Perform raycasting to find what we're clicking on
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.intersectObjects(
+        interactiveObjects.map(obj => obj.mesh)
+    );
+
+    if (intersects.length > 0) {
+        const intersectedMesh = intersects[0].object;
+        const interactiveObj = interactiveObjects.find(
+            obj => obj.mesh === intersectedMesh
+        );
+
+        if (interactiveObj && interactiveObj.onClick) {
+            console.log('Clicked on:', interactiveObj.id);
+            interactiveObj.onClick();
+        }
     }
 }
 
@@ -563,6 +577,7 @@ async function buildIndustrialHallScene() {
         roughness: 0.6,
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
+    accessCard.name = 'AccessCard';
     accessCard.position.set(-8, 2.5, halfRoom - 0.85); // In front of board
     accessCard.rotation.y = Math.PI; // Rotate 180 degrees to face the room
     scene.add(accessCard);
@@ -577,6 +592,7 @@ async function buildIndustrialHallScene() {
         id: 'scene1_card_access',
         hintText: 'Click to pick up access card',
         onClick: () => {
+            console.log('Access card clicked!');
             // Pick up card with lift animation
             const startZ = accessCard.position.z;
             const startScale = 1;
@@ -590,6 +606,7 @@ async function buildIndustrialHallScene() {
                     gameState.inventory.add('Access Card');
                     scene.remove(accessCard);
                     interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
+                    console.log('Access card picked up! gameState.hasAccessCard:', gameState.hasAccessCard);
                 } else {
                     accessCard.position.z = startZ + liftProgress * 0.5;
                     const scale = startScale + liftProgress * 0.2;
@@ -610,6 +627,7 @@ async function buildIndustrialHallScene() {
             roughness: 0.6,
         })
     );
+    cardReaderMesh.name = 'CardReader';
     cardReaderMesh.position.set(3, 1.5, halfRoom - 0.01); // Flush with wall
     cardReaderMesh.rotation.y = Math.PI; // Face the room
     scene.add(cardReaderMesh);
@@ -621,6 +639,7 @@ async function buildIndustrialHallScene() {
         id: 'scene1_card_reader',
         hintText: 'Click to use card reader',
         onClick: () => {
+            console.log('Card reader clicked! Has card:', gameState.hasAccessCard, 'Door unlocked:', gameState.doorUnlocked);
             if (!gameState.hasAccessCard) {
                 showMessage('You need an access card');
                 return;
@@ -630,7 +649,9 @@ async function buildIndustrialHallScene() {
                 // Start door opening animation
                 doorAnimating = true;
                 showMessage('Door unlocked');
-                console.log('Door unlocked');
+                console.log('Door unlocked! doorAnimating:', doorAnimating, 'gameDoor:', !!window.gameDoor);
+            } else {
+                console.log('Door already unlocked');
             }
         }
     };
