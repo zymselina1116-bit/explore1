@@ -430,7 +430,7 @@ async function buildIndustrialHallScene() {
         { light: mainRedLight2, mesh: largeRedMesh2 }
     ];
 
-    // Main door (with texture)
+    // Main door (with texture, flush with wall)
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
     const doorMaterial = new THREE.MeshStandardMaterial({
         map: doorTexture,
@@ -441,7 +441,7 @@ async function buildIndustrialHallScene() {
         opacity: doorTexture ? 1.0 : 0.6,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, 2.5, halfRoom - 0.7);
+    door.position.set(0, 2.5, halfRoom - 0.1); // Flush with wall
     scene.add(door);
 
     // Store door reference for animation
@@ -599,9 +599,9 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(cardInteractive);
 
-    // Card reader near door (with texture, matching image proportions)
+    // Card reader near door (with texture, flush with wall)
     const cardReaderMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.4, 0.6),
+        new THREE.PlaneGeometry(0.5, 0.7),
         new THREE.MeshStandardMaterial({
             map: cardReaderTexture,
             transparent: true,
@@ -609,7 +609,7 @@ async function buildIndustrialHallScene() {
             roughness: 0.6,
         })
     );
-    cardReaderMesh.position.set(3.5, 1.5, halfRoom - 0.85);
+    cardReaderMesh.position.set(3, 1.5, halfRoom - 0.01); // Flush with wall
     cardReaderMesh.rotation.y = Math.PI; // Face the room
     scene.add(cardReaderMesh);
 
@@ -715,8 +715,23 @@ function update(delta) {
     camera.position.z += moveZ * delta;
 
     // Collision detection (simple boundary for smaller room)
-    if (camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11 || camera.position.z > 11) {
+    const hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11;
+
+    // Check if trying to go through front wall
+    const atFrontWall = camera.position.z > 11;
+
+    // Allow passing through if door is open and player is in door area
+    const inDoorArea = camera.position.x > -2 && camera.position.x < 2;
+    const canPassThroughDoor = gameState.doorUnlocked && inDoorArea && atFrontWall;
+
+    if (hitWall || (atFrontWall && !canPassThroughDoor)) {
         camera.position.copy(prevPosition);
+    }
+
+    // Allow entering "next room" area when through door
+    if (canPassThroughDoor && camera.position.z > 13) {
+        // Player has entered next room area
+        console.log('Entered next room area');
     }
 
     // Keep player at correct height
