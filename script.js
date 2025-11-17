@@ -45,7 +45,7 @@ let moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const PLAYER_SPEED = 25.0;
-const PLAYER_HEIGHT = 1.6;
+const PLAYER_HEIGHT = 2.2;
 
 // Double-click detection
 let lastClickTime = 0;
@@ -92,8 +92,8 @@ function loadTexture(url, repeatX = 1, repeatY = 1) {
 async function init() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);
-    scene.fog = new THREE.FogExp2(0x1a1a1a, 0.015);
+    scene.background = new THREE.Color(0x2a1a1a);
+    scene.fog = new THREE.FogExp2(0x2a1515, 0.012);
 
     // Camera
     camera = new THREE.PerspectiveCamera(
@@ -329,14 +329,14 @@ async function buildIndustrialHallScene() {
         lightPanel.position.set((i - 1) * 8, wallHeight - 0.1, 0);
         scene.add(lightPanel);
 
-        const light = new THREE.PointLight(0xffffee, 1, 20);
+        const light = new THREE.PointLight(0xffddcc, 0.8, 20);
         light.position.set((i - 1) * 8, wallHeight - 1, 0);
         light.castShadow = true;
         scene.add(light);
     }
 
-    // Ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    // Ambient light (with red tint)
+    const ambientLight = new THREE.AmbientLight(0xff6666, 0.5);
     scene.add(ambientLight);
 
     // Main door (glass sliding door)
@@ -552,18 +552,19 @@ async function buildIndustrialHallScene() {
 
     alarmPositions.forEach(pos => {
         const alarmMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(0.2, 16, 16),
+            new THREE.SphereGeometry(0.4, 32, 32),
             new THREE.MeshStandardMaterial({
                 color: 0xff0000,
                 emissive: 0xff0000,
-                emissiveIntensity: 1.0,
+                emissiveIntensity: 2.0,
             })
         );
         alarmMesh.position.set(...pos);
         scene.add(alarmMesh);
 
-        const alarmLight = new THREE.PointLight(0xff0000, 1, 10);
+        const alarmLight = new THREE.PointLight(0xff0000, 3, 20);
         alarmLight.position.set(...pos);
+        alarmLight.castShadow = true;
         scene.add(alarmLight);
 
         alarmLights.push({ mesh: alarmMesh, light: alarmLight });
@@ -661,12 +662,14 @@ function update(delta) {
         window.gameDoor.position.x = doorPosition;
     }
 
-    // Alarm lights pulsing
+    // Alarm lights pulsing (dramatic flashing)
     const time = clock.getElapsedTime();
-    alarmLights.forEach(alarm => {
-        const intensity = Math.sin(time * 3) * 0.5 + 0.5;
-        alarm.mesh.material.emissiveIntensity = intensity;
-        alarm.light.intensity = intensity * 2;
+    alarmLights.forEach((alarm, index) => {
+        const offset = index * 0.5;
+        const intensity = Math.abs(Math.sin(time * 4 + offset));
+        const sparkle = Math.random() * 0.3;
+        alarm.mesh.material.emissiveIntensity = 1.5 + intensity * 2 + sparkle;
+        alarm.light.intensity = 2 + intensity * 6 + sparkle;
     });
 }
 
