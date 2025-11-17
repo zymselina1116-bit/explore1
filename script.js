@@ -57,6 +57,7 @@ const PLAYER_HEIGHT = 2.2;
 let isZoomedIn = false;
 let zoomTarget = null;
 let zoomBrightLight = null; // Extra bright light for zoom view
+let flashlight = null; // Flashlight that follows camera
 
 // Double-click detection
 let lastClickTime = 0;
@@ -525,6 +526,15 @@ async function buildIndustrialHallScene() {
     scene.add(zoomBrightLight);
     scene.add(zoomBrightLight.target);
 
+    // Flashlight that follows camera
+    flashlight = new THREE.SpotLight(0xffffff, 3, 15, Math.PI / 8, 0.5, 1.5);
+    flashlight.position.copy(camera.position);
+    scene.add(flashlight);
+
+    const flashlightTarget = new THREE.Object3D();
+    scene.add(flashlightTarget);
+    flashlight.target = flashlightTarget;
+
     // Lamp fixture visual
     const lampFixture = new THREE.Mesh(
         new THREE.CylinderGeometry(0.15, 0.2, 0.3, 16),
@@ -615,12 +625,23 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(keyBoardInteractive);
 
-    // Interactive card object - only works when zoomed in
+    // Interactive card object - single click zooms out, double click picks up
     const cardInteractive = {
         mesh: accessCard,
         type: 'card',
         id: 'scene1_card_access',
-        hintText: 'Double-click to pick up access card',
+        hintText: 'Click to zoom out, Double-click to pick up access card',
+        onClick: () => {
+            // Single click zooms out
+            if (isZoomedIn) {
+                isZoomedIn = false;
+                zoomTarget = null;
+                // Turn off bright light
+                if (zoomBrightLight) {
+                    zoomBrightLight.intensity = 0;
+                }
+            }
+        },
         onDoubleClick: () => {
             // Only allow interaction when zoomed in
             if (!isZoomedIn) return;
@@ -749,6 +770,17 @@ async function buildIndustrialHallScene() {
 function update(delta) {
     if (!controls.isLocked) return;
 
+    // Update flashlight to follow camera
+    if (flashlight) {
+        flashlight.position.copy(camera.position);
+
+        // Point flashlight in camera direction
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        const targetPosition = camera.position.clone().add(direction.multiplyScalar(5));
+        flashlight.target.position.copy(targetPosition);
+    }
+
     // Handle zoom view
     if (isZoomedIn && zoomTarget) {
         // Zoom camera to key board position (centered on screen)
@@ -762,6 +794,13 @@ function update(delta) {
         // Look at the board
         const lookAtTarget = zoomTarget.position.clone();
         camera.lookAt(lookAtTarget);
+
+        // Brighten the area under mouse cursor when zoomed
+        if (currentHoveredObject && zoomBrightLight) {
+            zoomBrightLight.intensity = 40; // Extra bright when hovering
+        } else if (zoomBrightLight) {
+            zoomBrightLight.intensity = 30; // Normal zoom brightness
+        }
 
         // Don't allow movement or camera rotation when zoomed
         return;
