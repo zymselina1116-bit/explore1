@@ -1,5 +1,5 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { PointerLockControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import { PointerLockControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/PointerLockControls';
 
 // ====================================================================
 // TEXTURE URLS
@@ -74,7 +74,7 @@ function loadTexture(url, repeatX = 1, repeatY = 1) {
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
                 texture.repeat.set(repeatX, repeatY);
-                texture.encoding = THREE.sRGBEncoding;
+                texture.colorSpace = THREE.SRGBColorSpace;
                 resolve(texture);
             },
             undefined,
@@ -108,7 +108,7 @@ async function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = true;
