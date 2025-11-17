@@ -51,6 +51,10 @@ const direction = new THREE.Vector3();
 const PLAYER_SPEED = 25.0;
 const PLAYER_HEIGHT = 2.2;
 
+// Zoom state
+let isZoomedIn = false;
+let zoomTarget = null;
+
 // Double-click detection
 let lastClickTime = 0;
 const DOUBLE_CLICK_THRESHOLD = 250;
@@ -263,6 +267,13 @@ function onMouseUp(event) {
 function onMouseClick(event) {
     if (isDragging) return; // Don't interact if we were dragging
 
+    // If zoomed in and clicking outside objects, zoom out
+    if (isZoomedIn && !currentHoveredObject) {
+        isZoomedIn = false;
+        zoomTarget = null;
+        return;
+    }
+
     const currentTime = Date.now();
     const isDoubleClick = currentTime - lastClickTime < DOUBLE_CLICK_THRESHOLD;
     lastClickTime = currentTime;
@@ -453,9 +464,12 @@ async function buildIndustrialHallScene() {
     keyBoard.position.set(-8, 2.5, halfRoom - 0.75);
     scene.add(keyBoard);
 
-    // Spotlight lamp just above key board (brighter yellow light)
-    const keyBoardSpotlight = new THREE.SpotLight(0xffff44, 6, 6, Math.PI / 5, 0.4, 1.5);
-    keyBoardSpotlight.position.set(-8, 3.8, halfRoom - 1.5);
+    // Store keyBoard reference
+    window.keyBoardMesh = keyBoard;
+
+    // Spotlight lamp just above key board (very bright yellow light, focused)
+    const keyBoardSpotlight = new THREE.SpotLight(0xffff88, 12, 5, Math.PI / 8, 0.5, 2);
+    keyBoardSpotlight.position.set(-8, 4.2, halfRoom - 1.2);
     keyBoardSpotlight.target.position.set(-8, 2.5, halfRoom - 0.75);
     scene.add(keyBoardSpotlight);
     scene.add(keyBoardSpotlight.target);
@@ -469,24 +483,24 @@ async function buildIndustrialHallScene() {
             roughness: 0.3,
         })
     );
-    lampFixture.position.set(-8, 3.9, halfRoom - 1.5);
+    lampFixture.position.set(-8, 4.3, halfRoom - 1.2);
     lampFixture.rotation.x = Math.PI / 6;
     scene.add(lampFixture);
 
-    // Decorative keys (various shapes and materials)
+    // Decorative keys (various shapes and materials) - in front of board
     const keyPositions = [
-        [-9.2, 3.2, halfRoom - 0.6],
-        [-8.6, 3.5, halfRoom - 0.6],
-        [-8.0, 3.3, halfRoom - 0.6],
-        [-7.4, 3.6, halfRoom - 0.6],
-        [-6.8, 3.4, halfRoom - 0.6],
-        [-9.3, 2.5, halfRoom - 0.6],
-        [-8.2, 2.6, halfRoom - 0.6],
-        [-7.1, 2.4, halfRoom - 0.6],
-        [-9.5, 1.8, halfRoom - 0.6],
-        [-8.5, 1.7, halfRoom - 0.6],
-        [-7.5, 1.9, halfRoom - 0.6],
-        [-6.7, 1.6, halfRoom - 0.6],
+        [-9.2, 3.2, halfRoom - 0.65],
+        [-8.6, 3.5, halfRoom - 0.65],
+        [-8.0, 3.3, halfRoom - 0.65],
+        [-7.4, 3.6, halfRoom - 0.65],
+        [-6.8, 3.4, halfRoom - 0.65],
+        [-9.3, 2.5, halfRoom - 0.65],
+        [-8.2, 2.6, halfRoom - 0.65],
+        [-7.1, 2.4, halfRoom - 0.65],
+        [-9.5, 1.8, halfRoom - 0.65],
+        [-8.5, 1.7, halfRoom - 0.65],
+        [-7.5, 1.9, halfRoom - 0.65],
+        [-6.7, 1.6, halfRoom - 0.65],
     ];
 
     // Shared key materials (optimized for GPU)
@@ -514,7 +528,7 @@ async function buildIndustrialHallScene() {
         scene.add(key);
     });
 
-    // Access card (interactive) - distinct from keys
+    // Access card (interactive) - distinct from keys, in front of board
     const cardGeometry = new THREE.BoxGeometry(0.5, 0.8, 0.03);
     const cardMaterial = new THREE.MeshStandardMaterial({
         color: 0x2C3E50,
@@ -524,7 +538,7 @@ async function buildIndustrialHallScene() {
         emissiveIntensity: 0.2,
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
-    accessCard.position.set(-8, 2.2, halfRoom - 0.6);
+    accessCard.position.set(-8, 2.2, halfRoom - 0.65);
     scene.add(accessCard);
 
     // Card stripe
@@ -532,16 +546,38 @@ async function buildIndustrialHallScene() {
         new THREE.BoxGeometry(0.5, 0.15, 0.01),
         new THREE.MeshStandardMaterial({ color: 0x000000 })
     );
-    stripe.position.set(-8, 2.4, halfRoom - 0.58);
+    stripe.position.set(-8, 2.4, halfRoom - 0.63);
     scene.add(stripe);
 
-    // Interactive card object
+    // Store card references
+    window.accessCardMesh = accessCard;
+    window.cardStripeMesh = stripe;
+
+    // Interactive key board - click to zoom in
+    const keyBoardInteractive = {
+        mesh: keyBoard,
+        type: 'keyBoard',
+        id: 'scene1_key_board',
+        hintText: 'Click to examine key board',
+        onClick: () => {
+            if (!isZoomedIn) {
+                isZoomedIn = true;
+                zoomTarget = keyBoard;
+            }
+        }
+    };
+    interactiveObjects.push(keyBoardInteractive);
+
+    // Interactive card object - only works when zoomed in
     const cardInteractive = {
         mesh: accessCard,
         type: 'card',
         id: 'scene1_card_access',
         hintText: 'Double-click to pick up access card',
         onDoubleClick: () => {
+            // Only allow interaction when zoomed in
+            if (!isZoomedIn) return;
+
             // Lift animation
             const startZ = accessCard.position.z;
             const startScale = 1;
@@ -556,6 +592,9 @@ async function buildIndustrialHallScene() {
                     scene.remove(accessCard);
                     scene.remove(stripe);
                     interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
+                    // Auto zoom out after collecting
+                    isZoomedIn = false;
+                    zoomTarget = null;
                 } else {
                     accessCard.position.z = startZ + liftProgress * 0.5;
                     accessCard.material.emissiveIntensity = 0.2 + liftProgress * 0.8;
@@ -660,6 +699,24 @@ async function buildIndustrialHallScene() {
 // ====================================================================
 function update(delta) {
     if (!controls.isLocked) return;
+
+    // Handle zoom view
+    if (isZoomedIn && zoomTarget) {
+        // Zoom camera to key board position (centered on screen)
+        const targetPos = zoomTarget.position.clone();
+        targetPos.z -= 2; // Move camera back from board
+        targetPos.y = 2.5; // Center vertically
+
+        // Smoothly move camera to zoom position
+        camera.position.lerp(targetPos, 0.1);
+
+        // Look at the board
+        const lookAtTarget = zoomTarget.position.clone();
+        camera.lookAt(lookAtTarget);
+
+        // Don't allow movement or camera rotation when zoomed
+        return;
+    }
 
     // Apply camera rotation from mouse drag
     camera.rotation.order = 'YXZ';
