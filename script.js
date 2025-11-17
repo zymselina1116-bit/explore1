@@ -526,8 +526,8 @@ async function buildIndustrialHallScene() {
     scene.add(zoomBrightLight);
     scene.add(zoomBrightLight.target);
 
-    // Flashlight that follows camera
-    flashlight = new THREE.SpotLight(0xffffff, 3, 15, Math.PI / 8, 0.5, 1.5);
+    // Flashlight that follows camera (brighter and more visible)
+    flashlight = new THREE.SpotLight(0xffffcc, 8, 20, Math.PI / 7, 0.6, 1.2);
     flashlight.position.copy(camera.position);
     scene.add(flashlight);
 
@@ -797,7 +797,7 @@ function update(delta) {
 
         // Brighten the area under mouse cursor when zoomed
         if (currentHoveredObject && zoomBrightLight) {
-            zoomBrightLight.intensity = 40; // Extra bright when hovering
+            zoomBrightLight.intensity = 50; // Extra bright when hovering
         } else if (zoomBrightLight) {
             zoomBrightLight.intensity = 30; // Normal zoom brightness
         }
