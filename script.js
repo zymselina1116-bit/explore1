@@ -1,5 +1,4 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
-import { PointerLockControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/PointerLockControls';
 
 // ====================================================================
 // TEXTURE URLS
@@ -36,6 +35,11 @@ let scene, camera, renderer, controls;
 let raycaster, clock;
 let interactiveObjects = [];
 let currentHoveredObject = null;
+
+// Mouse drag camera controls
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+let cameraRotation = { yaw: 0, pitch: 0 };
 
 // Movement
 let moveForward = false;
@@ -115,15 +119,11 @@ async function init() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    // Controls
-    controls = new PointerLockControls(camera, document.body);
-
-    // Click to lock pointer
-    document.body.addEventListener('click', () => {
-        if (!controls.isLocked) {
-            controls.lock();
-        }
-    });
+    // Camera container for rotation
+    controls = {
+        getObject: () => camera,
+        isLocked: true
+    };
 
     // Raycaster
     raycaster = new THREE.Raycaster();
@@ -150,18 +150,23 @@ function setupEventListeners() {
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
 
-    // Mouse click for interactions
+    // Mouse drag for camera rotation
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('click', onMouseClick);
 
     // Window resize
     window.addEventListener('resize', onWindowResize);
 
     // Inventory UI
-    document.getElementById('inventory-button').addEventListener('click', () => {
+    document.getElementById('inventory-button').addEventListener('click', (e) => {
+        e.stopPropagation();
         document.getElementById('inventory-panel').classList.toggle('hidden');
     });
 
-    document.getElementById('close-inventory').addEventListener('click', () => {
+    document.getElementById('close-inventory').addEventListener('click', (e) => {
+        e.stopPropagation();
         document.getElementById('inventory-panel').classList.add('hidden');
     });
 }
@@ -208,8 +213,64 @@ function onKeyUp(event) {
     }
 }
 
+function onMouseDown(event) {
+    if (event.button === 0) { // Left mouse button
+        isDragging = true;
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+    }
+}
+
+function onMouseMove(event) {
+    if (isDragging) {
+        const deltaX = event.clientX - previousMousePosition.x;
+        const deltaY = event.clientY - previousMousePosition.y;
+
+        cameraRotation.yaw -= deltaX * 0.002;
+        cameraRotation.pitch -= deltaY * 0.002;
+
+        // Clamp pitch to prevent over-rotation
+        cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+    }
+
+    // Update hover hint (only when not dragging)
+    if (!isDragging && controls.isLocked) {
+        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+        const intersects = raycaster.intersectObjects(
+            interactiveObjects.map(obj => obj.mesh)
+        );
+
+        const hintText = document.getElementById('hint-text');
+        if (intersects.length > 0) {
+            const intersectedMesh = intersects[0].object;
+            const interactiveObj = interactiveObjects.find(
+                obj => obj.mesh === intersectedMesh
+            );
+
+            if (interactiveObj) {
+                currentHoveredObject = interactiveObj;
+                hintText.textContent = interactiveObj.hintText;
+                hintText.classList.add('visible');
+            } else {
+                currentHoveredObject = null;
+                hintText.classList.remove('visible');
+            }
+        } else {
+            currentHoveredObject = null;
+            hintText.classList.remove('visible');
+        }
+    }
+}
+
+function onMouseUp(event) {
+    if (event.button === 0) {
+        isDragging = false;
+    }
+}
+
 function onMouseClick(event) {
-    if (!controls.isLocked) return;
+    if (isDragging) return; // Don't interact if we were dragging
 
     const currentTime = Date.now();
     const isDoubleClick = currentTime - lastClickTime < DOUBLE_CLICK_THRESHOLD;
@@ -253,12 +314,13 @@ async function buildIndustrialHallScene() {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Walls
+    // Walls (brushed metal)
     const wallHeight = 6;
     const wallMaterial = new THREE.MeshStandardMaterial({
         map: wallTexture,
-        color: wallTexture ? 0xffffff : 0x555555,
-        roughness: 0.9,
+        color: wallTexture ? 0xffffff : 0x888888,
+        metalness: 0.6,
+        roughness: 0.4,
     });
 
     // Back wall
@@ -335,9 +397,54 @@ async function buildIndustrialHallScene() {
         scene.add(light);
     }
 
-    // Ambient light (with red tint)
-    const ambientLight = new THREE.AmbientLight(0xff6666, 0.5);
+    // Ambient light (with red tint, brighter)
+    const ambientLight = new THREE.AmbientLight(0xff6666, 0.7);
     scene.add(ambientLight);
+
+    // Two large red ceiling warning lights with gradient
+    const mainRedLight1 = new THREE.SpotLight(0xff0000, 8, 25, Math.PI / 4, 0.5, 2);
+    mainRedLight1.position.set(-8, wallHeight - 0.5, -5);
+    mainRedLight1.target.position.set(-8, 0, -5);
+    mainRedLight1.castShadow = true;
+    scene.add(mainRedLight1);
+    scene.add(mainRedLight1.target);
+
+    // Visual mesh for first large red light
+    const largeRedMesh1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.6, 0.3, 32),
+        new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 2.5,
+        })
+    );
+    largeRedMesh1.position.set(-8, wallHeight - 0.5, -5);
+    scene.add(largeRedMesh1);
+
+    const mainRedLight2 = new THREE.SpotLight(0xff0000, 8, 25, Math.PI / 4, 0.5, 2);
+    mainRedLight2.position.set(8, wallHeight - 0.5, 5);
+    mainRedLight2.target.position.set(8, 0, 5);
+    mainRedLight2.castShadow = true;
+    scene.add(mainRedLight2);
+    scene.add(mainRedLight2.target);
+
+    // Visual mesh for second large red light
+    const largeRedMesh2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.6, 0.3, 32),
+        new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 2.5,
+        })
+    );
+    largeRedMesh2.position.set(8, wallHeight - 0.5, 5);
+    scene.add(largeRedMesh2);
+
+    // Store for animation
+    window.mainRedLights = [
+        { light: mainRedLight1, mesh: largeRedMesh1 },
+        { light: mainRedLight2, mesh: largeRedMesh2 }
+    ];
 
     // Main door (glass sliding door)
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
@@ -382,6 +489,27 @@ async function buildIndustrialHallScene() {
     keyBoard.position.set(-10, 2.5, 19.75);
     keyBoard.castShadow = true;
     scene.add(keyBoard);
+
+    // Small spotlight lamp above key board
+    const keyBoardSpotlight = new THREE.SpotLight(0xffddaa, 2, 8, Math.PI / 6, 0.3, 1.5);
+    keyBoardSpotlight.position.set(-10, 4.8, 19.5);
+    keyBoardSpotlight.target.position.set(-10, 2.5, 19.75);
+    keyBoardSpotlight.castShadow = true;
+    scene.add(keyBoardSpotlight);
+    scene.add(keyBoardSpotlight.target);
+
+    // Lamp fixture visual
+    const lampFixture = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.15, 0.2, 0.3, 16),
+        new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            metalness: 0.8,
+            roughness: 0.3,
+        })
+    );
+    lampFixture.position.set(-10, 4.9, 19.5);
+    lampFixture.rotation.x = Math.PI / 6;
+    scene.add(lampFixture);
 
     // Decorative keys (various shapes and materials)
     const keyPositions = [
@@ -598,6 +726,11 @@ function updateInventoryUI() {
 function update(delta) {
     if (!controls.isLocked) return;
 
+    // Apply camera rotation from mouse drag
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = cameraRotation.yaw;
+    camera.rotation.x = cameraRotation.pitch;
+
     // Movement
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
@@ -613,18 +746,21 @@ function update(delta) {
         velocity.x -= direction.x * PLAYER_SPEED * delta;
     }
 
-    const prevPosition = controls.getObject().position.clone();
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
+    // Calculate movement direction based on camera yaw
+    const moveX = -velocity.x * Math.cos(cameraRotation.yaw) + velocity.z * Math.sin(cameraRotation.yaw);
+    const moveZ = -velocity.x * Math.sin(cameraRotation.yaw) - velocity.z * Math.cos(cameraRotation.yaw);
+
+    const prevPosition = camera.position.clone();
+    camera.position.x += moveX * delta;
+    camera.position.z += moveZ * delta;
 
     // Collision detection (simple boundary)
-    const pos = controls.getObject().position;
-    if (pos.x < -18 || pos.x > 18 || pos.z < -18 || pos.z > 18) {
-        controls.getObject().position.copy(prevPosition);
+    if (camera.position.x < -18 || camera.position.x > 18 || camera.position.z < -18 || camera.position.z > 18) {
+        camera.position.copy(prevPosition);
     }
 
     // Keep player at correct height
-    controls.getObject().position.y = PLAYER_HEIGHT;
+    camera.position.y = PLAYER_HEIGHT;
 
     // Raycasting for interactive objects
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -662,8 +798,17 @@ function update(delta) {
         window.gameDoor.position.x = doorPosition;
     }
 
-    // Alarm lights pulsing (dramatic flashing)
+    // Main red ceiling lights - slow rhythmic breathing
     const time = clock.getElapsedTime();
+    if (window.mainRedLights) {
+        const breathe = Math.sin(time * 0.8) * 0.3 + 0.7; // Slow pulse (0.4 to 1.0)
+        window.mainRedLights.forEach(redLight => {
+            redLight.light.intensity = 6 + breathe * 4;
+            redLight.mesh.material.emissiveIntensity = 2 + breathe * 1.5;
+        });
+    }
+
+    // Smaller alarm lights pulsing (dramatic flashing)
     alarmLights.forEach((alarm, index) => {
         const offset = index * 0.5;
         const intensity = Math.abs(Math.sin(time * 4 + offset));
