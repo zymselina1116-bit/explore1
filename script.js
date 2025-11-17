@@ -22,6 +22,7 @@ const gameState = {
     currentScene: 'industrialHall',
     hasAccessCard: false,
     doorUnlocked: false,
+    enteredNextRoom: false,
     inventory: new Set(),
 };
 
@@ -715,23 +716,24 @@ function update(delta) {
     camera.position.z += moveZ * delta;
 
     // Collision detection (simple boundary for smaller room)
-    const hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11;
+    const hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11 || camera.position.z > 25;
 
-    // Check if trying to go through front wall
-    const atFrontWall = camera.position.z > 11;
+    // Check if trying to go through front wall at door
+    const atDoorWall = camera.position.z > 12 && camera.position.z < 12.8;
 
     // Allow passing through if door is open and player is in door area
-    const inDoorArea = camera.position.x > -2 && camera.position.x < 2;
-    const canPassThroughDoor = gameState.doorUnlocked && inDoorArea && atFrontWall;
+    const inDoorArea = camera.position.x > -2.5 && camera.position.x < 2.5;
+    const doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
 
-    if (hitWall || (atFrontWall && !canPassThroughDoor)) {
+    if (hitWall || doorBlocked) {
         camera.position.copy(prevPosition);
     }
 
-    // Allow entering "next room" area when through door
-    if (canPassThroughDoor && camera.position.z > 13) {
-        // Player has entered next room area
+    // Log when player enters "next room" area
+    if (gameState.doorUnlocked && inDoorArea && camera.position.z > 14 && !gameState.enteredNextRoom) {
+        gameState.enteredNextRoom = true;
         console.log('Entered next room area');
+        showMessage('Next room area - to be implemented');
     }
 
     // Keep player at correct height
