@@ -216,24 +216,7 @@ function onMouseClick(event) {
 }
 
 function onMouseMove(event) {
-    if (!controls.isLocked) return;
-
-    // Update hover hint
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(interactiveObjects, true);
-
-    const hintElement = document.getElementById('interaction-hint');
-    if (intersects.length > 0) {
-        const object = intersects[0].object;
-        if (object.userData.type) {
-            hintElement.textContent = `Click to ${object.userData.action || 'interact'}`;
-            hintElement.style.display = 'block';
-        } else {
-            hintElement.style.display = 'none';
-        }
-    } else {
-        hintElement.style.display = 'none';
-    }
+    // No hover hints
 }
 
 function onWindowResize() {
@@ -331,13 +314,7 @@ function formatItemName(key) {
 }
 
 function showMessage(text) {
-    const messageDiv = document.getElementById('message-display');
-    messageDiv.textContent = text;
-    messageDiv.style.display = 'block';
-
-    setTimeout(() => {
-        messageDiv.style.display = 'none';
-    }, 2000);
+    // No messages
 }
 
 function updateSceneTitle(title) {
