@@ -94,10 +94,13 @@ function loadTexture(url, repeatX = 1, repeatY = 1) {
 // INITIALIZATION
 // ====================================================================
 async function init() {
+    console.log('Initializing game...');
+
     // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x2a1a1a);
     scene.fog = new THREE.FogExp2(0x2a1515, 0.012);
+    console.log('Scene created');
 
     // Camera
     camera = new THREE.PerspectiveCamera(
@@ -107,6 +110,7 @@ async function init() {
         1000
     );
     camera.position.set(0, PLAYER_HEIGHT, 15);
+    console.log('Camera created at:', camera.position);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -118,6 +122,7 @@ async function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
+    console.log('Renderer added to DOM');
 
     // Camera container for rotation
     controls = {
@@ -135,10 +140,16 @@ async function init() {
     // Event listeners
     setupEventListeners();
 
+    // Update UI
+    updateInventoryUI();
+
     // Build scene
+    console.log('Building scene...');
     await buildIndustrialHallScene();
+    console.log('Scene built successfully');
 
     // Start animation
+    console.log('Starting animation loop');
     animate();
 }
 
@@ -833,4 +844,8 @@ function animate() {
 // ====================================================================
 // START
 // ====================================================================
-init();
+console.log('Game script loading...');
+init().catch(error => {
+    console.error('Failed to initialize game:', error);
+    document.body.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error.message}</div>`;
+});
