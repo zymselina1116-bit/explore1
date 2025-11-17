@@ -306,11 +306,9 @@ function onWindowResize() {
 // BUILD INDUSTRIAL HALL SCENE
 // ====================================================================
 async function buildIndustrialHallScene() {
-    // Load textures
+    // Load only essential textures to avoid GPU limits
     const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
-    const wallTexture = await loadTexture(TEXTURES.scene1_wall, 2, 1);
-    const doorTexture = await loadTexture(TEXTURES.scene1_door, 1, 1);
-    const exitTexture = await loadTexture(TEXTURES.scene1_exit, 1, 1);
+    console.log('Floor texture loaded:', !!floorTexture);
 
     // Floor
     const floorGeometry = new THREE.PlaneGeometry(40, 40);
@@ -325,11 +323,10 @@ async function buildIndustrialHallScene() {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Walls (brushed metal)
+    // Walls (brushed metal - no texture to save GPU)
     const wallHeight = 6;
     const wallMaterial = new THREE.MeshStandardMaterial({
-        map: wallTexture,
-        color: wallTexture ? 0xffffff : 0x888888,
+        color: 0x666666,
         metalness: 0.6,
         roughness: 0.4,
     });
@@ -389,24 +386,11 @@ async function buildIndustrialHallScene() {
     ceiling.rotation.x = Math.PI / 2;
     scene.add(ceiling);
 
-    // Light panels on ceiling
-    for (let i = 0; i < 3; i++) {
-        const lightPanel = new THREE.Mesh(
-            new THREE.BoxGeometry(4, 0.1, 2),
-            new THREE.MeshStandardMaterial({
-                color: 0xffffee,
-                emissive: 0xffffee,
-                emissiveIntensity: 0.5,
-            })
-        );
-        lightPanel.position.set((i - 1) * 8, wallHeight - 0.1, 0);
-        scene.add(lightPanel);
-
-        const light = new THREE.PointLight(0xffddcc, 0.8, 20);
-        light.position.set((i - 1) * 8, wallHeight - 1, 0);
-        light.castShadow = true;
-        scene.add(light);
-    }
+    // Single ceiling light (reduced for performance)
+    const light = new THREE.PointLight(0xffddcc, 1.5, 30);
+    light.position.set(0, wallHeight - 1, 0);
+    light.castShadow = false; // Disable shadows for performance
+    scene.add(light);
 
     // Ambient light (with red tint, brighter)
     const ambientLight = new THREE.AmbientLight(0xff6666, 0.7);
@@ -457,15 +441,14 @@ async function buildIndustrialHallScene() {
         { light: mainRedLight2, mesh: largeRedMesh2 }
     ];
 
-    // Main door (glass sliding door)
+    // Main door (glass sliding door - no texture)
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
     const doorMaterial = new THREE.MeshStandardMaterial({
-        map: doorTexture,
-        color: doorTexture ? 0xffffff : 0x888888,
+        color: 0x88aacc,
         metalness: 0.3,
         roughness: 0.4,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.6,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
     door.position.set(0, 2.5, 19.8);
@@ -475,14 +458,13 @@ async function buildIndustrialHallScene() {
     // Store door reference for animation
     window.gameDoor = door;
 
-    // Exit sign
+    // Exit sign (no texture)
     const exitSign = new THREE.Mesh(
         new THREE.BoxGeometry(2, 0.5, 0.1),
         new THREE.MeshStandardMaterial({
-            map: exitTexture,
-            color: exitTexture ? 0xffffff : 0x00ff00,
+            color: 0x00ff00,
             emissive: 0x00ff00,
-            emissiveIntensity: 0.5,
+            emissiveIntensity: 0.8,
         })
     );
     exitSign.position.set(0, 5.5, 19.5);
@@ -668,42 +650,32 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(cardReaderInteractive);
 
-    // Red alarm lights (more coverage)
+    // Red alarm lights (reduced for performance)
     const alarmPositions = [
-        // Corners
         [-18, 5.5, -18],
         [18, 5.5, -18],
         [-18, 5.5, 18],
         [18, 5.5, 18],
-        // Wall midpoints
-        [0, 5.5, -18],
-        [-18, 5.5, 0],
-        [18, 5.5, 0],
-        [10, 5.5, 18],
-        // Additional scattered lights
-        [-10, 5.3, -10],
-        [10, 5.3, -10],
-        [-10, 5.3, 10],
-        [8, 5.3, 8],
-        [-15, 5.2, -5],
-        [15, 5.2, 5],
     ];
+
+    // Shared material for all alarm lights (reduces GPU load)
+    const alarmMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 2.0,
+    });
 
     alarmPositions.forEach(pos => {
         const alarmMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(0.4, 32, 32),
-            new THREE.MeshStandardMaterial({
-                color: 0xff0000,
-                emissive: 0xff0000,
-                emissiveIntensity: 2.0,
-            })
+            new THREE.SphereGeometry(0.4, 16, 16), // Reduced geometry
+            alarmMaterial // Reuse same material
         );
         alarmMesh.position.set(...pos);
         scene.add(alarmMesh);
 
         const alarmLight = new THREE.PointLight(0xff0000, 3, 20);
         alarmLight.position.set(...pos);
-        alarmLight.castShadow = true;
+        alarmLight.castShadow = false; // Disable shadows for performance
         scene.add(alarmLight);
 
         alarmLights.push({ mesh: alarmMesh, light: alarmLight });
