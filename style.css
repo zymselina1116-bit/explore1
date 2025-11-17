@@ -135,52 +135,6 @@ canvas {
     text-align: center;
 }
 
-/* Start Screen */
-#start-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    cursor: pointer;
-    transition: opacity 0.5s;
-}
-
-#start-screen h1 {
-    font-size: 48px;
-    margin-bottom: 20px;
-    color: #4CAF50;
-    text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
-}
-
-#start-screen > p {
-    font-size: 24px;
-    color: #FFC107;
-    animation: pulse 2s infinite;
-}
-
-.instructions {
-    margin-top: 40px;
-    text-align: center;
-}
-
-.instructions p {
-    font-size: 16px;
-    margin: 10px 0;
-    color: #aaa;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
 /* End Screen */
 #end-screen {
     position: fixed;
