@@ -538,7 +538,49 @@ async function buildIndustrialHallScene() {
     lampFixture.rotation.x = Math.PI / 6;
     scene.add(lampFixture);
 
-    // Access card (interactive with texture) - positioned on key board
+    // Decorative keys on board - facing the room
+    const keyPositions = [
+        [-9.2, 3.2],
+        [-8.6, 3.5],
+        [-8.0, 3.3],
+        [-7.4, 3.6],
+        [-6.8, 3.4],
+        [-9.3, 2.5],
+        [-8.2, 2.6],
+        [-7.1, 2.4],
+        [-9.5, 1.8],
+        [-8.5, 1.7],
+        [-7.5, 1.9],
+        [-6.7, 1.6],
+    ];
+
+    // Shared key materials (optimized for GPU)
+    const keyMaterials = [
+        new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.2 }), // Gold
+        new THREE.MeshStandardMaterial({ color: 0xC0C0C0, metalness: 0.85, roughness: 0.25 }), // Silver
+        new THREE.MeshStandardMaterial({ color: 0x8B7355, metalness: 0.6, roughness: 0.4 }), // Bronze
+        new THREE.MeshStandardMaterial({ color: 0x4A4A4A, metalness: 0.7, roughness: 0.3 }), // Dark iron
+    ];
+
+    // Shared key geometries (optimized for GPU)
+    const keyGeometries = [
+        new THREE.BoxGeometry(0.15, 0.5, 0.08),
+        new THREE.BoxGeometry(0.2, 0.6, 0.06),
+        new THREE.BoxGeometry(0.12, 0.45, 0.07)
+    ];
+
+    keyPositions.forEach((pos, i) => {
+        const material = keyMaterials[i % keyMaterials.length];
+        const keyShape = keyGeometries[i % keyGeometries.length];
+
+        const key = new THREE.Mesh(keyShape, material);
+        key.position.set(pos[0], pos[1], halfRoom - 0.85); // In front of board, facing room
+        key.rotation.y = Math.PI; // Face the room
+        key.rotation.z = (Math.random() - 0.5) * 0.3;
+        scene.add(key);
+    });
+
+    // Access card (interactive with texture) - positioned IN FRONT of key board
     const cardGeometry = new THREE.BoxGeometry(0.6, 0.9, 0.03);
     const cardMaterial = new THREE.MeshStandardMaterial({
         map: accessCardTexture,
@@ -547,7 +589,7 @@ async function buildIndustrialHallScene() {
         roughness: 0.6,
     });
     const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
-    accessCard.position.set(-8, 2.5, halfRoom - 0.65);
+    accessCard.position.set(-8, 2.5, halfRoom - 0.85); // In front of board
     accessCard.rotation.y = Math.PI; // Rotate 180 degrees to face the room
     scene.add(accessCard);
 
