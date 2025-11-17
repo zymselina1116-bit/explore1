@@ -340,7 +340,22 @@ async function buildIndustrialHallScene() {
     backWall.position.set(0, wallHeight / 2, -halfRoom);
     scene.add(backWall);
 
-    // Front wall removed to allow clear passage through door
+    // Front wall (with door gap) - using textured material
+    const frontWallLeft = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, wallHeight),
+        wallMaterial
+    );
+    frontWallLeft.position.set(-8.5, wallHeight / 2, halfRoom);
+    frontWallLeft.rotation.y = Math.PI;
+    scene.add(frontWallLeft);
+
+    const frontWallRight = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, wallHeight),
+        wallMaterial
+    );
+    frontWallRight.position.set(8.5, wallHeight / 2, halfRoom);
+    frontWallRight.rotation.y = Math.PI;
+    scene.add(frontWallRight);
 
     // Left wall
     const leftWall = new THREE.Mesh(
