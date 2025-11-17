@@ -345,6 +345,7 @@ async function buildIndustrialHallScene() {
         metalness: 0.2,
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.name = 'Floor';
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
@@ -363,31 +364,18 @@ async function buildIndustrialHallScene() {
         new THREE.PlaneGeometry(roomSize, wallHeight),
         wallMaterial
     );
+    backWall.name = 'BackWall';
     backWall.position.set(0, wallHeight / 2, -halfRoom);
     scene.add(backWall);
 
-    // Front wall (with door gap) - using textured material
-    const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, wallHeight),
-        wallMaterial
-    );
-    frontWallLeft.position.set(-8.5, wallHeight / 2, halfRoom);
-    frontWallLeft.rotation.y = Math.PI;
-    scene.add(frontWallLeft);
-
-    const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, wallHeight),
-        wallMaterial
-    );
-    frontWallRight.position.set(8.5, wallHeight / 2, halfRoom);
-    frontWallRight.rotation.y = Math.PI;
-    scene.add(frontWallRight);
+    // Front wall sections removed - open passage through door
 
     // Left wall
     const leftWall = new THREE.Mesh(
         new THREE.PlaneGeometry(roomSize, wallHeight),
         wallMaterial
     );
+    leftWall.name = 'LeftWall';
     leftWall.position.set(-halfRoom, wallHeight / 2, 0);
     leftWall.rotation.y = Math.PI / 2;
     scene.add(leftWall);
@@ -397,20 +385,12 @@ async function buildIndustrialHallScene() {
         new THREE.PlaneGeometry(roomSize, wallHeight),
         wallMaterial
     );
+    rightWall.name = 'RightWall';
     rightWall.position.set(halfRoom, wallHeight / 2, 0);
     rightWall.rotation.y = -Math.PI / 2;
     scene.add(rightWall);
 
-    // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.9,
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.position.y = wallHeight;
-    ceiling.rotation.x = Math.PI / 2;
-    scene.add(ceiling);
+    // Ceiling removed - no grey surfaces allowed
 
     // Single ceiling light (reduced for performance)
     const light = new THREE.PointLight(0xffddcc, 2.5, 25);
@@ -470,6 +450,7 @@ async function buildIndustrialHallScene() {
         opacity: doorTexture ? 1.0 : 0.6,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
+    door.name = 'Door';
     door.position.set(0, 2.5, halfRoom - 0.1); // Flush with wall
     scene.add(door);
 
