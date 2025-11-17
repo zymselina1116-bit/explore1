@@ -117,13 +117,16 @@ function init() {
 // EVENT LISTENERS
 // ===============================
 function setupEventListeners() {
-    // Start screen
-    document.getElementById('start-screen').addEventListener('click', () => {
-        document.getElementById('start-screen').style.display = 'none';
-        controls.lock();
-        gameStarted = true;
-        loadScene('scene1');
-    });
+    // Auto-start the game
+    gameStarted = true;
+    loadScene('scene1');
+
+    // Click anywhere to lock pointer (required by browser security)
+    document.addEventListener('click', () => {
+        if (!controls.isLocked) {
+            controls.lock();
+        }
+    }, { once: true });
 
     // Restart button
     document.getElementById('restart-btn').addEventListener('click', () => {
