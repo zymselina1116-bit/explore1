@@ -308,9 +308,9 @@ async function buildIndustrialHallScene() {
     const cardReaderTexture = await loadTexture(TEXTURES.cardReader, 1, 1);
     console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture, 'CardReader:', !!cardReaderTexture);
 
-    // Floor (smaller room)
+    // Floor (extended beyond door for walkway)
     const roomSize = 25;
-    const floorGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
+    const floorGeometry = new THREE.PlaneGeometry(40, 40); // Extended floor
     const floorMaterial = new THREE.MeshStandardMaterial({
         map: floorTexture,
         color: floorTexture ? 0xffffff : 0x444444,
@@ -338,22 +338,7 @@ async function buildIndustrialHallScene() {
     backWall.position.set(0, wallHeight / 2, -halfRoom);
     scene.add(backWall);
 
-    // Front wall (with door gap)
-    const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, wallHeight),
-        wallMaterial
-    );
-    frontWallLeft.position.set(-8.5, wallHeight / 2, halfRoom);
-    frontWallLeft.rotation.y = Math.PI;
-    scene.add(frontWallLeft);
-
-    const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, wallHeight),
-        wallMaterial
-    );
-    frontWallRight.position.set(8.5, wallHeight / 2, halfRoom);
-    frontWallRight.rotation.y = Math.PI;
-    scene.add(frontWallRight);
+    // Front wall removed to allow clear passage through door
 
     // Left wall
     const leftWall = new THREE.Mesh(
