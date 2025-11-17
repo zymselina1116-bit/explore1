@@ -113,7 +113,7 @@ async function init() {
         0.1,
         1000
     );
-    camera.position.set(0, PLAYER_HEIGHT, 15);
+    camera.position.set(0, PLAYER_HEIGHT, 0);
     console.log('Camera created at:', camera.position);
 
     // Renderer
