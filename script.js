@@ -54,6 +54,7 @@ const PLAYER_HEIGHT = 2.2;
 // Zoom state
 let isZoomedIn = false;
 let zoomTarget = null;
+let zoomBrightLight = null; // Extra bright light for zoom view
 
 // Double-click detection
 let lastClickTime = 0;
@@ -271,6 +272,10 @@ function onMouseClick(event) {
     if (isZoomedIn && !currentHoveredObject) {
         isZoomedIn = false;
         zoomTarget = null;
+        // Turn off bright light
+        if (zoomBrightLight) {
+            zoomBrightLight.intensity = 0;
+        }
         return;
     }
 
@@ -297,9 +302,11 @@ function onWindowResize() {
 // BUILD INDUSTRIAL HALL SCENE
 // ====================================================================
 async function buildIndustrialHallScene() {
-    // Load only essential textures to avoid GPU limits
+    // Load textures
     const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
-    console.log('Floor texture loaded:', !!floorTexture);
+    const doorTexture = await loadTexture(TEXTURES.scene1_door, 1, 1);
+    const exitTexture = await loadTexture(TEXTURES.scene1_exit, 1, 1);
+    console.log('Textures loaded - Floor:', !!floorTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture);
 
     // Floor (smaller room)
     const roomSize = 25;
@@ -424,14 +431,15 @@ async function buildIndustrialHallScene() {
         { light: mainRedLight2, mesh: largeRedMesh2 }
     ];
 
-    // Main door (glass sliding door - no texture)
+    // Main door (with texture)
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
     const doorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x88aacc,
+        map: doorTexture,
+        color: doorTexture ? 0xffffff : 0x88aacc,
         metalness: 0.3,
         roughness: 0.4,
-        transparent: true,
-        opacity: 0.6,
+        transparent: doorTexture ? false : true,
+        opacity: doorTexture ? 1.0 : 0.6,
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
     door.position.set(0, 2.5, halfRoom - 0.7);
@@ -440,11 +448,12 @@ async function buildIndustrialHallScene() {
     // Store door reference for animation
     window.gameDoor = door;
 
-    // Exit sign (no texture)
+    // Exit sign (with texture)
     const exitSign = new THREE.Mesh(
         new THREE.BoxGeometry(2, 0.5, 0.1),
         new THREE.MeshStandardMaterial({
-            color: 0x00ff00,
+            map: exitTexture,
+            color: exitTexture ? 0xffffff : 0x00ff00,
             emissive: 0x00ff00,
             emissiveIntensity: 0.8,
         })
@@ -473,6 +482,13 @@ async function buildIndustrialHallScene() {
     keyBoardSpotlight.target.position.set(-8, 2.5, halfRoom - 0.75);
     scene.add(keyBoardSpotlight);
     scene.add(keyBoardSpotlight.target);
+
+    // Extra bright light for zoom view (initially off)
+    zoomBrightLight = new THREE.SpotLight(0xffffff, 0, 4, Math.PI / 6, 0.3, 1);
+    zoomBrightLight.position.set(-8, 2.5, halfRoom - 2);
+    zoomBrightLight.target.position.set(-8, 2.5, halfRoom - 0.75);
+    scene.add(zoomBrightLight);
+    scene.add(zoomBrightLight.target);
 
     // Lamp fixture visual
     const lampFixture = new THREE.Mesh(
@@ -563,6 +579,10 @@ async function buildIndustrialHallScene() {
             if (!isZoomedIn) {
                 isZoomedIn = true;
                 zoomTarget = keyBoard;
+                // Turn on bright light for zoom view
+                if (zoomBrightLight) {
+                    zoomBrightLight.intensity = 30;
+                }
             }
         }
     };
@@ -595,6 +615,10 @@ async function buildIndustrialHallScene() {
                     // Auto zoom out after collecting
                     isZoomedIn = false;
                     zoomTarget = null;
+                    // Turn off bright light
+                    if (zoomBrightLight) {
+                        zoomBrightLight.intensity = 0;
+                    }
                 } else {
                     accessCard.position.z = startZ + liftProgress * 0.5;
                     accessCard.material.emissiveIntensity = 0.2 + liftProgress * 0.8;
