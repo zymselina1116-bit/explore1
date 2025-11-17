@@ -12,7 +12,15 @@ const TEXTURES = {
     keyBoard: './Screenshot 2025-11-16 at 23.31.20.png',
     accessCard: './card-new.png',
     key: './key-new.png',
-    cardReader: './card-reader.png'
+    cardReader: './card-reader.png',
+    // Scene 2 textures
+    woodenDoor: './870c5435ceffda4aa972afb3244c2eca-removebg-preview.png',
+    creatureSketch: './Screenshot 2025-11-17 at 14.12.36.png',
+    goldenKey: './70dc331664376a64a8050baa7c7744a6-removebg-preview.png',
+    profileCard: './Screenshot 2025-11-17 at 14.17.01.png',
+    mapItem: './Screenshot 2025-11-17 at 14.18.31.png',
+    furniture: './Screenshot 2025-11-17 at 14.38.31.png',
+    keyBoard2: './Screenshot 2025-11-17 at 14.39.55.png'
 };
 
 // ====================================================================
@@ -24,10 +32,19 @@ const gameState = {
     doorUnlocked: false,
     enteredNextRoom: false,
     inventory: new Set(),
+    // Scene 2 state
+    evidenceCollected: new Set(), // tracks: 'creature', 'profile', 'map'
+    hasGoldenKey: false,
+    woodenDoorUnlocked: false,
+    deskDrawerOpen: false,
 };
 
 const scenes = {
     industrialHall: {
+        objects: [],
+        cleanup: null,
+    },
+    officeFloor: {
         objects: [],
         cleanup: null,
     }
@@ -721,6 +738,524 @@ async function buildIndustrialHallScene() {
 }
 
 // ====================================================================
+// BUILD OFFICE FLOOR SCENE (SCENE 2)
+// ====================================================================
+async function buildOfficeFloorScene() {
+    // Load textures
+    const floorTexture = await loadTexture(TEXTURES.scene2_floor, 5, 5);
+    const wallTexture = await loadTexture(TEXTURES.scene1_wall, 3, 3);
+    const furnitureTexture = await loadTexture(TEXTURES.furniture, 1, 1);
+    const keyBoard2Texture = await loadTexture(TEXTURES.keyBoard2, 1, 1);
+    const woodenDoorTexture = await loadTexture(TEXTURES.woodenDoor, 1, 1);
+    const goldenKeyTexture = await loadTexture(TEXTURES.goldenKey, 1, 1);
+    const keyTexture = await loadTexture(TEXTURES.key, 1, 1);
+    const creatureTexture = await loadTexture(TEXTURES.creatureSketch, 1, 1);
+    const profileTexture = await loadTexture(TEXTURES.profileCard, 1, 1);
+    const mapTexture = await loadTexture(TEXTURES.mapItem, 1, 1);
+
+    console.log('Scene 2 textures loaded');
+
+    // Room size (larger than Scene 1)
+    const roomWidth = 40;
+    const roomDepth = 35;
+    const wallHeight = 6;
+    const halfWidth = roomWidth / 2;
+    const halfDepth = roomDepth / 2;
+
+    // Floor
+    const floorGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
+    const floorMaterial = new THREE.MeshStandardMaterial({
+        map: floorTexture,
+        color: floorTexture ? 0xffffff : 0xff0000,
+        roughness: 0.8,
+        metalness: 0.2,
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.name = 'Scene2_Floor';
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    // Wall material
+    const wallMaterial = new THREE.MeshStandardMaterial({
+        map: wallTexture,
+        color: wallTexture ? 0xffffff : 0xff0000,
+        metalness: 0.6,
+        roughness: 0.4,
+        side: THREE.DoubleSide,
+    });
+
+    // Back wall (where player enters from Scene 1)
+    const backWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(roomWidth, wallHeight),
+        wallMaterial
+    );
+    backWall.name = 'Scene2_BackWall';
+    backWall.position.set(0, wallHeight / 2, -halfDepth);
+    scene.add(backWall);
+
+    // Front wall (with wooden door gap)
+    const frontWallLeft = new THREE.Mesh(
+        new THREE.PlaneGeometry(15, wallHeight),
+        wallMaterial
+    );
+    frontWallLeft.name = 'Scene2_FrontWallLeft';
+    frontWallLeft.position.set(-12.5, wallHeight / 2, halfDepth);
+    frontWallLeft.rotation.y = Math.PI;
+    scene.add(frontWallLeft);
+
+    const frontWallRight = new THREE.Mesh(
+        new THREE.PlaneGeometry(15, wallHeight),
+        wallMaterial
+    );
+    frontWallRight.name = 'Scene2_FrontWallRight';
+    frontWallRight.position.set(12.5, wallHeight / 2, halfDepth);
+    frontWallRight.rotation.y = Math.PI;
+    scene.add(frontWallRight);
+
+    // Left wall
+    const leftWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(roomDepth, wallHeight),
+        wallMaterial
+    );
+    leftWall.name = 'Scene2_LeftWall';
+    leftWall.position.set(-halfWidth, wallHeight / 2, 0);
+    leftWall.rotation.y = Math.PI / 2;
+    scene.add(leftWall);
+
+    // Right wall
+    const rightWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(roomDepth, wallHeight),
+        wallMaterial
+    );
+    rightWall.name = 'Scene2_RightWall';
+    rightWall.position.set(halfWidth, wallHeight / 2, 0);
+    rightWall.rotation.y = -Math.PI / 2;
+    scene.add(rightWall);
+
+    // Ceiling
+    const ceilingGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
+    const ceilingMaterial = new THREE.MeshStandardMaterial({
+        map: floorTexture,
+        color: floorTexture ? 0xffffff : 0xff0000,
+        roughness: 0.8,
+        metalness: 0.2,
+    });
+    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+    ceiling.name = 'Scene2_Ceiling';
+    ceiling.position.y = wallHeight;
+    ceiling.rotation.x = Math.PI / 2;
+    scene.add(ceiling);
+
+    // Lighting: Soft, dim, calmer than Scene 1
+    const ambientLight = new THREE.AmbientLight(0xccccff, 0.6);
+    scene.add(ambientLight);
+
+    const mainLight = new THREE.PointLight(0xffffee, 3, 50);
+    mainLight.position.set(0, wallHeight - 1, 0);
+    scene.add(mainLight);
+
+    // Area lights for desks/objects
+    const areaLight1 = new THREE.PointLight(0xffffdd, 2, 15);
+    areaLight1.position.set(-10, 3, -8);
+    scene.add(areaLight1);
+
+    const areaLight2 = new THREE.PointLight(0xffffdd, 2, 15);
+    areaLight2.position.set(10, 3, 8);
+    scene.add(areaLight2);
+
+    // Update flashlight color to match calmer mood
+    if (flashlight) {
+        flashlight.intensity = 6;
+        flashlight.color.setHex(0xffffdd);
+    }
+
+    // Furniture material
+    const furnitureMaterial = new THREE.MeshStandardMaterial({
+        map: furnitureTexture,
+        color: furnitureTexture ? 0xffffff : 0xff0000,
+        roughness: 0.6,
+        metalness: 0.1,
+    });
+
+    // 12 regular desks (non-interactive) scattered around
+    const deskPositions = [
+        [-15, -10], [-15, 0], [-15, 10],
+        [-5, -12], [-5, -2], [-5, 8],
+        [5, -10], [5, 0], [5, 10],
+        [15, -12], [15, -2], [15, 8]
+    ];
+
+    deskPositions.forEach((pos, i) => {
+        const desk = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 1.5, 2),
+            furnitureMaterial
+        );
+        desk.name = `Desk_${i}`;
+        desk.position.set(pos[0], 0.75, pos[1]);
+        scene.add(desk);
+    });
+
+    // 15 chairs scattered around desks
+    const chairPositions = [
+        [-15, -11.5], [-15, -1.5], [-15, 8.5],
+        [-5, -13.5], [-5, -3.5], [-5, 6.5],
+        [5, -11.5], [5, -1.5], [5, 8.5],
+        [15, -13.5], [15, -3.5], [15, 6.5],
+        [-10, 5], [0, -5], [10, 3]
+    ];
+
+    chairPositions.forEach((pos, i) => {
+        const chair = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 1.2, 0.8),
+            furnitureMaterial
+        );
+        chair.name = `Chair_${i}`;
+        chair.position.set(pos[0], 0.6, pos[1]);
+        scene.add(chair);
+    });
+
+    // Special interactive desk with glow (positioned visibly)
+    const specialDesk = new THREE.Mesh(
+        new THREE.BoxGeometry(3.5, 1.5, 2.5),
+        furnitureMaterial
+    );
+    specialDesk.name = 'SpecialDesk';
+    specialDesk.position.set(0, 0.75, 10);
+    scene.add(specialDesk);
+
+    // Glow effect for special desk
+    const glowLight = new THREE.PointLight(0xffaa00, 1.5, 8);
+    glowLight.position.set(0, 1.5, 10);
+    scene.add(glowLight);
+    window.specialDeskGlow = glowLight;
+
+    // Evidence items on/in special desk
+    const evidenceY = 1.6;
+
+    // Creature sketch
+    const creatureSketch = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.8, 1.0),
+        new THREE.MeshStandardMaterial({
+            map: creatureTexture,
+            transparent: true,
+        })
+    );
+    creatureSketch.name = 'CreatureSketch';
+    creatureSketch.position.set(-0.8, evidenceY, 10);
+    creatureSketch.rotation.x = -Math.PI / 2;
+    scene.add(creatureSketch);
+
+    // Profile card
+    const profileCard = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.7, 1.0),
+        new THREE.MeshStandardMaterial({
+            map: profileTexture,
+            transparent: true,
+        })
+    );
+    profileCard.name = 'ProfileCard';
+    profileCard.position.set(0, evidenceY, 10);
+    profileCard.rotation.x = -Math.PI / 2;
+    scene.add(profileCard);
+
+    // Map item
+    const mapItem = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.9, 0.9),
+        new THREE.MeshStandardMaterial({
+            map: mapTexture,
+            transparent: true,
+        })
+    );
+    mapItem.name = 'MapItem';
+    mapItem.position.set(0.8, evidenceY, 10);
+    mapItem.rotation.x = -Math.PI / 2;
+    scene.add(mapItem);
+
+    // Interactive evidence items
+    const createEvidenceInteractive = (mesh, id, name) => ({
+        mesh,
+        type: 'evidence',
+        id,
+        hintText: `Click to collect ${name}`,
+        onClick: () => {
+            console.log(`Collected evidence: ${id}`);
+            gameState.evidenceCollected.add(id);
+            scene.remove(mesh);
+            interactiveObjects = interactiveObjects.filter(obj => obj.id !== id);
+            updateProgressUI();
+
+            if (gameState.evidenceCollected.size === 3) {
+                console.log('All evidence collected! Golden key is now usable');
+                showMessage('All evidence collected');
+            }
+        }
+    });
+
+    interactiveObjects.push(createEvidenceInteractive(creatureSketch, 'evidence_creature', 'Creature Sketch'));
+    interactiveObjects.push(createEvidenceInteractive(profileCard, 'evidence_profile', 'Profile Card'));
+    interactiveObjects.push(createEvidenceInteractive(mapItem, 'evidence_map', 'Map'));
+
+    // Wooden door (flush with front wall)
+    const woodenDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 5, 0.2),
+        new THREE.MeshStandardMaterial({
+            map: woodenDoorTexture,
+            transparent: true,
+            color: woodenDoorTexture ? 0xffffff : 0xff0000,
+        })
+    );
+    woodenDoor.name = 'WoodenDoor';
+    woodenDoor.position.set(0, 2.5, halfDepth - 0.1);
+    scene.add(woodenDoor);
+
+    // Key board 2 next to wooden door
+    const keyBoard2 = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 2.5, 0.15),
+        new THREE.MeshStandardMaterial({
+            map: keyBoard2Texture,
+            color: keyBoard2Texture ? 0xffffff : 0xff0000,
+        })
+    );
+    keyBoard2.name = 'KeyBoard2';
+    keyBoard2.position.set(-5, 2.5, halfDepth - 0.5);
+    scene.add(keyBoard2);
+
+    // Decorative keys on board
+    const decorativeKeyPositions = [
+        [-6, 3.2], [-5.5, 3.5], [-5, 3.3], [-4.5, 3.6],
+        [-6, 2.5], [-5.5, 2.8], [-5, 2.6], [-4.5, 2.9],
+        [-6, 1.8], [-5.5, 2.1], [-5, 1.9]
+    ];
+
+    const keyMaterial = new THREE.MeshStandardMaterial({
+        map: keyTexture,
+        transparent: true,
+    });
+
+    decorativeKeyPositions.forEach((pos, i) => {
+        const key = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.15, 0.4),
+            keyMaterial
+        );
+        key.name = `DecorativeKey_${i}`;
+        key.position.set(pos[0], pos[1], halfDepth - 0.6);
+        key.rotation.y = Math.PI;
+        scene.add(key);
+    });
+
+    // Golden key (interactive, glowing)
+    const goldenKey = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.4, 0.8),
+        new THREE.MeshStandardMaterial({
+            map: goldenKeyTexture,
+            transparent: true,
+            emissive: 0xffaa00,
+            emissiveIntensity: 0.5,
+        })
+    );
+    goldenKey.name = 'GoldenKey';
+    goldenKey.position.set(-5, 2.5, halfDepth - 0.6);
+    goldenKey.rotation.y = Math.PI;
+    scene.add(goldenKey);
+
+    // Golden key interactive (double-click to collect after evidence)
+    let lastGoldenKeyClickTime = 0;
+    const goldenKeyInteractive = {
+        mesh: goldenKey,
+        type: 'goldenKey',
+        id: 'golden_key',
+        hintText: 'Double-click to take golden key',
+        onClick: () => {
+            const now = Date.now();
+            const isDoubleClick = (now - lastGoldenKeyClickTime) < 300;
+            lastGoldenKeyClickTime = now;
+
+            if (!isDoubleClick) {
+                console.log('Single click on golden key (need double-click)');
+                return;
+            }
+
+            if (gameState.evidenceCollected.size < 3) {
+                showMessage('Collect all evidence first');
+                console.log('Need all 3 evidence items first');
+                return;
+            }
+
+            console.log('Golden key collected!');
+            gameState.hasGoldenKey = true;
+            scene.remove(goldenKey);
+            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'golden_key');
+            showMessage('Golden key obtained');
+        }
+    };
+    interactiveObjects.push(goldenKeyInteractive);
+
+    // Wooden door interactive (opens with golden key)
+    const woodenDoorInteractive = {
+        mesh: woodenDoor,
+        type: 'woodenDoor',
+        id: 'wooden_door',
+        hintText: 'Click to unlock door',
+        onClick: () => {
+            if (!gameState.hasGoldenKey) {
+                showMessage('Door is locked');
+                console.log('Need golden key to unlock wooden door');
+                return;
+            }
+
+            if (!gameState.woodenDoorUnlocked) {
+                gameState.woodenDoorUnlocked = true;
+                showMessage('Door unlocked');
+                console.log('Wooden door unlocked! Walk through to Scene 3');
+                // Animate door opening
+                const doorOpenInterval = setInterval(() => {
+                    woodenDoor.position.x += 0.1;
+                    if (woodenDoor.position.x >= 5) {
+                        clearInterval(doorOpenInterval);
+                    }
+                }, 16);
+            }
+        }
+    };
+    interactiveObjects.push(woodenDoorInteractive);
+
+    console.log('Office Floor scene (Scene 2) built');
+}
+
+// ====================================================================
+// SCENE TRANSITION
+// ====================================================================
+function cleanupScene1() {
+    // Remove all Scene 1 objects
+    const toRemove = [];
+    scene.traverse((object) => {
+        if (object instanceof THREE.Mesh && !object.name.startsWith('Scene2_')) {
+            toRemove.push(object);
+        }
+    });
+
+    toRemove.forEach(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+        }
+        scene.remove(obj);
+    });
+
+    // Clear Scene 1 lights
+    const lights = scene.children.filter(child =>
+        child instanceof THREE.Light &&
+        !(child === flashlight)
+    );
+    lights.forEach(light => scene.remove(light));
+
+    // Clear alarm lights
+    alarmLights = [];
+    window.mainRedLights = null;
+    window.gameDoor = null;
+
+    console.log('Scene 1 cleaned up');
+}
+
+async function transitionToScene2() {
+    console.log('Starting transition to Scene 2');
+
+    // Clean up Scene 1
+    cleanupScene1();
+
+    // Reset interactive objects (keep only flashlight-related)
+    interactiveObjects = [];
+
+    // Reset player position for Scene 2 (start at back of room)
+    camera.position.set(0, PLAYER_HEIGHT, -15);
+    cameraRotation.yaw = 0;
+    cameraRotation.pitch = 0;
+
+    // Update game state
+    gameState.currentScene = 'officeFloor';
+
+    // Build Scene 2
+    await buildOfficeFloorScene();
+
+    // Show progress UI
+    updateProgressUI();
+
+    console.log('Transition to Scene 2 complete');
+}
+
+// ====================================================================
+// PROGRESS UI (ICONS ONLY)
+// ====================================================================
+function updateProgressUI() {
+    const progressDiv = document.getElementById('progress-indicator');
+    if (!progressDiv) return;
+
+    const collected = gameState.evidenceCollected.size;
+    progressDiv.textContent = `${collected}/3`;
+    progressDiv.style.display = 'block';
+}
+
+// ====================================================================
+// FURNITURE COLLISION DETECTION
+// ====================================================================
+function checkFurnitureCollision(position) {
+    // Regular desk positions
+    const deskPositions = [
+        [-15, -10], [-15, 0], [-15, 10],
+        [-5, -12], [-5, -2], [-5, 8],
+        [5, -10], [5, 0], [5, 10],
+        [15, -12], [15, -2], [15, 8]
+    ];
+
+    const deskSize = { width: 3, depth: 2, margin: 0.5 };
+
+    for (const pos of deskPositions) {
+        const halfWidth = (deskSize.width / 2) + deskSize.margin;
+        const halfDepth = (deskSize.depth / 2) + deskSize.margin;
+
+        if (position.x > pos[0] - halfWidth && position.x < pos[0] + halfWidth &&
+            position.z > pos[1] - halfDepth && position.z < pos[1] + halfDepth) {
+            return true;
+        }
+    }
+
+    // Special desk collision
+    const specialDeskPos = [0, 10];
+    const specialDeskSize = { width: 3.5, depth: 2.5, margin: 0.5 };
+    const halfWidth = (specialDeskSize.width / 2) + specialDeskSize.margin;
+    const halfDepth = (specialDeskSize.depth / 2) + specialDeskSize.margin;
+
+    if (position.x > specialDeskPos[0] - halfWidth && position.x < specialDeskPos[0] + halfWidth &&
+        position.z > specialDeskPos[1] - halfDepth && position.z < specialDeskPos[1] + halfDepth) {
+        return true;
+    }
+
+    // Chair positions
+    const chairPositions = [
+        [-15, -11.5], [-15, -1.5], [-15, 8.5],
+        [-5, -13.5], [-5, -3.5], [-5, 6.5],
+        [5, -11.5], [5, -1.5], [5, 8.5],
+        [15, -13.5], [15, -3.5], [15, 6.5],
+        [-10, 5], [0, -5], [10, 3]
+    ];
+
+    const chairSize = { width: 0.8, depth: 0.8, margin: 0.3 };
+
+    for (const pos of chairPositions) {
+        const halfW = (chairSize.width / 2) + chairSize.margin;
+        const halfD = (chairSize.depth / 2) + chairSize.margin;
+
+        if (position.x > pos[0] - halfW && position.x < pos[0] + halfW &&
+            position.z > pos[1] - halfD && position.z < pos[1] + halfD) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ====================================================================
 // UPDATE FUNCTION
 // ====================================================================
 function update(delta) {
@@ -765,25 +1300,44 @@ function update(delta) {
     camera.position.x += moveX * delta;
     camera.position.z += moveZ * delta;
 
-    // Collision detection (simple boundary for smaller room)
-    const hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11 || camera.position.z > 25;
+    // Collision detection - scene-specific
+    let hitWall = false;
+    let doorBlocked = false;
 
-    // Check if trying to go through front wall at door
-    const atDoorWall = camera.position.z > 12 && camera.position.z < 12.8;
+    if (gameState.currentScene === 'industrialHall') {
+        // Scene 1 collision
+        hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11 || camera.position.z > 25;
 
-    // Allow passing through if door is open and player is in door area
-    const inDoorArea = camera.position.x > -2.5 && camera.position.x < 2.5;
-    const doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
+        // Check if trying to go through front wall at door
+        const atDoorWall = camera.position.z > 12 && camera.position.z < 12.8;
+        const inDoorArea = camera.position.x > -2.5 && camera.position.x < 2.5;
+        doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
+
+        // Scene transition: Enter Scene 2
+        if (gameState.doorUnlocked && inDoorArea && camera.position.z > 14 && !gameState.enteredNextRoom) {
+            gameState.enteredNextRoom = true;
+            console.log('Transitioning to Scene 2: Office Floor');
+            transitionToScene2();
+        }
+    } else if (gameState.currentScene === 'officeFloor') {
+        // Scene 2 collision (40x35 room)
+        hitWall = camera.position.x < -19 || camera.position.x > 19 || camera.position.z < -16 || camera.position.z > 16;
+
+        // Check wooden door collision
+        const atWoodenDoorWall = camera.position.z > 16 && camera.position.z < 17;
+        const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
+        doorBlocked = atWoodenDoorWall && (!gameState.woodenDoorUnlocked || !inWoodenDoorArea);
+
+        // Collision with desks and furniture (simple AABB check)
+        const furnitureCollision = checkFurnitureCollision(camera.position);
+        if (furnitureCollision) {
+            camera.position.copy(prevPosition);
+            return;
+        }
+    }
 
     if (hitWall || doorBlocked) {
         camera.position.copy(prevPosition);
-    }
-
-    // Log when player enters "next room" area
-    if (gameState.doorUnlocked && inDoorArea && camera.position.z > 14 && !gameState.enteredNextRoom) {
-        gameState.enteredNextRoom = true;
-        console.log('Entered next room area');
-        showMessage('Next room area - to be implemented');
     }
 
     // Keep player at correct height
