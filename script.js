@@ -1077,7 +1077,7 @@ async function buildOfficeFloorScene() {
     woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth);
     scene.add(woodenDoor);
 
-    // Key board 2 next to wooden door
+    // Key board 2 next to wooden door (moved further into room for accessibility)
     const keyBoard2 = new THREE.Mesh(
         new THREE.BoxGeometry(3, 2.5, 0.15),
         new THREE.MeshStandardMaterial({
@@ -1086,7 +1086,7 @@ async function buildOfficeFloorScene() {
         })
     );
     keyBoard2.name = 'KeyBoard2';
-    keyBoard2.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 0.5);
+    keyBoard2.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 2.5);
     scene.add(keyBoard2);
 
     // Decorative keys on board
@@ -1107,7 +1107,7 @@ async function buildOfficeFloorScene() {
             keyMaterial
         );
         key.name = `DecorativeKey_${i}`;
-        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 0.6);
+        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 2.6);
         key.rotation.y = Math.PI;
         scene.add(key);
     });
@@ -1123,7 +1123,7 @@ async function buildOfficeFloorScene() {
         })
     );
     goldenKey.name = 'GoldenKey';
-    goldenKey.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 0.6);
+    goldenKey.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 2.6);
     goldenKey.rotation.y = Math.PI;
     scene.add(goldenKey);
 
@@ -1397,10 +1397,10 @@ function update(delta) {
     } else if (inScene2) {
         // Scene 2 collision
         const scene2End = 12.5 + 35; // 47.5
-        hitWall = camera.position.x < -19 || camera.position.x > 19 || camera.position.z > scene2End;
+        hitWall = camera.position.x < -19 || camera.position.x > 19;
 
-        // Check wooden door collision
-        const atWoodenDoorWall = camera.position.z > scene2End - 1 && camera.position.z < scene2End + 1;
+        // Check wooden door collision - allow approaching wall, but block passage
+        const atWoodenDoorWall = camera.position.z > scene2End - 0.5;
         const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
         doorBlocked = atWoodenDoorWall && (!gameState.woodenDoorUnlocked || !inWoodenDoorArea);
 
