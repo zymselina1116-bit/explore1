@@ -4,8 +4,8 @@ import * as THREE from 'https://esm.sh/three@0.160.0';
 // TEXTURE URLS
 // ====================================================================
 const TEXTURES = {
-    scene1_floor: './Screenshot 2025-11-18 at 13.50.11.png',
-    scene1_wall: './Screenshot 2025-11-18 at 14.09.17.png',
+    scene1_floor: './Screenshot 2025-11-16 at 22.51.42.png',
+    scene1_wall: './Screenshot 2025-11-16 at 22.53.11.png',
     scene1_door: './Screenshot 2025-11-16 at 22.54.35.png',
     scene1_exit: './Screenshot 2025-11-16 at 22.55.14.png',
     scene2_floor: './Screenshot 2025-11-16 at 22.56.00.png',
