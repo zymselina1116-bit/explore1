@@ -419,21 +419,24 @@ async function buildIndustrialHallScene() {
     scene.add(backWall);
 
     // Front wall (with door gap) - separates Scene 1 and Scene 2
+    // Door is 4 units wide, centered at x=0 (spans -2 to 2)
+    // Left wall: from -12.5 to -2 = 10.5 units
+    // Right wall: from 2 to 12.5 = 10.5 units
     const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(8.5, wallHeight),
+        new THREE.PlaneGeometry(10.5, wallHeight),
         wallMaterial
     );
     frontWallLeft.name = 'FrontWallLeft';
-    frontWallLeft.position.set(-8.75, wallHeight / 2, halfRoom);
+    frontWallLeft.position.set(-7.25, wallHeight / 2, halfRoom);
     frontWallLeft.rotation.y = Math.PI;
     scene.add(frontWallLeft);
 
     const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(8.5, wallHeight),
+        new THREE.PlaneGeometry(10.5, wallHeight),
         wallMaterial
     );
     frontWallRight.name = 'FrontWallRight';
-    frontWallRight.position.set(8.75, wallHeight / 2, halfRoom);
+    frontWallRight.position.set(7.25, wallHeight / 2, halfRoom);
     frontWallRight.rotation.y = Math.PI;
     scene.add(frontWallRight);
 
@@ -813,21 +816,24 @@ async function buildOfficeFloorScene() {
     // Back wall removed - connects to Scene 1 door
 
     // Front wall (with wooden door gap)
+    // Wooden door is 4 units wide, centered at x=0 (spans -2 to 2)
+    // Left wall: from -20 to -2 = 18 units
+    // Right wall: from 2 to 20 = 18 units
     const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(15, wallHeight),
+        new THREE.PlaneGeometry(18, wallHeight),
         wallMaterial
     );
     frontWallLeft.name = 'Scene2_FrontWallLeft';
-    frontWallLeft.position.set(-12.5, wallHeight / 2, scene2OffsetZ + halfDepth);
+    frontWallLeft.position.set(-11, wallHeight / 2, scene2OffsetZ + halfDepth);
     frontWallLeft.rotation.y = Math.PI;
     scene.add(frontWallLeft);
 
     const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(15, wallHeight),
+        new THREE.PlaneGeometry(18, wallHeight),
         wallMaterial
     );
     frontWallRight.name = 'Scene2_FrontWallRight';
-    frontWallRight.position.set(12.5, wallHeight / 2, scene2OffsetZ + halfDepth);
+    frontWallRight.position.set(11, wallHeight / 2, scene2OffsetZ + halfDepth);
     frontWallRight.rotation.y = Math.PI;
     scene.add(frontWallRight);
 
