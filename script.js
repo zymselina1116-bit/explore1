@@ -162,10 +162,11 @@ async function init() {
     // Event listeners
     setupEventListeners();
 
-    // Build scene
-    console.log('Building scene...');
+    // Build both scenes (connected)
+    console.log('Building scenes...');
     await buildIndustrialHallScene();
-    console.log('Scene built successfully');
+    await buildOfficeFloorScene();
+    console.log('Both scenes built successfully');
 
     // Debug: Print all meshes in the scene
     console.log('\n========== SCENE MESH DEBUG ==========');
@@ -417,24 +418,7 @@ async function buildIndustrialHallScene() {
     backWall.position.set(0, wallHeight / 2, -halfRoom);
     scene.add(backWall);
 
-    // Front wall (with door gap) - using textured material
-    const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, wallHeight),
-        wallMaterial
-    );
-    frontWallLeft.name = 'FrontWallLeft';
-    frontWallLeft.position.set(-8.5, wallHeight / 2, halfRoom);
-    frontWallLeft.rotation.y = Math.PI;
-    scene.add(frontWallLeft);
-
-    const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, wallHeight),
-        wallMaterial
-    );
-    frontWallRight.name = 'FrontWallRight';
-    frontWallRight.position.set(8.5, wallHeight / 2, halfRoom);
-    frontWallRight.rotation.y = Math.PI;
-    scene.add(frontWallRight);
+    // Front walls removed - Scene 2 connects directly through door
 
     // Left wall
     const leftWall = new THREE.Mesh(
@@ -529,7 +513,7 @@ async function buildIndustrialHallScene() {
     });
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
     door.name = 'Door';
-    door.position.set(0, 2.5, halfRoom - 0.1); // Flush with wall
+    door.position.set(0, 2.5, halfRoom); // Flush with wall, no gap
     scene.add(door);
 
     // Store door reference for animation
@@ -691,7 +675,7 @@ async function buildIndustrialHallScene() {
         })
     );
     cardReaderMesh.name = 'CardReader';
-    cardReaderMesh.position.set(3, 1.5, halfRoom - 0.01); // Flush with wall
+    cardReaderMesh.position.set(3, 1.5, halfRoom); // Flush with wall, no gap
     cardReaderMesh.rotation.y = Math.PI; // Face the room
     scene.add(cardReaderMesh);
 
@@ -781,6 +765,11 @@ async function buildOfficeFloorScene() {
     const halfWidth = roomWidth / 2;
     const halfDepth = roomDepth / 2;
 
+    // Scene 2 offset - position it right behind Scene 1
+    // Scene 1 ends at z=12.5, Scene 2 back wall should be at z=12.5
+    // Scene 2 center = 12.5 + halfDepth = 30
+    const scene2OffsetZ = 12.5 + halfDepth;
+
     // Floor
     const floorGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
     const floorMaterial = new THREE.MeshStandardMaterial({
@@ -791,6 +780,7 @@ async function buildOfficeFloorScene() {
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.name = 'Scene2_Floor';
+    floor.position.set(0, 0, scene2OffsetZ);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
@@ -803,14 +793,7 @@ async function buildOfficeFloorScene() {
         side: THREE.DoubleSide,
     });
 
-    // Back wall (where player enters from Scene 1)
-    const backWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(roomWidth, wallHeight),
-        wallMaterial
-    );
-    backWall.name = 'Scene2_BackWall';
-    backWall.position.set(0, wallHeight / 2, -halfDepth);
-    scene.add(backWall);
+    // Back wall removed - connects to Scene 1 door
 
     // Front wall (with wooden door gap)
     const frontWallLeft = new THREE.Mesh(
@@ -818,7 +801,7 @@ async function buildOfficeFloorScene() {
         wallMaterial
     );
     frontWallLeft.name = 'Scene2_FrontWallLeft';
-    frontWallLeft.position.set(-12.5, wallHeight / 2, halfDepth);
+    frontWallLeft.position.set(-12.5, wallHeight / 2, scene2OffsetZ + halfDepth);
     frontWallLeft.rotation.y = Math.PI;
     scene.add(frontWallLeft);
 
@@ -827,7 +810,7 @@ async function buildOfficeFloorScene() {
         wallMaterial
     );
     frontWallRight.name = 'Scene2_FrontWallRight';
-    frontWallRight.position.set(12.5, wallHeight / 2, halfDepth);
+    frontWallRight.position.set(12.5, wallHeight / 2, scene2OffsetZ + halfDepth);
     frontWallRight.rotation.y = Math.PI;
     scene.add(frontWallRight);
 
@@ -837,7 +820,7 @@ async function buildOfficeFloorScene() {
         wallMaterial
     );
     leftWall.name = 'Scene2_LeftWall';
-    leftWall.position.set(-halfWidth, wallHeight / 2, 0);
+    leftWall.position.set(-halfWidth, wallHeight / 2, scene2OffsetZ);
     leftWall.rotation.y = Math.PI / 2;
     scene.add(leftWall);
 
@@ -847,7 +830,7 @@ async function buildOfficeFloorScene() {
         wallMaterial
     );
     rightWall.name = 'Scene2_RightWall';
-    rightWall.position.set(halfWidth, wallHeight / 2, 0);
+    rightWall.position.set(halfWidth, wallHeight / 2, scene2OffsetZ);
     rightWall.rotation.y = -Math.PI / 2;
     scene.add(rightWall);
 
@@ -861,7 +844,7 @@ async function buildOfficeFloorScene() {
     });
     const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
     ceiling.name = 'Scene2_Ceiling';
-    ceiling.position.y = wallHeight;
+    ceiling.position.set(0, wallHeight, scene2OffsetZ);
     ceiling.rotation.x = Math.PI / 2;
     scene.add(ceiling);
 
@@ -870,16 +853,16 @@ async function buildOfficeFloorScene() {
     scene.add(ambientLight);
 
     const mainLight = new THREE.PointLight(0xffffee, 3, 50);
-    mainLight.position.set(0, wallHeight - 1, 0);
+    mainLight.position.set(0, wallHeight - 1, scene2OffsetZ);
     scene.add(mainLight);
 
     // Area lights for desks/objects
     const areaLight1 = new THREE.PointLight(0xffffdd, 2, 15);
-    areaLight1.position.set(-10, 3, -8);
+    areaLight1.position.set(-10, 3, scene2OffsetZ - 8);
     scene.add(areaLight1);
 
     const areaLight2 = new THREE.PointLight(0xffffdd, 2, 15);
-    areaLight2.position.set(10, 3, 8);
+    areaLight2.position.set(10, 3, scene2OffsetZ + 8);
     scene.add(areaLight2);
 
     // Update flashlight color to match calmer mood
@@ -910,7 +893,7 @@ async function buildOfficeFloorScene() {
             furnitureMaterial
         );
         desk.name = `Desk_${i}`;
-        desk.position.set(pos[0], 0.75, pos[1]);
+        desk.position.set(pos[0], 0.75, scene2OffsetZ + pos[1]);
         scene.add(desk);
     });
 
@@ -929,7 +912,7 @@ async function buildOfficeFloorScene() {
             furnitureMaterial
         );
         chair.name = `Chair_${i}`;
-        chair.position.set(pos[0], 0.6, pos[1]);
+        chair.position.set(pos[0], 0.6, scene2OffsetZ + pos[1]);
         scene.add(chair);
     });
 
@@ -939,12 +922,12 @@ async function buildOfficeFloorScene() {
         furnitureMaterial
     );
     specialDesk.name = 'SpecialDesk';
-    specialDesk.position.set(0, 0.75, 10);
+    specialDesk.position.set(0, 0.75, scene2OffsetZ + 10);
     scene.add(specialDesk);
 
     // Glow effect for special desk
     const glowLight = new THREE.PointLight(0xffaa00, 1.5, 8);
-    glowLight.position.set(0, 1.5, 10);
+    glowLight.position.set(0, 1.5, scene2OffsetZ + 10);
     scene.add(glowLight);
     window.specialDeskGlow = glowLight;
 
@@ -960,7 +943,7 @@ async function buildOfficeFloorScene() {
         })
     );
     creatureSketch.name = 'CreatureSketch';
-    creatureSketch.position.set(-0.8, evidenceY, 10);
+    creatureSketch.position.set(-0.8, evidenceY, scene2OffsetZ + 10);
     creatureSketch.rotation.x = -Math.PI / 2;
     scene.add(creatureSketch);
 
@@ -973,7 +956,7 @@ async function buildOfficeFloorScene() {
         })
     );
     profileCard.name = 'ProfileCard';
-    profileCard.position.set(0, evidenceY, 10);
+    profileCard.position.set(0, evidenceY, scene2OffsetZ + 10);
     profileCard.rotation.x = -Math.PI / 2;
     scene.add(profileCard);
 
@@ -986,7 +969,7 @@ async function buildOfficeFloorScene() {
         })
     );
     mapItem.name = 'MapItem';
-    mapItem.position.set(0.8, evidenceY, 10);
+    mapItem.position.set(0.8, evidenceY, scene2OffsetZ + 10);
     mapItem.rotation.x = -Math.PI / 2;
     scene.add(mapItem);
 
@@ -1024,7 +1007,7 @@ async function buildOfficeFloorScene() {
         })
     );
     woodenDoor.name = 'WoodenDoor';
-    woodenDoor.position.set(0, 2.5, halfDepth - 0.1);
+    woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth);
     scene.add(woodenDoor);
 
     // Key board 2 next to wooden door
@@ -1036,7 +1019,7 @@ async function buildOfficeFloorScene() {
         })
     );
     keyBoard2.name = 'KeyBoard2';
-    keyBoard2.position.set(-5, 2.5, halfDepth - 0.5);
+    keyBoard2.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 0.5);
     scene.add(keyBoard2);
 
     // Decorative keys on board
@@ -1057,7 +1040,7 @@ async function buildOfficeFloorScene() {
             keyMaterial
         );
         key.name = `DecorativeKey_${i}`;
-        key.position.set(pos[0], pos[1], halfDepth - 0.6);
+        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 0.6);
         key.rotation.y = Math.PI;
         scene.add(key);
     });
@@ -1073,7 +1056,7 @@ async function buildOfficeFloorScene() {
         })
     );
     goldenKey.name = 'GoldenKey';
-    goldenKey.position.set(-5, 2.5, halfDepth - 0.6);
+    goldenKey.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 0.6);
     goldenKey.rotation.y = Math.PI;
     scene.add(goldenKey);
 
@@ -1219,7 +1202,10 @@ function updateProgressUI() {
 // FURNITURE COLLISION DETECTION
 // ====================================================================
 function checkFurnitureCollision(position) {
-    // Regular desk positions
+    // Scene 2 offset - same as in buildOfficeFloorScene
+    const scene2OffsetZ = 12.5 + 17.5; // 30
+
+    // Regular desk positions (with offset)
     const deskPositions = [
         [-15, -10], [-15, 0], [-15, 10],
         [-5, -12], [-5, -2], [-5, 8],
@@ -1232,25 +1218,27 @@ function checkFurnitureCollision(position) {
     for (const pos of deskPositions) {
         const halfWidth = (deskSize.width / 2) + deskSize.margin;
         const halfDepth = (deskSize.depth / 2) + deskSize.margin;
+        const actualZ = scene2OffsetZ + pos[1];
 
         if (position.x > pos[0] - halfWidth && position.x < pos[0] + halfWidth &&
-            position.z > pos[1] - halfDepth && position.z < pos[1] + halfDepth) {
+            position.z > actualZ - halfDepth && position.z < actualZ + halfDepth) {
             return true;
         }
     }
 
-    // Special desk collision
+    // Special desk collision (with offset)
     const specialDeskPos = [0, 10];
     const specialDeskSize = { width: 3.5, depth: 2.5, margin: 0.5 };
     const halfWidth = (specialDeskSize.width / 2) + specialDeskSize.margin;
     const halfDepth = (specialDeskSize.depth / 2) + specialDeskSize.margin;
+    const actualSpecialZ = scene2OffsetZ + specialDeskPos[1];
 
     if (position.x > specialDeskPos[0] - halfWidth && position.x < specialDeskPos[0] + halfWidth &&
-        position.z > specialDeskPos[1] - halfDepth && position.z < specialDeskPos[1] + halfDepth) {
+        position.z > actualSpecialZ - halfDepth && position.z < actualSpecialZ + halfDepth) {
         return true;
     }
 
-    // Chair positions
+    // Chair positions (with offset)
     const chairPositions = [
         [-15, -11.5], [-15, -1.5], [-15, 8.5],
         [-5, -13.5], [-5, -3.5], [-5, 6.5],
@@ -1264,9 +1252,10 @@ function checkFurnitureCollision(position) {
     for (const pos of chairPositions) {
         const halfW = (chairSize.width / 2) + chairSize.margin;
         const halfD = (chairSize.depth / 2) + chairSize.margin;
+        const actualChairZ = scene2OffsetZ + pos[1];
 
         if (position.x > pos[0] - halfW && position.x < pos[0] + halfW &&
-            position.z > pos[1] - halfD && position.z < pos[1] + halfD) {
+            position.z > actualChairZ - halfD && position.z < actualChairZ + halfD) {
             return true;
         }
     }
@@ -1319,35 +1308,35 @@ function update(delta) {
     camera.position.x += moveX * delta;
     camera.position.z += moveZ * delta;
 
-    // Collision detection - scene-specific
+    // Collision detection - both rooms connected
     let hitWall = false;
     let doorBlocked = false;
 
-    if (gameState.currentScene === 'industrialHall') {
+    // Scene 1 boundaries (z: -12.5 to 12.5)
+    // Scene 2 boundaries (z: 12.5 to 47.5, x: -20 to 20)
+
+    const inScene1 = camera.position.z < 12.5;
+    const inScene2 = camera.position.z >= 12.5;
+
+    if (inScene1) {
         // Scene 1 collision
-        hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11 || camera.position.z > 25;
+        hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11;
 
-        // Check if trying to go through front wall at door
-        const atDoorWall = camera.position.z > 12 && camera.position.z < 12.8;
-        const inDoorArea = camera.position.x > -2.5 && camera.position.x < 2.5;
+        // Check if trying to go through Scene 1 door
+        const atDoorWall = camera.position.z > 12 && camera.position.z < 13;
+        const inDoorArea = camera.position.x > -2 && camera.position.x < 2;
         doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
-
-        // Scene transition: Enter Scene 2
-        if (gameState.doorUnlocked && inDoorArea && camera.position.z > 14 && !gameState.enteredNextRoom) {
-            gameState.enteredNextRoom = true;
-            console.log('Transitioning to Scene 2: Office Floor');
-            transitionToScene2();
-        }
-    } else if (gameState.currentScene === 'officeFloor') {
-        // Scene 2 collision (40x35 room)
-        hitWall = camera.position.x < -19 || camera.position.x > 19 || camera.position.z < -16 || camera.position.z > 16;
+    } else if (inScene2) {
+        // Scene 2 collision
+        const scene2End = 12.5 + 35; // 47.5
+        hitWall = camera.position.x < -19 || camera.position.x > 19 || camera.position.z > scene2End;
 
         // Check wooden door collision
-        const atWoodenDoorWall = camera.position.z > 16 && camera.position.z < 17;
+        const atWoodenDoorWall = camera.position.z > scene2End - 1 && camera.position.z < scene2End + 1;
         const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
         doorBlocked = atWoodenDoorWall && (!gameState.woodenDoorUnlocked || !inWoodenDoorArea);
 
-        // Collision with desks and furniture (simple AABB check)
+        // Collision with desks and furniture
         const furnitureCollision = checkFurnitureCollision(camera.position);
         if (furnitureCollision) {
             camera.position.copy(prevPosition);
