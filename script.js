@@ -1436,7 +1436,7 @@ async function buildOfficeFloorScene() {
     };
     interactiveObjects.push(tankInteractive);
 
-    // Wooden door (moved into room for better accessibility)
+    // Wooden door (flush against back wall)
     const woodenDoor = new THREE.Mesh(
         new THREE.BoxGeometry(4, 5, 0.2),
         new THREE.MeshStandardMaterial({
@@ -1446,10 +1446,10 @@ async function buildOfficeFloorScene() {
         })
     );
     woodenDoor.name = 'WoodenDoor';
-    woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth - 1.5); // Moved 1.5 units into room
+    woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth - 0.1); // Flush with wall (0.2 thickness / 2)
     scene.add(woodenDoor);
 
-    // Key board 2 next to wooden door (moved further into room for accessibility)
+    // Key board 2 next to wooden door (flush against back wall)
     const keyBoard2 = new THREE.Mesh(
         new THREE.BoxGeometry(3, 2.5, 0.15),
         new THREE.MeshStandardMaterial({
@@ -1458,7 +1458,7 @@ async function buildOfficeFloorScene() {
         })
     );
     keyBoard2.name = 'KeyBoard2';
-    keyBoard2.position.set(-6, 2.5, scene2OffsetZ + halfDepth - 5.0);
+    keyBoard2.position.set(-6, 2.5, scene2OffsetZ + halfDepth - 0.075); // Flush with wall (0.15 thickness / 2)
     scene.add(keyBoard2);
 
     // Decorative keys on board
@@ -1479,7 +1479,7 @@ async function buildOfficeFloorScene() {
             keyMaterial
         );
         key.name = `DecorativeKey_${i}`;
-        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 5.1);
+        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 0.076); // Just in front of board
         key.rotation.y = Math.PI;
         scene.add(key);
     });
