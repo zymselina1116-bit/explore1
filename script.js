@@ -21,7 +21,7 @@ const TEXTURES = {
     mapItem: './Screenshot 2025-11-17 at 14.18.31.png',
     furniture: './Screenshot 2025-11-17 at 14.38.31.png',
     keyBoard2: './Screenshot 2025-11-17 at 14.39.55.png',
-    drawer: './Screenshot_2025-11-17_at_21.37.09-removebg-preview.png'
+    drawer: './Screenshot 2025-11-17 at 22.38.36.png'
 };
 
 // ====================================================================
@@ -794,16 +794,18 @@ async function buildOfficeFloorScene() {
 
     console.log('Scene 2 textures loaded');
 
-    // Room size (larger than Scene 1)
-    const roomWidth = 40;
-    const roomDepth = 35;
+    // Room size (same as Scene 1 for consistency)
+    const roomSize = 25;
+    const roomWidth = roomSize;
+    const roomDepth = roomSize;
     const wallHeight = 6;
-    const halfWidth = roomWidth / 2;
-    const halfDepth = roomDepth / 2;
+    const halfRoom = roomSize / 2;
+    const halfWidth = halfRoom;
+    const halfDepth = halfRoom;
 
     // Scene 2 offset - position it right behind Scene 1
     // Scene 1 ends at z=12.5, Scene 2 back wall should be at z=12.5
-    // Scene 2 center = 12.5 + halfDepth = 30
+    // Scene 2 center = 12.5 + halfDepth = 25
     const scene2OffsetZ = 12.5 + halfDepth;
 
     // Floor
@@ -833,23 +835,23 @@ async function buildOfficeFloorScene() {
 
     // Front wall (with wooden door gap)
     // Wooden door is 4 units wide, centered at x=0 (spans -2 to 2)
-    // Left wall: from -20 to -2 = 18 units
-    // Right wall: from 2 to 20 = 18 units
+    // Left wall: from -12.5 to -2 = 10.5 units
+    // Right wall: from 2 to 12.5 = 10.5 units
     const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(18, wallHeight),
+        new THREE.PlaneGeometry(10.5, wallHeight),
         wallMaterial
     );
     frontWallLeft.name = 'Scene2_FrontWallLeft';
-    frontWallLeft.position.set(-11, wallHeight / 2, scene2OffsetZ + halfDepth);
+    frontWallLeft.position.set(-7.25, wallHeight / 2, scene2OffsetZ + halfDepth);
     frontWallLeft.rotation.y = Math.PI;
     scene.add(frontWallLeft);
 
     const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(18, wallHeight),
+        new THREE.PlaneGeometry(10.5, wallHeight),
         wallMaterial
     );
     frontWallRight.name = 'Scene2_FrontWallRight';
-    frontWallRight.position.set(11, wallHeight / 2, scene2OffsetZ + halfDepth);
+    frontWallRight.position.set(7.25, wallHeight / 2, scene2OffsetZ + halfDepth);
     frontWallRight.rotation.y = Math.PI;
     scene.add(frontWallRight);
 
@@ -887,135 +889,276 @@ async function buildOfficeFloorScene() {
     ceiling.rotation.x = Math.PI / 2;
     scene.add(ceiling);
 
-    // Lighting: Blue and green environment (different from Scene 1's red)
-    const ambientLight = new THREE.AmbientLight(0x4466ff, 0.6); // Blue ambient light
+    // Lighting: Cool blue laboratory environment (futuristic industrial)
+    const ambientLight = new THREE.AmbientLight(0x3366ff, 0.5); // Cool blue ambient
     scene.add(ambientLight);
 
-    const mainLight = new THREE.PointLight(0x44ff88, 3, 50); // Green main light
+    const mainLight = new THREE.PointLight(0x4488ff, 2.5, 50); // Blue main light
     mainLight.position.set(0, wallHeight - 1, scene2OffsetZ);
     scene.add(mainLight);
 
-    // Area lights for desks/objects - mix of blue and green
-    const areaLight1 = new THREE.PointLight(0x44ccff, 2, 15); // Cyan/blue area light
-    areaLight1.position.set(-10, 3, scene2OffsetZ - 8);
-    scene.add(areaLight1);
-
-    const areaLight2 = new THREE.PointLight(0x66ff99, 2, 15); // Light green area light
-    areaLight2.position.set(10, 3, scene2OffsetZ + 8);
-    scene.add(areaLight2);
-
-    // Additional blue and green lights throughout the room for full coverage
-    const blueLights = [
-        [-15, 4, scene2OffsetZ - 10],
-        [-8, 4, scene2OffsetZ + 5],
-        [0, 4, scene2OffsetZ - 5],
-        [8, 4, scene2OffsetZ + 12]
+    // Blue ceiling lights for full coverage
+    const blueCeilingLights = [
+        [-10, wallHeight - 0.5, scene2OffsetZ - 10],
+        [-8, wallHeight - 0.5, scene2OffsetZ - 5],
+        [-5, wallHeight - 0.5, scene2OffsetZ - 8],
+        [0, wallHeight - 0.5, scene2OffsetZ - 10],
+        [5, wallHeight - 0.5, scene2OffsetZ - 5],
+        [8, wallHeight - 0.5, scene2OffsetZ - 8],
+        [10, wallHeight - 0.5, scene2OffsetZ - 10],
+        [-10, wallHeight - 0.5, scene2OffsetZ],
+        [-5, wallHeight - 0.5, scene2OffsetZ + 2],
+        [0, wallHeight - 0.5, scene2OffsetZ],
+        [5, wallHeight - 0.5, scene2OffsetZ - 2],
+        [10, wallHeight - 0.5, scene2OffsetZ],
+        [-10, wallHeight - 0.5, scene2OffsetZ + 10],
+        [-5, wallHeight - 0.5, scene2OffsetZ + 8],
+        [0, wallHeight - 0.5, scene2OffsetZ + 10],
+        [5, wallHeight - 0.5, scene2OffsetZ + 8],
+        [8, wallHeight - 0.5, scene2OffsetZ + 10],
+        [10, wallHeight - 0.5, scene2OffsetZ + 10]
     ];
 
-    blueLights.forEach(pos => {
+    blueCeilingLights.forEach(pos => {
+        const blueCeilingLight = new THREE.PointLight(0x2266ff, 2.0, 16);
+        blueCeilingLight.position.set(pos[0], pos[1], pos[2]);
+        scene.add(blueCeilingLight);
+    });
+
+    // Additional blue area lights
+    const blueAreaLights = [
+        [-8, 3.5, scene2OffsetZ - 8],
+        [8, 3.5, scene2OffsetZ - 8],
+        [-8, 3.5, scene2OffsetZ + 8],
+        [8, 3.5, scene2OffsetZ + 8],
+        [0, 3.5, scene2OffsetZ]
+    ];
+
+    blueAreaLights.forEach(pos => {
         const blueLight = new THREE.PointLight(0x3388ff, 1.5, 12);
         blueLight.position.set(pos[0], pos[1], pos[2]);
         scene.add(blueLight);
     });
 
-    // Many more blue ceiling lights for full coverage
-    const blueCeilingLights = [
-        [-15, wallHeight - 0.5, scene2OffsetZ - 12],
-        [-10, wallHeight - 0.5, scene2OffsetZ - 15],
-        [-5, wallHeight - 0.5, scene2OffsetZ - 10],
-        [0, wallHeight - 0.5, scene2OffsetZ - 15],
-        [5, wallHeight - 0.5, scene2OffsetZ - 12],
-        [10, wallHeight - 0.5, scene2OffsetZ - 8],
-        [15, wallHeight - 0.5, scene2OffsetZ - 10],
-        [-15, wallHeight - 0.5, scene2OffsetZ],
-        [-10, wallHeight - 0.5, scene2OffsetZ + 2],
-        [-5, wallHeight - 0.5, scene2OffsetZ - 2],
-        [5, wallHeight - 0.5, scene2OffsetZ + 2],
-        [10, wallHeight - 0.5, scene2OffsetZ],
-        [15, wallHeight - 0.5, scene2OffsetZ - 2],
-        [-15, wallHeight - 0.5, scene2OffsetZ + 12],
-        [-10, wallHeight - 0.5, scene2OffsetZ + 15],
-        [-5, wallHeight - 0.5, scene2OffsetZ + 12],
-        [0, wallHeight - 0.5, scene2OffsetZ + 15],
-        [5, wallHeight - 0.5, scene2OffsetZ + 10],
-        [10, wallHeight - 0.5, scene2OffsetZ + 13],
-        [15, wallHeight - 0.5, scene2OffsetZ + 12]
-    ];
-
-    blueCeilingLights.forEach(pos => {
-        const blueCeilingLight = new THREE.PointLight(0x2266ff, 2.5, 18);
-        blueCeilingLight.position.set(pos[0], pos[1], pos[2]);
-        scene.add(blueCeilingLight);
-    });
-
-    const greenLights = [
-        [15, 4, scene2OffsetZ - 5],
-        [-12, 4, scene2OffsetZ + 10],
-        [5, 4, scene2OffsetZ - 12],
-        [12, 4, scene2OffsetZ + 5]
-    ];
-
-    greenLights.forEach(pos => {
-        const greenLight = new THREE.PointLight(0x44ff66, 1.5, 12);
-        greenLight.position.set(pos[0], pos[1], pos[2]);
-        scene.add(greenLight);
-    });
-
-    // Update flashlight color to match blue-green theme
+    // Update flashlight color to match blue theme
     if (flashlight) {
         flashlight.intensity = 6;
-        flashlight.color.setHex(0x88ffbb); // Blue-green flashlight
+        flashlight.color.setHex(0x6699ff); // Cool blue flashlight
     }
 
-    // Furniture material
-    const furnitureMaterial = new THREE.MeshStandardMaterial({
+    // Materials for laboratory furniture using existing textures
+    const labMetalMaterial = new THREE.MeshStandardMaterial({
         map: furnitureTexture,
-        color: furnitureTexture ? 0xffffff : 0xff0000,
-        roughness: 0.6,
-        metalness: 0.1,
+        color: 0xffffff,
+        roughness: 0.5,
+        metalness: 0.7,
     });
 
-    // 12 regular desks (non-interactive) scattered around
-    const deskPositions = [
-        [-15, -10], [-15, 0], [-15, 10],
-        [-5, -12], [-5, -2], [-5, 8],
-        [5, -10], [5, 0], [5, 10],
-        [15, -12], [15, -2], [15, 8]
+    const wallPanelMaterial = new THREE.MeshStandardMaterial({
+        map: wallTexture,
+        color: 0xffffff,
+        metalness: 0.6,
+        roughness: 0.4,
+    });
+
+    // Central cylindrical liquid tank with green glowing liquid
+    const tankRadius = 1.5;
+    const tankHeight = wallHeight - 0.5;
+
+    // Tank outer shell (transparent)
+    const tankGeometry = new THREE.CylinderGeometry(tankRadius, tankRadius, tankHeight, 32);
+    const tankMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x88ccff,
+        transparent: true,
+        opacity: 0.3,
+        roughness: 0.1,
+        metalness: 0.1,
+        transmission: 0.9,
+    });
+    const tank = new THREE.Mesh(tankGeometry, tankMaterial);
+    tank.name = 'LiquidTank';
+    tank.position.set(0, tankHeight / 2, scene2OffsetZ);
+    scene.add(tank);
+
+    // Green liquid inside tank
+    const liquidGeometry = new THREE.CylinderGeometry(tankRadius - 0.1, tankRadius - 0.1, tankHeight - 0.5, 32);
+    const liquidMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x44ff88,
+        transparent: true,
+        opacity: 0.6,
+        emissive: 0x22aa44,
+        emissiveIntensity: 0.5,
+        roughness: 0.2,
+    });
+    const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
+    liquid.name = 'GreenLiquid';
+    liquid.position.set(0, tankHeight / 2, scene2OffsetZ);
+    scene.add(liquid);
+
+    // Store liquid reference for animation
+    window.liquidMesh = liquid;
+    window.tankPipesActive = false;
+
+    // Tank support rings (metallic)
+    const ringGeometry = new THREE.TorusGeometry(tankRadius + 0.1, 0.15, 16, 32);
+
+    const bottomRing = new THREE.Mesh(ringGeometry, labMetalMaterial);
+    bottomRing.position.set(0, 0.5, scene2OffsetZ);
+    bottomRing.rotation.x = Math.PI / 2;
+    scene.add(bottomRing);
+
+    const topRing = new THREE.Mesh(ringGeometry, labMetalMaterial);
+    topRing.position.set(0, tankHeight - 0.5, scene2OffsetZ);
+    topRing.rotation.x = Math.PI / 2;
+    scene.add(topRing);
+
+    // Pipes connected to tank (will glow green when activated)
+    const pipes = [];
+
+    // Upward pipe
+    const upPipeGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.5, 16);
+    const pipeMaterial = new THREE.MeshStandardMaterial({
+        map: furnitureTexture,
+        color: 0xcccccc,
+        metalness: 0.8,
+        roughness: 0.3,
+    });
+
+    const upPipe = new THREE.Mesh(upPipeGeometry, pipeMaterial.clone());
+    upPipe.position.set(tankRadius + 0.5, tankHeight, scene2OffsetZ);
+    scene.add(upPipe);
+    pipes.push(upPipe);
+
+    // Downward pipe
+    const downPipe = new THREE.Mesh(upPipeGeometry, pipeMaterial.clone());
+    downPipe.position.set(-tankRadius - 0.5, 0.75, scene2OffsetZ);
+    scene.add(downPipe);
+    pipes.push(downPipe);
+
+    // Horizontal pipes at ceiling
+    const horizontalPipeGeometry = new THREE.CylinderGeometry(0.15, 0.15, 4, 16);
+    const horizontalPipe1 = new THREE.Mesh(horizontalPipeGeometry, pipeMaterial.clone());
+    horizontalPipe1.position.set(3, wallHeight - 0.3, scene2OffsetZ);
+    horizontalPipe1.rotation.z = Math.PI / 2;
+    scene.add(horizontalPipe1);
+    pipes.push(horizontalPipe1);
+
+    const horizontalPipe2 = new THREE.Mesh(horizontalPipeGeometry, pipeMaterial.clone());
+    horizontalPipe2.position.set(-3, wallHeight - 0.3, scene2OffsetZ);
+    horizontalPipe2.rotation.z = Math.PI / 2;
+    scene.add(horizontalPipe2);
+    pipes.push(horizontalPipe2);
+
+    // Store pipes for interaction
+    window.tankPipes = pipes;
+
+    // Laboratory desks with metallic surfaces
+    const labDesks = [
+        { pos: [-8, -8], size: [3, 1.5, 2] },  // Desk 1 (will have creature sketch)
+        { pos: [8, -8], size: [3, 1.5, 2] },   // Desk 2 (will have profile card)
+        { pos: [-8, 8], size: [3.5, 1.5, 2.5] }, // Desk 3 (will have drawer with map)
+        { pos: [8, 8], size: [3, 1.5, 2] },    // Desk 4
+        { pos: [-8, 0], size: [2.5, 1.5, 1.8] }, // Desk 5
+        { pos: [8, 0], size: [2.5, 1.5, 1.8] },  // Desk 6
     ];
 
-    deskPositions.forEach((pos, i) => {
-        const desk = new THREE.Mesh(
-            new THREE.BoxGeometry(3, 1.5, 2),
-            furnitureMaterial
+    labDesks.forEach((desk, i) => {
+        const deskMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(...desk.size),
+            labMetalMaterial
         );
-        desk.name = `Desk_${i}`;
-        desk.position.set(pos[0], 0.75, scene2OffsetZ + pos[1]);
-        scene.add(desk);
+        deskMesh.name = `LabDesk_${i}`;
+        deskMesh.position.set(desk.pos[0], desk.size[1] / 2, scene2OffsetZ + desk.pos[1]);
+        scene.add(deskMesh);
     });
 
-    // 15 chairs scattered around desks
+    // Metal-frame chairs
     const chairPositions = [
-        [-15, -11.5], [-15, -1.5], [-15, 8.5],
-        [-5, -13.5], [-5, -3.5], [-5, 6.5],
-        [5, -11.5], [5, -1.5], [5, 8.5],
-        [15, -13.5], [15, -3.5], [15, 6.5],
-        [-10, 5], [0, -5], [10, 3]
+        [-9, -8.5], [8.5, -8.5], [-9, 8.5], [8.5, 8.5],
+        [-8.5, 0.5], [8.5, -0.5], [-4, -4], [4, 4]
     ];
 
     chairPositions.forEach((pos, i) => {
         const chair = new THREE.Mesh(
-            new THREE.BoxGeometry(0.8, 1.2, 0.8),
-            furnitureMaterial
+            new THREE.BoxGeometry(0.7, 1.0, 0.7),
+            labMetalMaterial
         );
         chair.name = `Chair_${i}`;
-        chair.position.set(pos[0], 0.6, scene2OffsetZ + pos[1]);
+        chair.position.set(pos[0], 0.5, scene2OffsetZ + pos[1]);
         scene.add(chair);
     });
 
-    // Evidence items spread across different desks
+    // Filing cabinets / storage units
+    const cabinetPositions = [
+        [-11, -10], [11, -10], [-11, 10], [11, 10]
+    ];
+
+    cabinetPositions.forEach((pos, i) => {
+        const cabinet = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 2.0, 1.0),
+            labMetalMaterial
+        );
+        cabinet.name = `Cabinet_${i}`;
+        cabinet.position.set(pos[0], 1.0, scene2OffsetZ + pos[1]);
+        scene.add(cabinet);
+    });
+
+    // Small laboratory devices on some desks
+    const devicePositions = [
+        [8, 8], [-8, 0], [8, 0]
+    ];
+
+    devicePositions.forEach((pos, i) => {
+        const device = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.3, 0.4),
+            labMetalMaterial
+        );
+        device.name = `Device_${i}`;
+        device.position.set(pos[0] + 0.5, 1.65, scene2OffsetZ + pos[1]);
+        scene.add(device);
+    });
+
+    // Wall-mounted panels
+    const panelPositions = [
+        { x: -halfRoom + 0.1, z: scene2OffsetZ - 5, rot: Math.PI / 2 },
+        { x: -halfRoom + 0.1, z: scene2OffsetZ + 5, rot: Math.PI / 2 },
+        { x: halfRoom - 0.1, z: scene2OffsetZ - 5, rot: -Math.PI / 2 },
+        { x: halfRoom - 0.1, z: scene2OffsetZ + 5, rot: -Math.PI / 2 }
+    ];
+
+    panelPositions.forEach((panel, i) => {
+        const panelMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(2, 1.5, 0.2),
+            wallPanelMaterial
+        );
+        panelMesh.name = `WallPanel_${i}`;
+        panelMesh.position.set(panel.x, 2.5, panel.z);
+        panelMesh.rotation.y = panel.rot;
+        scene.add(panelMesh);
+    });
+
+    // Ceiling structural beams (non-emitting)
+    const beamPositions = [
+        { start: [-halfRoom, scene2OffsetZ - 10], end: [halfRoom, scene2OffsetZ - 10] },
+        { start: [-halfRoom, scene2OffsetZ], end: [halfRoom, scene2OffsetZ] },
+        { start: [-halfRoom, scene2OffsetZ + 10], end: [halfRoom, scene2OffsetZ + 10] }
+    ];
+
+    beamPositions.forEach((beam, i) => {
+        const length = Math.abs(beam.end[0] - beam.start[0]);
+        const beamMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(length, 0.3, 0.3),
+            labMetalMaterial
+        );
+        beamMesh.name = `Beam_${i}`;
+        beamMesh.position.set(0, wallHeight - 0.2, beam.start[1]);
+        scene.add(beamMesh);
+    });
+
+    // Evidence items spread across different lab desks
     const evidenceY = 1.6;
 
-    // Creature sketch - on desk at [-15, -10]
+    // Creature sketch - on Lab Desk 1 at [-8, -8]
     const creatureSketch = new THREE.Mesh(
         new THREE.PlaneGeometry(0.8, 1.0),
         new THREE.MeshStandardMaterial({
@@ -1024,16 +1167,17 @@ async function buildOfficeFloorScene() {
         })
     );
     creatureSketch.name = 'CreatureSketch';
-    creatureSketch.position.set(-15, evidenceY, scene2OffsetZ + -10);
+    creatureSketch.position.set(-8, evidenceY, scene2OffsetZ + -8);
     creatureSketch.rotation.x = -Math.PI / 2;
     scene.add(creatureSketch);
 
-    // Glow effect for creature sketch desk
-    const creatureGlow = new THREE.PointLight(0xffaa00, 1.0, 8);
-    creatureGlow.position.set(-15, 2, scene2OffsetZ + -10);
+    // Blue flickering glow for creature sketch desk
+    const creatureGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
+    creatureGlow.position.set(-8, 2, scene2OffsetZ + -8);
     scene.add(creatureGlow);
+    window.creatureGlow = creatureGlow; // Store for flicker animation
 
-    // Profile card - on desk at [5, 0]
+    // Profile card - on Lab Desk 2 at [8, -8]
     const profileCard = new THREE.Mesh(
         new THREE.PlaneGeometry(0.7, 1.0),
         new THREE.MeshStandardMaterial({
@@ -1042,31 +1186,35 @@ async function buildOfficeFloorScene() {
         })
     );
     profileCard.name = 'ProfileCard';
-    profileCard.position.set(5, evidenceY, scene2OffsetZ + 0);
+    profileCard.position.set(8, evidenceY, scene2OffsetZ + -8);
     profileCard.rotation.x = -Math.PI / 2;
     scene.add(profileCard);
 
-    // Glow effect for profile card desk
-    const profileGlow = new THREE.PointLight(0xffaa00, 1.0, 8);
-    profileGlow.position.set(5, 2, scene2OffsetZ + 0);
+    // Blue flickering glow for profile card desk
+    const profileGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
+    profileGlow.position.set(8, 2, scene2OffsetZ + -8);
     scene.add(profileGlow);
+    window.profileGlow = profileGlow; // Store for flicker animation
 
-    // Drawer on desk at [15, -2] - contains map item
+    // Drawer on Lab Desk 3 at [-8, 8] - contains map item
     const drawer = new THREE.Mesh(
         new THREE.BoxGeometry(2.5, 0.4, 1.5),
         new THREE.MeshStandardMaterial({
             map: drawerTexture,
             color: drawerTexture ? 0xffffff : 0xff0000,
+            metalness: 0.6,
+            roughness: 0.4,
         })
     );
     drawer.name = 'Drawer';
-    drawer.position.set(15, 1.0, scene2OffsetZ + -2);
+    drawer.position.set(-8, 1.0, scene2OffsetZ + 8);
     scene.add(drawer);
 
-    // Glow effect for drawer desk
-    const drawerGlow = new THREE.PointLight(0xffaa00, 1.0, 8);
-    drawerGlow.position.set(15, 2, scene2OffsetZ + -2);
+    // Blue flickering glow for drawer desk
+    const drawerGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
+    drawerGlow.position.set(-8, 2, scene2OffsetZ + 8);
     scene.add(drawerGlow);
+    window.drawerGlow = drawerGlow; // Store for flicker animation
 
     // Map item - inside drawer (initially hidden, revealed when drawer opens)
     const mapItem = new THREE.Mesh(
@@ -1077,7 +1225,7 @@ async function buildOfficeFloorScene() {
         })
     );
     mapItem.name = 'MapItem';
-    mapItem.position.set(15, 1.3, scene2OffsetZ + -2);
+    mapItem.position.set(-8, 1.3, scene2OffsetZ + 8);
     mapItem.rotation.x = -Math.PI / 2;
     mapItem.visible = false; // Hidden until drawer opens
     scene.add(mapItem);
@@ -1125,8 +1273,8 @@ async function buildOfficeFloorScene() {
                 // Animate drawer sliding out
                 const drawerOpenInterval = setInterval(() => {
                     drawer.position.z += 0.05; // Slide drawer forward
-                    if (drawer.position.z >= scene2OffsetZ + -2 + 0.8) {
-                        drawer.position.z = scene2OffsetZ + -2 + 0.8;
+                    if (drawer.position.z >= scene2OffsetZ + 8 + 0.8) {
+                        drawer.position.z = scene2OffsetZ + 8 + 0.8;
                         clearInterval(drawerOpenInterval);
                         // Reveal map item
                         mapItem.visible = true;
@@ -1138,6 +1286,45 @@ async function buildOfficeFloorScene() {
         }
     };
     interactiveObjects.push(drawerInteractive);
+
+    // Liquid tank interactive (double-click to activate green liquid flow through pipes)
+    let lastTankClickTime = 0;
+    const tankInteractive = {
+        mesh: tank,
+        type: 'liquidTank',
+        id: 'central_tank',
+        hintText: 'Double-click to activate liquid system',
+        onClick: () => {
+            const now = Date.now();
+            const isDoubleClick = (now - lastTankClickTime) < 300;
+            lastTankClickTime = now;
+
+            if (!isDoubleClick) {
+                console.log('Single click on tank (need double-click)');
+                return;
+            }
+
+            if (!window.tankPipesActive) {
+                window.tankPipesActive = true;
+                showMessage('Liquid system activated');
+                console.log('Tank activated - green liquid flowing through pipes');
+
+                // Make pipes glow green
+                window.tankPipes.forEach(pipe => {
+                    pipe.material.emissive = new THREE.Color(0x22aa44);
+                    pipe.material.emissiveIntensity = 0.8;
+                });
+
+                // Increase liquid glow
+                if (window.liquidMesh) {
+                    window.liquidMesh.material.emissiveIntensity = 1.0;
+                }
+            } else {
+                showMessage('Liquid system already active');
+            }
+        }
+    };
+    interactiveObjects.push(tankInteractive);
 
     // Wooden door (moved into room for better accessibility)
     const woodenDoor = new THREE.Mesh(
@@ -1380,60 +1567,70 @@ function addEvidenceToBackpack(evidenceName, evidenceTexture) {
 // FURNITURE COLLISION DETECTION
 // ====================================================================
 function checkFurnitureCollision(position) {
-    // Scene 2 offset - same as in buildOfficeFloorScene
-    const scene2OffsetZ = 12.5 + 17.5; // 30
+    // Scene 2 offset - same as in buildOfficeFloorScene (room size 25x25)
+    const scene2OffsetZ = 12.5 + 12.5; // 25
 
-    // Regular desk positions (with offset)
-    const deskPositions = [
-        [-15, -10], [-15, 0], [-15, 10],
-        [-5, -12], [-5, -2], [-5, 8],
-        [5, -10], [5, 0], [5, 10],
-        [15, -12], [15, -2], [15, 8]
+    // Central liquid tank collision
+    const tankRadius = 1.5 + 0.5; // Tank radius + margin
+    const tankX = 0;
+    const tankZ = scene2OffsetZ;
+    const distToTank = Math.sqrt(
+        Math.pow(position.x - tankX, 2) + Math.pow(position.z - tankZ, 2)
+    );
+    if (distToTank < tankRadius) {
+        return true;
+    }
+
+    // Laboratory desk positions (with offset)
+    const labDesks = [
+        { pos: [-8, -8], size: [3, 2] },
+        { pos: [8, -8], size: [3, 2] },
+        { pos: [-8, 8], size: [3.5, 2.5] },
+        { pos: [8, 8], size: [3, 2] },
+        { pos: [-8, 0], size: [2.5, 1.8] },
+        { pos: [8, 0], size: [2.5, 1.8] },
     ];
 
-    const deskSize = { width: 3, depth: 2, margin: 0.5 };
+    for (const desk of labDesks) {
+        const halfWidth = (desk.size[0] / 2) + 0.5;
+        const halfDepth = (desk.size[1] / 2) + 0.5;
+        const actualZ = scene2OffsetZ + desk.pos[1];
 
-    for (const pos of deskPositions) {
-        const halfWidth = (deskSize.width / 2) + deskSize.margin;
-        const halfDepth = (deskSize.depth / 2) + deskSize.margin;
-        const actualZ = scene2OffsetZ + pos[1];
-
-        if (position.x > pos[0] - halfWidth && position.x < pos[0] + halfWidth &&
+        if (position.x > desk.pos[0] - halfWidth && position.x < desk.pos[0] + halfWidth &&
             position.z > actualZ - halfDepth && position.z < actualZ + halfDepth) {
             return true;
         }
     }
 
-    // Special desk collision (with offset)
-    const specialDeskPos = [0, 10];
-    const specialDeskSize = { width: 3.5, depth: 2.5, margin: 0.5 };
-    const halfWidth = (specialDeskSize.width / 2) + specialDeskSize.margin;
-    const halfDepth = (specialDeskSize.depth / 2) + specialDeskSize.margin;
-    const actualSpecialZ = scene2OffsetZ + specialDeskPos[1];
-
-    if (position.x > specialDeskPos[0] - halfWidth && position.x < specialDeskPos[0] + halfWidth &&
-        position.z > actualSpecialZ - halfDepth && position.z < actualSpecialZ + halfDepth) {
-        return true;
-    }
-
     // Chair positions (with offset)
     const chairPositions = [
-        [-15, -11.5], [-15, -1.5], [-15, 8.5],
-        [-5, -13.5], [-5, -3.5], [-5, 6.5],
-        [5, -11.5], [5, -1.5], [5, 8.5],
-        [15, -13.5], [15, -3.5], [15, 6.5],
-        [-10, 5], [0, -5], [10, 3]
+        [-9, -8.5], [8.5, -8.5], [-9, 8.5], [8.5, 8.5],
+        [-8.5, 0.5], [8.5, -0.5], [-4, -4], [4, 4]
     ];
 
-    const chairSize = { width: 0.8, depth: 0.8, margin: 0.3 };
-
     for (const pos of chairPositions) {
-        const halfW = (chairSize.width / 2) + chairSize.margin;
-        const halfD = (chairSize.depth / 2) + chairSize.margin;
+        const halfW = 0.7 / 2 + 0.3;
+        const halfD = 0.7 / 2 + 0.3;
         const actualChairZ = scene2OffsetZ + pos[1];
 
         if (position.x > pos[0] - halfW && position.x < pos[0] + halfW &&
             position.z > actualChairZ - halfD && position.z < actualChairZ + halfD) {
+            return true;
+        }
+    }
+
+    // Filing cabinets (with offset)
+    const cabinetPositions = [
+        [-11, -10], [11, -10], [-11, 10], [11, 10]
+    ];
+
+    for (const pos of cabinetPositions) {
+        const halfW = 1.5 / 2 + 0.3;
+        const halfD = 1.0 / 2 + 0.3;
+        const actualCabZ = scene2OffsetZ + pos[1];
+
+        if (position.x > pos[0] - halfW && position.x < pos[0] + halfW &&
+            position.z > actualCabZ - halfD && position.z < actualCabZ + halfD) {
             return true;
         }
     }
@@ -1490,8 +1687,8 @@ function update(delta) {
     let hitWall = false;
     let doorBlocked = false;
 
-    // Scene 1 boundaries (z: -12.5 to 12.5)
-    // Scene 2 boundaries (z: 12.5 to 47.5, x: -20 to 20)
+    // Scene 1 boundaries (z: -12.5 to 12.5, x: -12.5 to 12.5)
+    // Scene 2 boundaries (z: 12.5 to 37.5, x: -12.5 to 12.5) - Same size as Scene 1
 
     const inScene1 = camera.position.z < 12.5;
     const inScene2 = camera.position.z >= 12.5;
@@ -1505,9 +1702,9 @@ function update(delta) {
         const inDoorArea = camera.position.x > -2 && camera.position.x < 2;
         doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
     } else if (inScene2) {
-        // Scene 2 collision
-        const scene2End = 12.5 + 35; // 47.5
-        hitWall = camera.position.x < -19 || camera.position.x > 19;
+        // Scene 2 collision (same size room as Scene 1: 25x25)
+        const scene2End = 12.5 + 25; // 37.5
+        hitWall = camera.position.x < -11 || camera.position.x > 11;
 
         // Check wooden door collision - allow free movement up to door area
         // Only block passage beyond the door (when door is locked)
@@ -1562,8 +1759,34 @@ function update(delta) {
         window.gameDoor.position.x = doorPosition;
     }
 
-    // Main red ceiling lights - slow rhythmic breathing (brighter)
+    // Liquid tank animation - subtle bubbling/swirling motion
     const time = clock.getElapsedTime();
+    if (window.liquidMesh) {
+        // Rotate liquid slightly for swirling effect
+        window.liquidMesh.rotation.y = time * 0.1;
+
+        // Pulse emissive intensity for bubbling effect
+        const bubble = Math.sin(time * 2) * 0.1 + 0.5;
+        window.liquidMesh.material.emissiveIntensity = bubble;
+    }
+
+    // Evidence indicator lights - flickering blue glow
+    if (window.creatureGlow && !gameState.evidenceCollected.has('evidence_creature')) {
+        const flicker1 = Math.sin(time * 3 + 0.5) * 0.2 + 0.6;
+        window.creatureGlow.intensity = flicker1;
+    }
+
+    if (window.profileGlow && !gameState.evidenceCollected.has('evidence_profile')) {
+        const flicker2 = Math.sin(time * 3.5 + 1.0) * 0.2 + 0.6;
+        window.profileGlow.intensity = flicker2;
+    }
+
+    if (window.drawerGlow && !gameState.evidenceCollected.has('evidence_map')) {
+        const flicker3 = Math.sin(time * 3.2 + 1.5) * 0.2 + 0.6;
+        window.drawerGlow.intensity = flicker3;
+    }
+
+    // Main red ceiling lights - slow rhythmic breathing (brighter)
     if (window.mainRedLights) {
         const breathe = Math.sin(time * 0.8) * 0.3 + 0.7; // Slow pulse (0.4 to 1.0)
         window.mainRedLights.forEach(redLight => {
