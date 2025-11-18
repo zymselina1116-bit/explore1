@@ -1117,13 +1117,13 @@ async function buildOfficeFloorScene() {
         pipes.push(wPipe);
     });
 
-    // Floor horizontal pipes
+    // Floor horizontal pipes (raised to avoid z-fighting with floor)
     const floorPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 18, 16);
     const floorPipePositions = [
-        { pos: [0, 0.15, scene2OffsetZ - 8], rot: [0, 0, Math.PI / 2] },
-        { pos: [0, 0.15, scene2OffsetZ + 8], rot: [0, 0, Math.PI / 2] },
-        { pos: [-8, 0.15, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
-        { pos: [8, 0.15, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
+        { pos: [0, 0.35, scene2OffsetZ - 8], rot: [0, 0, Math.PI / 2] },
+        { pos: [0, 0.35, scene2OffsetZ + 8], rot: [0, 0, Math.PI / 2] },
+        { pos: [-8, 0.35, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
+        { pos: [8, 0.35, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
     ];
 
     floorPipePositions.forEach(p => {
