@@ -1306,8 +1306,8 @@ function update(delta) {
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.z = Number(moveBackward) - Number(moveForward);
+    direction.x = Number(moveLeft) - Number(moveRight);
     direction.normalize();
 
     if (moveForward || moveBackward) {
