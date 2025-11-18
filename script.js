@@ -59,8 +59,10 @@ let interactiveObjects = [];
 let currentHoveredObject = null;
 
 // Mouse drag camera controls
+let isMouseDown = false;
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
+let mouseDownPosition = { x: 0, y: 0 };
 let cameraRotation = { yaw: 0, pitch: 0 };
 
 // Movement
@@ -80,7 +82,7 @@ let flashlight = null; // Flashlight that follows camera
 let doorAnimating = false;
 let doorPosition = 0;
 const DOOR_TARGET_POSITION = 5;
-const DOOR_ANIMATION_SPEED = 3.0;
+const DOOR_ANIMATION_SPEED = 8.0; // Faster animation
 
 // Alarm lights
 let alarmLights = [];
@@ -258,21 +260,35 @@ function onKeyUp(event) {
 
 function onMouseDown(event) {
     if (event.button === 0) { // Left mouse button
-        isDragging = true;
+        isMouseDown = true;
+        isDragging = false; // Reset dragging
         previousMousePosition = { x: event.clientX, y: event.clientY };
+        mouseDownPosition = { x: event.clientX, y: event.clientY };
     }
 }
 
 function onMouseMove(event) {
-    if (isDragging) {
+    if (isMouseDown) {
         const deltaX = event.clientX - previousMousePosition.x;
         const deltaY = event.clientY - previousMousePosition.y;
 
-        cameraRotation.yaw -= deltaX * 0.002;
-        cameraRotation.pitch -= deltaY * 0.002;
+        // Check if mouse moved enough to be considered dragging
+        const dragDistance = Math.sqrt(
+            Math.pow(event.clientX - mouseDownPosition.x, 2) +
+            Math.pow(event.clientY - mouseDownPosition.y, 2)
+        );
 
-        // Clamp pitch to prevent over-rotation
-        cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+        if (dragDistance > 3) { // 3 pixels threshold
+            isDragging = true;
+        }
+
+        if (isDragging) {
+            cameraRotation.yaw -= deltaX * 0.002;
+            cameraRotation.pitch -= deltaY * 0.002;
+
+            // Clamp pitch to prevent over-rotation
+            cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
+        }
 
         previousMousePosition = { x: event.clientX, y: event.clientY };
     }
@@ -303,6 +319,7 @@ function onMouseMove(event) {
 
 function onMouseUp(event) {
     if (event.button === 0) {
+        isMouseDown = false;
         isDragging = false;
     }
 }
@@ -694,9 +711,11 @@ async function buildIndustrialHallScene() {
                 gameState.doorUnlocked = true;
                 // Start door opening animation
                 doorAnimating = true;
-                showMessage('Door unlocked');
-                console.log('Door unlocked! doorAnimating:', doorAnimating, 'gameDoor:', !!window.gameDoor);
+                doorPosition = 0; // Reset door position
+                showMessage('Door unlocked - Opening!');
+                console.log('Door unlocked! doorAnimating:', doorAnimating, 'gameDoor:', !!window.gameDoor, 'doorPosition:', doorPosition);
             } else {
+                showMessage('Door already open');
                 console.log('Door already unlocked');
             }
         }
@@ -1370,6 +1389,7 @@ function update(delta) {
         if (doorPosition >= DOOR_TARGET_POSITION) {
             doorPosition = DOOR_TARGET_POSITION;
             doorAnimating = false;
+            console.log('Door animation complete! Final position:', doorPosition);
         }
         window.gameDoor.position.x = doorPosition;
     }
