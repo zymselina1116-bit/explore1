@@ -418,7 +418,24 @@ async function buildIndustrialHallScene() {
     backWall.position.set(0, wallHeight / 2, -halfRoom);
     scene.add(backWall);
 
-    // Front walls removed - Scene 2 connects directly through door
+    // Front wall (with door gap) - separates Scene 1 and Scene 2
+    const frontWallLeft = new THREE.Mesh(
+        new THREE.PlaneGeometry(8.5, wallHeight),
+        wallMaterial
+    );
+    frontWallLeft.name = 'FrontWallLeft';
+    frontWallLeft.position.set(-8.75, wallHeight / 2, halfRoom);
+    frontWallLeft.rotation.y = Math.PI;
+    scene.add(frontWallLeft);
+
+    const frontWallRight = new THREE.Mesh(
+        new THREE.PlaneGeometry(8.5, wallHeight),
+        wallMaterial
+    );
+    frontWallRight.name = 'FrontWallRight';
+    frontWallRight.position.set(8.75, wallHeight / 2, halfRoom);
+    frontWallRight.rotation.y = Math.PI;
+    scene.add(frontWallRight);
 
     // Left wall
     const leftWall = new THREE.Mesh(
