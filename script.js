@@ -20,7 +20,8 @@ const TEXTURES = {
     profileCard: './Screenshot 2025-11-17 at 14.17.01.png',
     mapItem: './Screenshot 2025-11-17 at 14.18.31.png',
     furniture: './Screenshot 2025-11-17 at 14.38.31.png',
-    keyBoard2: './Screenshot 2025-11-17 at 14.39.55.png'
+    keyBoard2: './Screenshot 2025-11-17 at 14.39.55.png',
+    drawer: './Screenshot_2025-11-17_at_21.37.09-removebg-preview.png'
 };
 
 // ====================================================================
@@ -775,6 +776,7 @@ async function buildOfficeFloorScene() {
     const creatureTexture = await loadTexture(TEXTURES.creatureSketch, 1, 1);
     const profileTexture = await loadTexture(TEXTURES.profileCard, 1, 1);
     const mapTexture = await loadTexture(TEXTURES.mapItem, 1, 1);
+    const drawerTexture = await loadTexture(TEXTURES.drawer, 1, 1);
 
     console.log('Scene 2 textures loaded');
 
@@ -939,25 +941,10 @@ async function buildOfficeFloorScene() {
         scene.add(chair);
     });
 
-    // Special interactive desk with glow (positioned visibly)
-    const specialDesk = new THREE.Mesh(
-        new THREE.BoxGeometry(3.5, 1.5, 2.5),
-        furnitureMaterial
-    );
-    specialDesk.name = 'SpecialDesk';
-    specialDesk.position.set(0, 0.75, scene2OffsetZ + 10);
-    scene.add(specialDesk);
-
-    // Glow effect for special desk
-    const glowLight = new THREE.PointLight(0xffaa00, 1.5, 8);
-    glowLight.position.set(0, 1.5, scene2OffsetZ + 10);
-    scene.add(glowLight);
-    window.specialDeskGlow = glowLight;
-
-    // Evidence items on/in special desk
+    // Evidence items spread across different desks
     const evidenceY = 1.6;
 
-    // Creature sketch
+    // Creature sketch - on desk at [-15, -10]
     const creatureSketch = new THREE.Mesh(
         new THREE.PlaneGeometry(0.8, 1.0),
         new THREE.MeshStandardMaterial({
@@ -966,11 +953,16 @@ async function buildOfficeFloorScene() {
         })
     );
     creatureSketch.name = 'CreatureSketch';
-    creatureSketch.position.set(-0.8, evidenceY, scene2OffsetZ + 10);
+    creatureSketch.position.set(-15, evidenceY, scene2OffsetZ + -10);
     creatureSketch.rotation.x = -Math.PI / 2;
     scene.add(creatureSketch);
 
-    // Profile card
+    // Glow effect for creature sketch desk
+    const creatureGlow = new THREE.PointLight(0xffaa00, 1.0, 8);
+    creatureGlow.position.set(-15, 2, scene2OffsetZ + -10);
+    scene.add(creatureGlow);
+
+    // Profile card - on desk at [5, 0]
     const profileCard = new THREE.Mesh(
         new THREE.PlaneGeometry(0.7, 1.0),
         new THREE.MeshStandardMaterial({
@@ -979,11 +971,33 @@ async function buildOfficeFloorScene() {
         })
     );
     profileCard.name = 'ProfileCard';
-    profileCard.position.set(0, evidenceY, scene2OffsetZ + 10);
+    profileCard.position.set(5, evidenceY, scene2OffsetZ + 0);
     profileCard.rotation.x = -Math.PI / 2;
     scene.add(profileCard);
 
-    // Map item
+    // Glow effect for profile card desk
+    const profileGlow = new THREE.PointLight(0xffaa00, 1.0, 8);
+    profileGlow.position.set(5, 2, scene2OffsetZ + 0);
+    scene.add(profileGlow);
+
+    // Drawer on desk at [15, -2] - contains map item
+    const drawer = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 0.4, 1.5),
+        new THREE.MeshStandardMaterial({
+            map: drawerTexture,
+            color: drawerTexture ? 0xffffff : 0xff0000,
+        })
+    );
+    drawer.name = 'Drawer';
+    drawer.position.set(15, 1.0, scene2OffsetZ + -2);
+    scene.add(drawer);
+
+    // Glow effect for drawer desk
+    const drawerGlow = new THREE.PointLight(0xffaa00, 1.0, 8);
+    drawerGlow.position.set(15, 2, scene2OffsetZ + -2);
+    scene.add(drawerGlow);
+
+    // Map item - inside drawer (initially hidden, revealed when drawer opens)
     const mapItem = new THREE.Mesh(
         new THREE.PlaneGeometry(0.9, 0.9),
         new THREE.MeshStandardMaterial({
@@ -992,8 +1006,9 @@ async function buildOfficeFloorScene() {
         })
     );
     mapItem.name = 'MapItem';
-    mapItem.position.set(0.8, evidenceY, scene2OffsetZ + 10);
+    mapItem.position.set(15, 1.3, scene2OffsetZ + -2);
     mapItem.rotation.x = -Math.PI / 2;
+    mapItem.visible = false; // Hidden until drawer opens
     scene.add(mapItem);
 
     // Interactive evidence items
@@ -1019,6 +1034,35 @@ async function buildOfficeFloorScene() {
     interactiveObjects.push(createEvidenceInteractive(creatureSketch, 'evidence_creature', 'Creature Sketch'));
     interactiveObjects.push(createEvidenceInteractive(profileCard, 'evidence_profile', 'Profile Card'));
     interactiveObjects.push(createEvidenceInteractive(mapItem, 'evidence_map', 'Map'));
+
+    // Drawer interactive (opens to reveal map item)
+    const drawerInteractive = {
+        mesh: drawer,
+        type: 'drawer',
+        id: 'desk_drawer',
+        hintText: 'Click to open drawer',
+        onClick: () => {
+            if (!gameState.deskDrawerOpen) {
+                gameState.deskDrawerOpen = true;
+                showMessage('Drawer opened');
+                console.log('Drawer opened - map revealed');
+
+                // Animate drawer sliding out
+                const drawerOpenInterval = setInterval(() => {
+                    drawer.position.z += 0.05; // Slide drawer forward
+                    if (drawer.position.z >= scene2OffsetZ + -2 + 0.8) {
+                        drawer.position.z = scene2OffsetZ + -2 + 0.8;
+                        clearInterval(drawerOpenInterval);
+                        // Reveal map item
+                        mapItem.visible = true;
+                    }
+                }, 16);
+            } else {
+                showMessage('Drawer already open');
+            }
+        }
+    };
+    interactiveObjects.push(drawerInteractive);
 
     // Wooden door (flush with front wall)
     const woodenDoor = new THREE.Mesh(
@@ -1132,10 +1176,11 @@ async function buildOfficeFloorScene() {
                 gameState.woodenDoorUnlocked = true;
                 showMessage('Door unlocked');
                 console.log('Wooden door unlocked! Walk through to Scene 3');
-                // Animate door opening
+                // Animate door opening - rotate instead of slide
                 const doorOpenInterval = setInterval(() => {
-                    woodenDoor.position.x += 0.1;
-                    if (woodenDoor.position.x >= 5) {
+                    woodenDoor.rotation.y -= 0.05; // Rotate door open
+                    if (woodenDoor.rotation.y <= -Math.PI / 2) { // Open 90 degrees
+                        woodenDoor.rotation.y = -Math.PI / 2;
                         clearInterval(doorOpenInterval);
                     }
                 }, 16);
