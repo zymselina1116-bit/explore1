@@ -396,6 +396,8 @@ async function buildIndustrialHallScene() {
     const keyBoardTexture = await loadTexture(TEXTURES.keyBoard, 1, 1);
     const accessCardTexture = await loadTexture(TEXTURES.accessCard, 1, 1);
     const keyTexture = await loadTexture(TEXTURES.key, 1, 1);
+    const woodenDoorTexture = await loadTexture(TEXTURES.woodenDoor, 1, 1);
+    const goldenKeyTexture = await loadTexture(TEXTURES.goldenKey, 1, 1);
     const cardReaderTexture = await loadTexture(TEXTURES.cardReader, 1, 1);
     console.log('Textures loaded - Floor:', !!floorTexture, 'Wall:', !!wallTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture, 'CardReader:', !!cardReaderTexture);
 
@@ -772,6 +774,95 @@ async function buildIndustrialHallScene() {
         alarmLights.push({ mesh: alarmMesh, light: alarmLight });
     });
 
+    // Wooden door on back wall (opposite to Scene 2 entrance)
+    const woodenDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 5, 0.2),
+        new THREE.MeshStandardMaterial({
+            map: woodenDoorTexture,
+            transparent: true,
+            color: woodenDoorTexture ? 0xffffff : 0xff0000,
+        })
+    );
+    woodenDoor.name = 'WoodenDoor';
+    woodenDoor.position.set(0, 2.5, -halfRoom + 0.1); // Flush with back wall
+    scene.add(woodenDoor);
+
+    // Golden key next to wooden door on back wall
+    const goldenKey = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.4, 0.8),
+        new THREE.MeshStandardMaterial({
+            map: goldenKeyTexture,
+            transparent: true,
+            emissive: 0xffaa00,
+            emissiveIntensity: 0.5,
+        })
+    );
+    goldenKey.name = 'GoldenKey';
+    goldenKey.position.set(-6, 2.5, -halfRoom + 0.2);
+    scene.add(goldenKey);
+
+    // Golden key interactive (double-click to collect after evidence)
+    let lastGoldenKeyClickTime = 0;
+    const goldenKeyInteractive = {
+        mesh: goldenKey,
+        type: 'goldenKey',
+        id: 'golden_key',
+        hintText: 'Double-click to take golden key',
+        onClick: () => {
+            const now = Date.now();
+            const isDoubleClick = (now - lastGoldenKeyClickTime) < 300;
+            lastGoldenKeyClickTime = now;
+
+            if (!isDoubleClick) {
+                console.log('Single click on golden key (need double-click)');
+                return;
+            }
+
+            if (gameState.evidenceCollected.size < 3) {
+                showMessage('Collect all evidence first');
+                console.log('Need all 3 evidence items first');
+                return;
+            }
+
+            console.log('Golden key collected!');
+            gameState.hasGoldenKey = true;
+            scene.remove(goldenKey);
+            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'golden_key');
+            showMessage('Golden key obtained');
+        }
+    };
+    interactiveObjects.push(goldenKeyInteractive);
+
+    // Wooden door interactive (opens with golden key)
+    const woodenDoorInteractive = {
+        mesh: woodenDoor,
+        type: 'woodenDoor',
+        id: 'wooden_door',
+        hintText: 'Click to unlock door',
+        onClick: () => {
+            if (!gameState.hasGoldenKey) {
+                showMessage('Door is locked');
+                console.log('Need golden key to unlock wooden door');
+                return;
+            }
+
+            if (!gameState.woodenDoorUnlocked) {
+                gameState.woodenDoorUnlocked = true;
+                showMessage('Door unlocked');
+                console.log('Wooden door unlocked!');
+                // Animate door opening - rotate
+                const doorOpenInterval = setInterval(() => {
+                    woodenDoor.rotation.y -= 0.05; // Rotate door open
+                    if (woodenDoor.rotation.y <= -Math.PI / 2) { // Open 90 degrees
+                        woodenDoor.rotation.y = -Math.PI / 2;
+                        clearInterval(doorOpenInterval);
+                    }
+                }, 16);
+            }
+        }
+    };
+    interactiveObjects.push(woodenDoorInteractive);
+
     console.log('Industrial Hall scene built');
 }
 
@@ -961,307 +1052,51 @@ async function buildOfficeFloorScene() {
         roughness: 0.4,
     });
 
-    // Central cylindrical liquid tank with green glowing liquid
-    const tankRadius = 1.5;
-    const tankHeight = wallHeight - 0.5;
+    // Single desk with 5 drawers in center of room
+    const deskWidth = 4;
+    const deskHeight = 1.5;
+    const deskDepth = 2.5;
 
-    // Tank outer shell (transparent)
-    const tankGeometry = new THREE.CylinderGeometry(tankRadius, tankRadius, tankHeight, 32);
-    const tankMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x88ccff,
-        transparent: true,
-        opacity: 0.3,
-        roughness: 0.1,
-        metalness: 0.1,
-        transmission: 0.9,
-    });
-    const tank = new THREE.Mesh(tankGeometry, tankMaterial);
-    tank.name = 'LiquidTank';
-    tank.position.set(0, tankHeight / 2, scene2OffsetZ);
-    scene.add(tank);
+    // Main desk surface
+    const mainDesk = new THREE.Mesh(
+        new THREE.BoxGeometry(deskWidth, deskHeight, deskDepth),
+        labMetalMaterial
+    );
+    mainDesk.name = 'MainDesk';
+    mainDesk.position.set(0, deskHeight / 2, scene2OffsetZ);
+    scene.add(mainDesk);
 
-    // Green liquid inside tank with enhanced visibility
-    const liquidGeometry = new THREE.CylinderGeometry(tankRadius - 0.1, tankRadius - 0.1, tankHeight - 0.5, 32);
-    const liquidMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x44ff88,
-        transparent: true,
-        opacity: 0.7,
-        emissive: 0x22aa44,
-        emissiveIntensity: 0.8,
-        roughness: 0.2,
-    });
-    const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
-    liquid.name = 'GreenLiquid';
-    liquid.position.set(0, tankHeight / 2, scene2OffsetZ);
-    scene.add(liquid);
+    // Create 5 drawers - positioned in a row on the desk
+    const drawerWidth = 0.7;
+    const drawerHeight = 0.4;
+    const drawerDepth = 1.5;
+    const drawers = [];
 
-    // Visible bubbles inside the cylinder for constant bubbling effect
-    const bubbles = [];
-    const bubbleCount = 12;
-    const bubbleGeometry = new THREE.SphereGeometry(0.08, 8, 8);
-    const bubbleMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x66ffaa,
-        transparent: true,
-        opacity: 0.6,
-        emissive: 0x44ff88,
-        emissiveIntensity: 0.5,
-    });
-
-    for (let i = 0; i < bubbleCount; i++) {
-        const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial.clone());
-        const angle = (i / bubbleCount) * Math.PI * 2;
-        const radius = Math.random() * (tankRadius - 0.3);
-        bubble.position.set(
-            radius * Math.cos(angle),
-            (Math.random() - 0.5) * tankHeight * 0.8,
-            scene2OffsetZ + radius * Math.sin(angle)
+    for (let i = 0; i < 5; i++) {
+        const drawer = new THREE.Mesh(
+            new THREE.BoxGeometry(drawerWidth, drawerHeight, drawerDepth),
+            new THREE.MeshStandardMaterial({
+                map: drawerTexture,
+                color: drawerTexture ? 0xffffff : 0xff0000,
+            })
         );
-        bubble.userData.baseY = bubble.position.y;
-        bubble.userData.speed = 0.3 + Math.random() * 0.5;
-        bubble.userData.angle = angle;
-        bubble.userData.radius = radius;
-        scene.add(bubble);
-        bubbles.push(bubble);
+        drawer.name = `Drawer_${i}`;
+        // Position drawers side by side
+        const xPos = -1.6 + i * 0.8; // Spread across desk width
+        drawer.position.set(xPos, 1.0, scene2OffsetZ);
+        drawer.userData.drawerIndex = i;
+        drawer.userData.isOpen = false;
+        drawer.userData.initialZ = scene2OffsetZ;
+        scene.add(drawer);
+        drawers.push(drawer);
     }
 
-    // Store references for animation
-    window.liquidMesh = liquid;
-    window.liquidBubbles = bubbles;
-    window.tankPipesActive = false;
-    window.liquidBoiling = false;
+    window.scene2Drawers = drawers;
 
-    // Tank support rings (metallic)
-    const ringGeometry = new THREE.TorusGeometry(tankRadius + 0.1, 0.15, 16, 32);
+    // Evidence items: 1 on desk, 2 hidden in drawers
+    const evidenceY = deskHeight + 0.1;
 
-    const bottomRing = new THREE.Mesh(ringGeometry, labMetalMaterial);
-    bottomRing.position.set(0, 0.5, scene2OffsetZ);
-    bottomRing.rotation.x = Math.PI / 2;
-    scene.add(bottomRing);
-
-    const topRing = new THREE.Mesh(ringGeometry, labMetalMaterial);
-    topRing.position.set(0, tankHeight - 0.5, scene2OffsetZ);
-    topRing.rotation.x = Math.PI / 2;
-    scene.add(topRing);
-
-    // Extensive pipe network throughout the room (will glow green when activated)
-    const pipes = [];
-    const pipeMaterial = new THREE.MeshStandardMaterial({
-        map: furnitureTexture,
-        color: 0xcccccc,
-        metalness: 0.8,
-        roughness: 0.3,
-    });
-
-    // Main vertical pipes from tank
-    const verticalPipeGeo = new THREE.CylinderGeometry(0.15, 0.15, 2.5, 16);
-
-    // 4 vertical pipes going up from tank to ceiling
-    const verticalPipePositions = [
-        [tankRadius + 0.5, 0],
-        [-tankRadius - 0.5, 0],
-        [0, tankRadius + 0.5],
-        [0, -tankRadius - 0.5]
-    ];
-
-    verticalPipePositions.forEach(pos => {
-        const vPipe = new THREE.Mesh(verticalPipeGeo, pipeMaterial.clone());
-        vPipe.position.set(pos[0], tankHeight + 1.25, scene2OffsetZ + pos[1]);
-        scene.add(vPipe);
-        pipes.push(vPipe);
-    });
-
-    // 4 vertical pipes going down from tank to floor
-    verticalPipePositions.forEach(pos => {
-        const vPipe = new THREE.Mesh(verticalPipeGeo, pipeMaterial.clone());
-        vPipe.position.set(pos[0], 1.25, scene2OffsetZ + pos[1]);
-        scene.add(vPipe);
-        pipes.push(vPipe);
-    });
-
-    // Ceiling horizontal pipes (forming a grid)
-    const ceilingPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 24, 16);
-    const ceilingPipePositions = [
-        { pos: [0, wallHeight - 0.2, scene2OffsetZ - 10], rot: [0, 0, Math.PI / 2] },
-        { pos: [0, wallHeight - 0.2, scene2OffsetZ + 10], rot: [0, 0, Math.PI / 2] },
-        { pos: [0, wallHeight - 0.2, scene2OffsetZ], rot: [0, 0, Math.PI / 2] },
-        { pos: [-10, wallHeight - 0.2, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
-        { pos: [10, wallHeight - 0.2, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
-        { pos: [0, wallHeight - 0.2, scene2OffsetZ - 5], rot: [0, 0, Math.PI / 2] },
-        { pos: [0, wallHeight - 0.2, scene2OffsetZ + 5], rot: [0, 0, Math.PI / 2] },
-    ];
-
-    ceilingPipePositions.forEach(p => {
-        const cPipe = new THREE.Mesh(ceilingPipeGeo, pipeMaterial.clone());
-        cPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
-        cPipe.rotation.set(...p.rot);
-        scene.add(cPipe);
-        pipes.push(cPipe);
-    });
-
-    // Wall pipes (vertical on walls)
-    const wallPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 5, 16);
-    const wallPipePositions = [
-        { pos: [-halfRoom + 0.15, 3, scene2OffsetZ - 8], rot: [0, 0, 0] },
-        { pos: [-halfRoom + 0.15, 3, scene2OffsetZ + 8], rot: [0, 0, 0] },
-        { pos: [halfRoom - 0.15, 3, scene2OffsetZ - 8], rot: [0, 0, 0] },
-        { pos: [halfRoom - 0.15, 3, scene2OffsetZ + 8], rot: [0, 0, 0] },
-        { pos: [-halfRoom + 0.15, 3, scene2OffsetZ], rot: [0, 0, 0] },
-        { pos: [halfRoom - 0.15, 3, scene2OffsetZ], rot: [0, 0, 0] },
-    ];
-
-    wallPipePositions.forEach(p => {
-        const wPipe = new THREE.Mesh(wallPipeGeo, pipeMaterial.clone());
-        wPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
-        wPipe.rotation.set(...p.rot);
-        scene.add(wPipe);
-        pipes.push(wPipe);
-    });
-
-    // Floor horizontal pipes (raised to avoid z-fighting with floor)
-    const floorPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 18, 16);
-    const floorPipePositions = [
-        { pos: [0, 0.35, scene2OffsetZ - 8], rot: [0, 0, Math.PI / 2] },
-        { pos: [0, 0.35, scene2OffsetZ + 8], rot: [0, 0, Math.PI / 2] },
-        { pos: [-8, 0.35, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
-        { pos: [8, 0.35, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
-    ];
-
-    floorPipePositions.forEach(p => {
-        const fPipe = new THREE.Mesh(floorPipeGeo, pipeMaterial.clone());
-        fPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
-        fPipe.rotation.set(...p.rot);
-        scene.add(fPipe);
-        pipes.push(fPipe);
-    });
-
-    // Connecting pipes at mid-height
-    const midPipeGeo = new THREE.CylinderGeometry(0.1, 0.1, 12, 16);
-    const midPipePositions = [
-        { pos: [6, 3.5, scene2OffsetZ], rot: [0, 0, Math.PI / 2] },
-        { pos: [-6, 3.5, scene2OffsetZ], rot: [0, 0, Math.PI / 2] },
-        { pos: [0, 3.5, scene2OffsetZ + 6], rot: [0, Math.PI / 2, 0] },
-        { pos: [0, 3.5, scene2OffsetZ - 6], rot: [0, Math.PI / 2, 0] },
-    ];
-
-    midPipePositions.forEach(p => {
-        const mPipe = new THREE.Mesh(midPipeGeo, pipeMaterial.clone());
-        mPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
-        mPipe.rotation.set(...p.rot);
-        scene.add(mPipe);
-        pipes.push(mPipe);
-    });
-
-    // Store pipes for interaction and animation
-    window.tankPipes = pipes;
-    window.pipeFlowProgress = 0;
-
-    // Laboratory desks with metallic surfaces
-    const labDesks = [
-        { pos: [-8, -8], size: [3, 1.5, 2] },  // Desk 1 (will have creature sketch)
-        { pos: [8, -8], size: [3, 1.5, 2] },   // Desk 2 (will have profile card)
-        { pos: [-8, 8], size: [3.5, 1.5, 2.5] }, // Desk 3 (will have drawer with map)
-        { pos: [8, 8], size: [3, 1.5, 2] },    // Desk 4
-        { pos: [-8, 0], size: [2.5, 1.5, 1.8] }, // Desk 5
-        { pos: [8, 0], size: [2.5, 1.5, 1.8] },  // Desk 6
-    ];
-
-    labDesks.forEach((desk, i) => {
-        const deskMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(...desk.size),
-            labMetalMaterial
-        );
-        deskMesh.name = `LabDesk_${i}`;
-        deskMesh.position.set(desk.pos[0], desk.size[1] / 2, scene2OffsetZ + desk.pos[1]);
-        scene.add(deskMesh);
-    });
-
-    // Metal-frame chairs
-    const chairPositions = [
-        [-9, -8.5], [8.5, -8.5], [-9, 8.5], [8.5, 8.5],
-        [-8.5, 0.5], [8.5, -0.5], [-4, -4], [4, 4]
-    ];
-
-    chairPositions.forEach((pos, i) => {
-        const chair = new THREE.Mesh(
-            new THREE.BoxGeometry(0.7, 1.0, 0.7),
-            labMetalMaterial
-        );
-        chair.name = `Chair_${i}`;
-        chair.position.set(pos[0], 0.5, scene2OffsetZ + pos[1]);
-        scene.add(chair);
-    });
-
-    // Filing cabinets / storage units
-    const cabinetPositions = [
-        [-11, -10], [11, -10], [-11, 10], [11, 10]
-    ];
-
-    cabinetPositions.forEach((pos, i) => {
-        const cabinet = new THREE.Mesh(
-            new THREE.BoxGeometry(1.5, 2.0, 1.0),
-            labMetalMaterial
-        );
-        cabinet.name = `Cabinet_${i}`;
-        cabinet.position.set(pos[0], 1.0, scene2OffsetZ + pos[1]);
-        scene.add(cabinet);
-    });
-
-    // Small laboratory devices on some desks
-    const devicePositions = [
-        [8, 8], [-8, 0], [8, 0]
-    ];
-
-    devicePositions.forEach((pos, i) => {
-        const device = new THREE.Mesh(
-            new THREE.BoxGeometry(0.4, 0.3, 0.4),
-            labMetalMaterial
-        );
-        device.name = `Device_${i}`;
-        device.position.set(pos[0] + 0.5, 1.65, scene2OffsetZ + pos[1]);
-        scene.add(device);
-    });
-
-    // Wall-mounted panels
-    const panelPositions = [
-        { x: -halfRoom + 0.1, z: scene2OffsetZ - 5, rot: Math.PI / 2 },
-        { x: -halfRoom + 0.1, z: scene2OffsetZ + 5, rot: Math.PI / 2 },
-        { x: halfRoom - 0.1, z: scene2OffsetZ - 5, rot: -Math.PI / 2 },
-        { x: halfRoom - 0.1, z: scene2OffsetZ + 5, rot: -Math.PI / 2 }
-    ];
-
-    panelPositions.forEach((panel, i) => {
-        const panelMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(2, 1.5, 0.2),
-            wallPanelMaterial
-        );
-        panelMesh.name = `WallPanel_${i}`;
-        panelMesh.position.set(panel.x, 2.5, panel.z);
-        panelMesh.rotation.y = panel.rot;
-        scene.add(panelMesh);
-    });
-
-    // Ceiling structural beams (non-emitting)
-    const beamPositions = [
-        { start: [-halfRoom, scene2OffsetZ - 10], end: [halfRoom, scene2OffsetZ - 10] },
-        { start: [-halfRoom, scene2OffsetZ], end: [halfRoom, scene2OffsetZ] },
-        { start: [-halfRoom, scene2OffsetZ + 10], end: [halfRoom, scene2OffsetZ + 10] }
-    ];
-
-    beamPositions.forEach((beam, i) => {
-        const length = Math.abs(beam.end[0] - beam.start[0]);
-        const beamMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(length, 0.3, 0.3),
-            labMetalMaterial
-        );
-        beamMesh.name = `Beam_${i}`;
-        beamMesh.position.set(0, wallHeight - 0.2, beam.start[1]);
-        scene.add(beamMesh);
-    });
-
-    // Evidence items spread across different lab desks
-    const evidenceY = 1.6;
-
-    // Creature sketch - on Lab Desk 1 at [-8, -8]
+    // Creature sketch - on top of desk (visible)
     const creatureSketch = new THREE.Mesh(
         new THREE.PlaneGeometry(0.8, 1.0),
         new THREE.MeshStandardMaterial({
@@ -1270,17 +1105,17 @@ async function buildOfficeFloorScene() {
         })
     );
     creatureSketch.name = 'CreatureSketch';
-    creatureSketch.position.set(-8, evidenceY, scene2OffsetZ + -8);
+    creatureSketch.position.set(0.5, evidenceY, scene2OffsetZ - 0.5);
     creatureSketch.rotation.x = -Math.PI / 2;
     scene.add(creatureSketch);
 
-    // Blue flickering glow for creature sketch desk
+    // Blue flickering glow for creature sketch on desk
     const creatureGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
-    creatureGlow.position.set(-8, 2, scene2OffsetZ + -8);
+    creatureGlow.position.set(0.5, evidenceY + 0.5, scene2OffsetZ - 0.5);
     scene.add(creatureGlow);
     window.creatureGlow = creatureGlow; // Store for flicker animation
 
-    // Profile card - on Lab Desk 2 at [8, -8]
+    // Profile card - hidden in drawer 1 (index 1)
     const profileCard = new THREE.Mesh(
         new THREE.PlaneGeometry(0.7, 1.0),
         new THREE.MeshStandardMaterial({
@@ -1289,37 +1124,12 @@ async function buildOfficeFloorScene() {
         })
     );
     profileCard.name = 'ProfileCard';
-    profileCard.position.set(8, evidenceY, scene2OffsetZ + -8);
+    profileCard.position.set(drawers[1].position.x, 1.3, scene2OffsetZ);
     profileCard.rotation.x = -Math.PI / 2;
+    profileCard.visible = false; // Hidden until drawer opens
     scene.add(profileCard);
 
-    // Blue flickering glow for profile card desk
-    const profileGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
-    profileGlow.position.set(8, 2, scene2OffsetZ + -8);
-    scene.add(profileGlow);
-    window.profileGlow = profileGlow; // Store for flicker animation
-
-    // Drawer on Lab Desk 3 at [-8, 8] - contains map item
-    const drawer = new THREE.Mesh(
-        new THREE.BoxGeometry(2.5, 0.4, 1.5),
-        new THREE.MeshStandardMaterial({
-            map: drawerTexture,
-            color: drawerTexture ? 0xffffff : 0xff0000,
-            metalness: 0.6,
-            roughness: 0.4,
-        })
-    );
-    drawer.name = 'Drawer';
-    drawer.position.set(-8, 1.0, scene2OffsetZ + 8);
-    scene.add(drawer);
-
-    // Blue flickering glow for drawer desk
-    const drawerGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
-    drawerGlow.position.set(-8, 2, scene2OffsetZ + 8);
-    scene.add(drawerGlow);
-    window.drawerGlow = drawerGlow; // Store for flicker animation
-
-    // Map item - inside drawer (initially hidden, revealed when drawer opens)
+    // Map item - hidden in drawer 3 (index 3)
     const mapItem = new THREE.Mesh(
         new THREE.PlaneGeometry(0.9, 0.9),
         new THREE.MeshStandardMaterial({
@@ -1328,10 +1138,14 @@ async function buildOfficeFloorScene() {
         })
     );
     mapItem.name = 'MapItem';
-    mapItem.position.set(-8, 1.3, scene2OffsetZ + 8);
+    mapItem.position.set(drawers[3].position.x, 1.3, scene2OffsetZ);
     mapItem.rotation.x = -Math.PI / 2;
     mapItem.visible = false; // Hidden until drawer opens
     scene.add(mapItem);
+
+    // Store which evidence is in which drawer
+    drawers[1].userData.evidence = profileCard;
+    drawers[3].userData.evidence = mapItem;
 
     // Interactive evidence items
     const createEvidenceInteractive = (mesh, id, name, textureUrl) => ({
@@ -1361,207 +1175,45 @@ async function buildOfficeFloorScene() {
     interactiveObjects.push(createEvidenceInteractive(profileCard, 'evidence_profile', 'Profile Card', TEXTURES.profileCard));
     interactiveObjects.push(createEvidenceInteractive(mapItem, 'evidence_map', 'Map', TEXTURES.mapItem));
 
-    // Drawer interactive (opens to reveal map item)
-    const drawerInteractive = {
-        mesh: drawer,
-        type: 'drawer',
-        id: 'desk_drawer',
-        hintText: 'Click to open drawer',
-        onClick: () => {
-            if (!gameState.deskDrawerOpen) {
-                gameState.deskDrawerOpen = true;
-                showMessage('Drawer opened');
-                console.log('Drawer opened - map revealed');
+    // Drawer interactives (opens to reveal evidence inside)
+    drawers.forEach((drawer, index) => {
+        const drawerInteractive = {
+            mesh: drawer,
+            type: 'drawer',
+            id: `drawer_${index}`,
+            hintText: 'Click to open drawer',
+            onClick: () => {
+                if (!drawer.userData.isOpen) {
+                    drawer.userData.isOpen = true;
+                    showMessage(`Drawer ${index + 1} opened`);
+                    console.log(`Drawer ${index} opened`);
 
-                // Animate drawer sliding out
-                const drawerOpenInterval = setInterval(() => {
-                    drawer.position.z += 0.05; // Slide drawer forward
-                    if (drawer.position.z >= scene2OffsetZ + 8 + 0.8) {
-                        drawer.position.z = scene2OffsetZ + 8 + 0.8;
-                        clearInterval(drawerOpenInterval);
-                        // Reveal map item
-                        mapItem.visible = true;
-                    }
-                }, 16);
-            } else {
-                showMessage('Drawer already open');
-            }
-        }
-    };
-    interactiveObjects.push(drawerInteractive);
+                    // Animate drawer sliding out
+                    const drawerOpenInterval = setInterval(() => {
+                        drawer.position.z += 0.05; // Slide drawer forward
+                        if (drawer.position.z >= drawer.userData.initialZ + 0.8) {
+                            drawer.position.z = drawer.userData.initialZ + 0.8;
+                            clearInterval(drawerOpenInterval);
 
-    // Liquid tank interactive (double-click to activate green liquid flow through pipes)
-    let lastTankClickTime = 0;
-    const tankInteractive = {
-        mesh: tank,
-        type: 'liquidTank',
-        id: 'central_tank',
-        hintText: 'Double-click to activate liquid system',
-        onClick: () => {
-            const now = Date.now();
-            const isDoubleClick = (now - lastTankClickTime) < 300;
-            lastTankClickTime = now;
-
-            if (!isDoubleClick) {
-                console.log('Single click on tank (need double-click)');
-                return;
-            }
-
-            if (!window.tankPipesActive) {
-                window.tankPipesActive = true;
-                window.liquidBoiling = true;
-                showMessage('Liquid system activated');
-                console.log('Tank activated - green liquid boiling and flowing through pipes');
-
-                // Start pipe flow animation
-                window.pipeFlowProgress = 0;
-
-                // Make liquid appear to boil - brighter and more intense
-                if (window.liquidMesh) {
-                    window.liquidMesh.material.emissiveIntensity = 1.5;
-                    window.liquidMesh.material.opacity = 0.85;
+                            // Reveal evidence if this drawer contains one
+                            if (drawer.userData.evidence) {
+                                drawer.userData.evidence.visible = true;
+                                drawer.userData.evidence.position.z = drawer.position.z + 0.1;
+                            }
+                        }
+                    }, 16);
+                } else {
+                    showMessage('Drawer already open');
                 }
-
-                // Make bubbles more active
-                if (window.liquidBubbles) {
-                    window.liquidBubbles.forEach(bubble => {
-                        bubble.userData.speed *= 2.5; // Much faster bubble rise
-                        bubble.material.emissiveIntensity = 1.0;
-                    });
-                }
-            } else {
-                showMessage('Liquid system already active');
             }
-        }
-    };
-    interactiveObjects.push(tankInteractive);
-
-    // Wooden door (flush against back wall)
-    const woodenDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 5, 0.2),
-        new THREE.MeshStandardMaterial({
-            map: woodenDoorTexture,
-            transparent: true,
-            color: woodenDoorTexture ? 0xffffff : 0xff0000,
-        })
-    );
-    woodenDoor.name = 'WoodenDoor';
-    woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth - 0.1); // Flush with wall (0.2 thickness / 2)
-    scene.add(woodenDoor);
-
-    // Key board 2 next to wooden door (flush against back wall)
-    const keyBoard2 = new THREE.Mesh(
-        new THREE.BoxGeometry(3, 2.5, 0.15),
-        new THREE.MeshStandardMaterial({
-            map: keyBoard2Texture,
-            color: keyBoard2Texture ? 0xffffff : 0xff0000,
-        })
-    );
-    keyBoard2.name = 'KeyBoard2';
-    keyBoard2.position.set(-6, 2.5, scene2OffsetZ + halfDepth - 0.075); // Flush with wall (0.15 thickness / 2)
-    scene.add(keyBoard2);
-
-    // Decorative keys on board
-    const decorativeKeyPositions = [
-        [-6, 3.2], [-5.5, 3.5], [-5, 3.3], [-4.5, 3.6],
-        [-6, 2.5], [-5.5, 2.8], [-5, 2.6], [-4.5, 2.9],
-        [-6, 1.8], [-5.5, 2.1], [-5, 1.9]
-    ];
-
-    const keyMaterial = new THREE.MeshStandardMaterial({
-        map: keyTexture,
-        transparent: true,
+        };
+        interactiveObjects.push(drawerInteractive);
     });
 
-    decorativeKeyPositions.forEach((pos, i) => {
-        const key = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.15, 0.4),
-            keyMaterial
-        );
-        key.name = `DecorativeKey_${i}`;
-        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 0.076); // Just in front of board
-        key.rotation.y = Math.PI;
-        scene.add(key);
-    });
+    // Wooden door moved to Scene 1 (no longer in Scene 2)
+    // Golden key moved to Scene 1 (no longer in Scene 2)
 
-    // Golden key (interactive, glowing) - moved further into room
-    const goldenKey = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.4, 0.8),
-        new THREE.MeshStandardMaterial({
-            map: goldenKeyTexture,
-            transparent: true,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.5,
-        })
-    );
-    goldenKey.name = 'GoldenKey';
-    goldenKey.position.set(-6, 2.5, scene2OffsetZ + halfDepth - 5.1);
-    goldenKey.rotation.y = Math.PI;
-    scene.add(goldenKey);
-
-    // Golden key interactive (double-click to collect after evidence)
-    let lastGoldenKeyClickTime = 0;
-    const goldenKeyInteractive = {
-        mesh: goldenKey,
-        type: 'goldenKey',
-        id: 'golden_key',
-        hintText: 'Double-click to take golden key',
-        onClick: () => {
-            const now = Date.now();
-            const isDoubleClick = (now - lastGoldenKeyClickTime) < 300;
-            lastGoldenKeyClickTime = now;
-
-            if (!isDoubleClick) {
-                console.log('Single click on golden key (need double-click)');
-                return;
-            }
-
-            if (gameState.evidenceCollected.size < 3) {
-                showMessage('Collect all evidence first');
-                console.log('Need all 3 evidence items first');
-                return;
-            }
-
-            console.log('Golden key collected!');
-            gameState.hasGoldenKey = true;
-            scene.remove(goldenKey);
-            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'golden_key');
-            showMessage('Golden key obtained');
-        }
-    };
-    interactiveObjects.push(goldenKeyInteractive);
-
-    // Wooden door interactive (opens with golden key)
-    const woodenDoorInteractive = {
-        mesh: woodenDoor,
-        type: 'woodenDoor',
-        id: 'wooden_door',
-        hintText: 'Click to unlock door',
-        onClick: () => {
-            if (!gameState.hasGoldenKey) {
-                showMessage('Door is locked');
-                console.log('Need golden key to unlock wooden door');
-                return;
-            }
-
-            if (!gameState.woodenDoorUnlocked) {
-                gameState.woodenDoorUnlocked = true;
-                showMessage('Door unlocked');
-                console.log('Wooden door unlocked! Walk through to Scene 3');
-                // Animate door opening - rotate instead of slide
-                const doorOpenInterval = setInterval(() => {
-                    woodenDoor.rotation.y -= 0.05; // Rotate door open
-                    if (woodenDoor.rotation.y <= -Math.PI / 2) { // Open 90 degrees
-                        woodenDoor.rotation.y = -Math.PI / 2;
-                        clearInterval(doorOpenInterval);
-                    }
-                }, 16);
-            }
-        }
-    };
-    interactiveObjects.push(woodenDoorInteractive);
-
-    console.log('Office Floor scene (Scene 2) built');
+    console.log('Scene 2 - Office Floor scene built with single desk and 5 drawers');
 }
 
 // ====================================================================
@@ -1680,69 +1332,15 @@ function checkFurnitureCollision(position) {
     // Scene 2 offset - same as in buildOfficeFloorScene (room size 25x25)
     const scene2OffsetZ = 12.5 + 12.5; // 25
 
-    // Central liquid tank collision
-    const tankRadius = 1.5 + 0.5; // Tank radius + margin
-    const tankX = 0;
-    const tankZ = scene2OffsetZ;
-    const distToTank = Math.sqrt(
-        Math.pow(position.x - tankX, 2) + Math.pow(position.z - tankZ, 2)
-    );
-    if (distToTank < tankRadius) {
+    // Single desk collision (4 units wide, 2.5 units deep, centered at origin)
+    const deskX = 0;
+    const deskZ = scene2OffsetZ;
+    const deskHalfWidth = 4 / 2 + 0.5; // desk width / 2 + margin
+    const deskHalfDepth = 2.5 / 2 + 0.5; // desk depth / 2 + margin
+
+    if (position.x > deskX - deskHalfWidth && position.x < deskX + deskHalfWidth &&
+        position.z > deskZ - deskHalfDepth && position.z < deskZ + deskHalfDepth) {
         return true;
-    }
-
-    // Laboratory desk positions (with offset)
-    const labDesks = [
-        { pos: [-8, -8], size: [3, 2] },
-        { pos: [8, -8], size: [3, 2] },
-        { pos: [-8, 8], size: [3.5, 2.5] },
-        { pos: [8, 8], size: [3, 2] },
-        { pos: [-8, 0], size: [2.5, 1.8] },
-        { pos: [8, 0], size: [2.5, 1.8] },
-    ];
-
-    for (const desk of labDesks) {
-        const halfWidth = (desk.size[0] / 2) + 0.5;
-        const halfDepth = (desk.size[1] / 2) + 0.5;
-        const actualZ = scene2OffsetZ + desk.pos[1];
-
-        if (position.x > desk.pos[0] - halfWidth && position.x < desk.pos[0] + halfWidth &&
-            position.z > actualZ - halfDepth && position.z < actualZ + halfDepth) {
-            return true;
-        }
-    }
-
-    // Chair positions (with offset)
-    const chairPositions = [
-        [-9, -8.5], [8.5, -8.5], [-9, 8.5], [8.5, 8.5],
-        [-8.5, 0.5], [8.5, -0.5], [-4, -4], [4, 4]
-    ];
-
-    for (const pos of chairPositions) {
-        const halfW = 0.7 / 2 + 0.3;
-        const halfD = 0.7 / 2 + 0.3;
-        const actualChairZ = scene2OffsetZ + pos[1];
-
-        if (position.x > pos[0] - halfW && position.x < pos[0] + halfW &&
-            position.z > actualChairZ - halfD && position.z < actualChairZ + halfD) {
-            return true;
-        }
-    }
-
-    // Filing cabinets (with offset)
-    const cabinetPositions = [
-        [-11, -10], [11, -10], [-11, 10], [11, 10]
-    ];
-
-    for (const pos of cabinetPositions) {
-        const halfW = 1.5 / 2 + 0.3;
-        const halfD = 1.0 / 2 + 0.3;
-        const actualCabZ = scene2OffsetZ + pos[1];
-
-        if (position.x > pos[0] - halfW && position.x < pos[0] + halfW &&
-            position.z > actualCabZ - halfD && position.z < actualCabZ + halfD) {
-            return true;
-        }
     }
 
     return false;
@@ -1869,80 +1467,13 @@ function update(delta) {
         window.gameDoor.position.x = doorPosition;
     }
 
-    // Liquid tank animation - continuous bubbling and swirling
+    // Animation timer for effects
     const time = clock.getElapsedTime();
-    if (window.liquidMesh) {
-        // Swirling effect - rotate liquid
-        const swirlSpeed = window.liquidBoiling ? 0.3 : 0.1;
-        window.liquidMesh.rotation.y = time * swirlSpeed;
 
-        // Pulsing emissive intensity for active bubbling
-        if (window.liquidBoiling) {
-            // Boiling - intense pulsing
-            const boil = Math.sin(time * 5) * 0.3 + 1.2;
-            window.liquidMesh.material.emissiveIntensity = boil;
-        } else {
-            // Normal bubbling
-            const bubble = Math.sin(time * 2) * 0.15 + 0.65;
-            window.liquidMesh.material.emissiveIntensity = bubble;
-        }
-    }
-
-    // Bubble animation - constantly rising and swirling
-    if (window.liquidBubbles) {
-        window.liquidBubbles.forEach((bubble, i) => {
-            // Rise upward
-            bubble.position.y += bubble.userData.speed * delta;
-
-            // Swirl around the cylinder
-            const angle = bubble.userData.angle + time * 0.5;
-            const radius = bubble.userData.radius * (1 + Math.sin(time * 2 + i) * 0.1);
-            bubble.position.x = radius * Math.cos(angle);
-            bubble.position.z = 25 + radius * Math.sin(angle); // scene2OffsetZ
-
-            // Reset bubble to bottom when it reaches top
-            if (bubble.position.y > 5.5) {
-                bubble.position.y = 0.5;
-            }
-
-            // Pulse emissive for visibility
-            if (window.liquidBoiling) {
-                const pulse = Math.sin(time * 6 + i) * 0.3 + 0.7;
-                bubble.material.emissiveIntensity = pulse;
-            }
-        });
-    }
-
-    // Pipe flow animation - green light traveling through pipes
-    if (window.tankPipesActive && window.tankPipes) {
-        // Increment flow progress
-        window.pipeFlowProgress += delta * 0.5;
-
-        // Pulsing green glow through all pipes
-        window.tankPipes.forEach((pipe, index) => {
-            // Create a wave effect that travels outward
-            const wave = Math.sin(window.pipeFlowProgress * 3 - index * 0.2) * 0.5 + 0.5;
-            const intensity = 0.5 + wave * 1.0;
-
-            pipe.material.emissive = new THREE.Color(0x22aa44);
-            pipe.material.emissiveIntensity = intensity;
-        });
-    }
-
-    // Evidence indicator lights - flickering blue glow
+    // Evidence indicator light - flickering blue glow for creature sketch on desk
     if (window.creatureGlow && !gameState.evidenceCollected.has('evidence_creature')) {
         const flicker1 = Math.sin(time * 3 + 0.5) * 0.2 + 0.6;
         window.creatureGlow.intensity = flicker1;
-    }
-
-    if (window.profileGlow && !gameState.evidenceCollected.has('evidence_profile')) {
-        const flicker2 = Math.sin(time * 3.5 + 1.0) * 0.2 + 0.6;
-        window.profileGlow.intensity = flicker2;
-    }
-
-    if (window.drawerGlow && !gameState.evidenceCollected.has('evidence_map')) {
-        const flicker3 = Math.sin(time * 3.2 + 1.5) * 0.2 + 0.6;
-        window.drawerGlow.intensity = flicker3;
     }
 
     // Main red ceiling lights - slow rhythmic breathing (brighter)
