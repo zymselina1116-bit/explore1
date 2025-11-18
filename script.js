@@ -918,6 +918,36 @@ async function buildOfficeFloorScene() {
         scene.add(blueLight);
     });
 
+    // Many more blue ceiling lights for full coverage
+    const blueCeilingLights = [
+        [-15, wallHeight - 0.5, scene2OffsetZ - 12],
+        [-10, wallHeight - 0.5, scene2OffsetZ - 15],
+        [-5, wallHeight - 0.5, scene2OffsetZ - 10],
+        [0, wallHeight - 0.5, scene2OffsetZ - 15],
+        [5, wallHeight - 0.5, scene2OffsetZ - 12],
+        [10, wallHeight - 0.5, scene2OffsetZ - 8],
+        [15, wallHeight - 0.5, scene2OffsetZ - 10],
+        [-15, wallHeight - 0.5, scene2OffsetZ],
+        [-10, wallHeight - 0.5, scene2OffsetZ + 2],
+        [-5, wallHeight - 0.5, scene2OffsetZ - 2],
+        [5, wallHeight - 0.5, scene2OffsetZ + 2],
+        [10, wallHeight - 0.5, scene2OffsetZ],
+        [15, wallHeight - 0.5, scene2OffsetZ - 2],
+        [-15, wallHeight - 0.5, scene2OffsetZ + 12],
+        [-10, wallHeight - 0.5, scene2OffsetZ + 15],
+        [-5, wallHeight - 0.5, scene2OffsetZ + 12],
+        [0, wallHeight - 0.5, scene2OffsetZ + 15],
+        [5, wallHeight - 0.5, scene2OffsetZ + 10],
+        [10, wallHeight - 0.5, scene2OffsetZ + 13],
+        [15, wallHeight - 0.5, scene2OffsetZ + 12]
+    ];
+
+    blueCeilingLights.forEach(pos => {
+        const blueCeilingLight = new THREE.PointLight(0x2266ff, 2.5, 18);
+        blueCeilingLight.position.set(pos[0], pos[1], pos[2]);
+        scene.add(blueCeilingLight);
+    });
+
     const greenLights = [
         [15, 4, scene2OffsetZ - 5],
         [-12, 4, scene2OffsetZ + 10],
@@ -1131,7 +1161,7 @@ async function buildOfficeFloorScene() {
         })
     );
     keyBoard2.name = 'KeyBoard2';
-    keyBoard2.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 2.5);
+    keyBoard2.position.set(-6, 2.5, scene2OffsetZ + halfDepth - 5.0);
     scene.add(keyBoard2);
 
     // Decorative keys on board
@@ -1152,12 +1182,12 @@ async function buildOfficeFloorScene() {
             keyMaterial
         );
         key.name = `DecorativeKey_${i}`;
-        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 2.6);
+        key.position.set(pos[0], pos[1], scene2OffsetZ + halfDepth - 5.1);
         key.rotation.y = Math.PI;
         scene.add(key);
     });
 
-    // Golden key (interactive, glowing)
+    // Golden key (interactive, glowing) - moved further into room
     const goldenKey = new THREE.Mesh(
         new THREE.PlaneGeometry(0.4, 0.8),
         new THREE.MeshStandardMaterial({
@@ -1168,7 +1198,7 @@ async function buildOfficeFloorScene() {
         })
     );
     goldenKey.name = 'GoldenKey';
-    goldenKey.position.set(-5, 2.5, scene2OffsetZ + halfDepth - 2.6);
+    goldenKey.position.set(-6, 2.5, scene2OffsetZ + halfDepth - 5.1);
     goldenKey.rotation.y = Math.PI;
     scene.add(goldenKey);
 
