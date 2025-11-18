@@ -980,14 +980,14 @@ async function buildOfficeFloorScene() {
     tank.position.set(0, tankHeight / 2, scene2OffsetZ);
     scene.add(tank);
 
-    // Green liquid inside tank
+    // Green liquid inside tank with enhanced visibility
     const liquidGeometry = new THREE.CylinderGeometry(tankRadius - 0.1, tankRadius - 0.1, tankHeight - 0.5, 32);
     const liquidMaterial = new THREE.MeshPhysicalMaterial({
         color: 0x44ff88,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.7,
         emissive: 0x22aa44,
-        emissiveIntensity: 0.5,
+        emissiveIntensity: 0.8,
         roughness: 0.2,
     });
     const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
@@ -995,9 +995,40 @@ async function buildOfficeFloorScene() {
     liquid.position.set(0, tankHeight / 2, scene2OffsetZ);
     scene.add(liquid);
 
-    // Store liquid reference for animation
+    // Visible bubbles inside the cylinder for constant bubbling effect
+    const bubbles = [];
+    const bubbleCount = 12;
+    const bubbleGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+    const bubbleMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x66ffaa,
+        transparent: true,
+        opacity: 0.6,
+        emissive: 0x44ff88,
+        emissiveIntensity: 0.5,
+    });
+
+    for (let i = 0; i < bubbleCount; i++) {
+        const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial.clone());
+        const angle = (i / bubbleCount) * Math.PI * 2;
+        const radius = Math.random() * (tankRadius - 0.3);
+        bubble.position.set(
+            radius * Math.cos(angle),
+            (Math.random() - 0.5) * tankHeight * 0.8,
+            scene2OffsetZ + radius * Math.sin(angle)
+        );
+        bubble.userData.baseY = bubble.position.y;
+        bubble.userData.speed = 0.3 + Math.random() * 0.5;
+        bubble.userData.angle = angle;
+        bubble.userData.radius = radius;
+        scene.add(bubble);
+        bubbles.push(bubble);
+    }
+
+    // Store references for animation
     window.liquidMesh = liquid;
+    window.liquidBubbles = bubbles;
     window.tankPipesActive = false;
+    window.liquidBoiling = false;
 
     // Tank support rings (metallic)
     const ringGeometry = new THREE.TorusGeometry(tankRadius + 0.1, 0.15, 16, 32);
@@ -1012,11 +1043,8 @@ async function buildOfficeFloorScene() {
     topRing.rotation.x = Math.PI / 2;
     scene.add(topRing);
 
-    // Pipes connected to tank (will glow green when activated)
+    // Extensive pipe network throughout the room (will glow green when activated)
     const pipes = [];
-
-    // Upward pipe
-    const upPipeGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.5, 16);
     const pipeMaterial = new THREE.MeshStandardMaterial({
         map: furnitureTexture,
         color: 0xcccccc,
@@ -1024,33 +1052,108 @@ async function buildOfficeFloorScene() {
         roughness: 0.3,
     });
 
-    const upPipe = new THREE.Mesh(upPipeGeometry, pipeMaterial.clone());
-    upPipe.position.set(tankRadius + 0.5, tankHeight, scene2OffsetZ);
-    scene.add(upPipe);
-    pipes.push(upPipe);
+    // Main vertical pipes from tank
+    const verticalPipeGeo = new THREE.CylinderGeometry(0.15, 0.15, 2.5, 16);
 
-    // Downward pipe
-    const downPipe = new THREE.Mesh(upPipeGeometry, pipeMaterial.clone());
-    downPipe.position.set(-tankRadius - 0.5, 0.75, scene2OffsetZ);
-    scene.add(downPipe);
-    pipes.push(downPipe);
+    // 4 vertical pipes going up from tank to ceiling
+    const verticalPipePositions = [
+        [tankRadius + 0.5, 0],
+        [-tankRadius - 0.5, 0],
+        [0, tankRadius + 0.5],
+        [0, -tankRadius - 0.5]
+    ];
 
-    // Horizontal pipes at ceiling
-    const horizontalPipeGeometry = new THREE.CylinderGeometry(0.15, 0.15, 4, 16);
-    const horizontalPipe1 = new THREE.Mesh(horizontalPipeGeometry, pipeMaterial.clone());
-    horizontalPipe1.position.set(3, wallHeight - 0.3, scene2OffsetZ);
-    horizontalPipe1.rotation.z = Math.PI / 2;
-    scene.add(horizontalPipe1);
-    pipes.push(horizontalPipe1);
+    verticalPipePositions.forEach(pos => {
+        const vPipe = new THREE.Mesh(verticalPipeGeo, pipeMaterial.clone());
+        vPipe.position.set(pos[0], tankHeight + 1.25, scene2OffsetZ + pos[1]);
+        scene.add(vPipe);
+        pipes.push(vPipe);
+    });
 
-    const horizontalPipe2 = new THREE.Mesh(horizontalPipeGeometry, pipeMaterial.clone());
-    horizontalPipe2.position.set(-3, wallHeight - 0.3, scene2OffsetZ);
-    horizontalPipe2.rotation.z = Math.PI / 2;
-    scene.add(horizontalPipe2);
-    pipes.push(horizontalPipe2);
+    // 4 vertical pipes going down from tank to floor
+    verticalPipePositions.forEach(pos => {
+        const vPipe = new THREE.Mesh(verticalPipeGeo, pipeMaterial.clone());
+        vPipe.position.set(pos[0], 1.25, scene2OffsetZ + pos[1]);
+        scene.add(vPipe);
+        pipes.push(vPipe);
+    });
 
-    // Store pipes for interaction
+    // Ceiling horizontal pipes (forming a grid)
+    const ceilingPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 24, 16);
+    const ceilingPipePositions = [
+        { pos: [0, wallHeight - 0.2, scene2OffsetZ - 10], rot: [0, 0, Math.PI / 2] },
+        { pos: [0, wallHeight - 0.2, scene2OffsetZ + 10], rot: [0, 0, Math.PI / 2] },
+        { pos: [0, wallHeight - 0.2, scene2OffsetZ], rot: [0, 0, Math.PI / 2] },
+        { pos: [-10, wallHeight - 0.2, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
+        { pos: [10, wallHeight - 0.2, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
+        { pos: [0, wallHeight - 0.2, scene2OffsetZ - 5], rot: [0, 0, Math.PI / 2] },
+        { pos: [0, wallHeight - 0.2, scene2OffsetZ + 5], rot: [0, 0, Math.PI / 2] },
+    ];
+
+    ceilingPipePositions.forEach(p => {
+        const cPipe = new THREE.Mesh(ceilingPipeGeo, pipeMaterial.clone());
+        cPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
+        cPipe.rotation.set(...p.rot);
+        scene.add(cPipe);
+        pipes.push(cPipe);
+    });
+
+    // Wall pipes (vertical on walls)
+    const wallPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 5, 16);
+    const wallPipePositions = [
+        { pos: [-halfRoom + 0.15, 3, scene2OffsetZ - 8], rot: [0, 0, 0] },
+        { pos: [-halfRoom + 0.15, 3, scene2OffsetZ + 8], rot: [0, 0, 0] },
+        { pos: [halfRoom - 0.15, 3, scene2OffsetZ - 8], rot: [0, 0, 0] },
+        { pos: [halfRoom - 0.15, 3, scene2OffsetZ + 8], rot: [0, 0, 0] },
+        { pos: [-halfRoom + 0.15, 3, scene2OffsetZ], rot: [0, 0, 0] },
+        { pos: [halfRoom - 0.15, 3, scene2OffsetZ], rot: [0, 0, 0] },
+    ];
+
+    wallPipePositions.forEach(p => {
+        const wPipe = new THREE.Mesh(wallPipeGeo, pipeMaterial.clone());
+        wPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
+        wPipe.rotation.set(...p.rot);
+        scene.add(wPipe);
+        pipes.push(wPipe);
+    });
+
+    // Floor horizontal pipes
+    const floorPipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 18, 16);
+    const floorPipePositions = [
+        { pos: [0, 0.15, scene2OffsetZ - 8], rot: [0, 0, Math.PI / 2] },
+        { pos: [0, 0.15, scene2OffsetZ + 8], rot: [0, 0, Math.PI / 2] },
+        { pos: [-8, 0.15, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
+        { pos: [8, 0.15, scene2OffsetZ], rot: [0, Math.PI / 2, 0] },
+    ];
+
+    floorPipePositions.forEach(p => {
+        const fPipe = new THREE.Mesh(floorPipeGeo, pipeMaterial.clone());
+        fPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
+        fPipe.rotation.set(...p.rot);
+        scene.add(fPipe);
+        pipes.push(fPipe);
+    });
+
+    // Connecting pipes at mid-height
+    const midPipeGeo = new THREE.CylinderGeometry(0.1, 0.1, 12, 16);
+    const midPipePositions = [
+        { pos: [6, 3.5, scene2OffsetZ], rot: [0, 0, Math.PI / 2] },
+        { pos: [-6, 3.5, scene2OffsetZ], rot: [0, 0, Math.PI / 2] },
+        { pos: [0, 3.5, scene2OffsetZ + 6], rot: [0, Math.PI / 2, 0] },
+        { pos: [0, 3.5, scene2OffsetZ - 6], rot: [0, Math.PI / 2, 0] },
+    ];
+
+    midPipePositions.forEach(p => {
+        const mPipe = new THREE.Mesh(midPipeGeo, pipeMaterial.clone());
+        mPipe.position.set(p.pos[0], p.pos[1], p.pos[2]);
+        mPipe.rotation.set(...p.rot);
+        scene.add(mPipe);
+        pipes.push(mPipe);
+    });
+
+    // Store pipes for interaction and animation
     window.tankPipes = pipes;
+    window.pipeFlowProgress = 0;
 
     // Laboratory desks with metallic surfaces
     const labDesks = [
@@ -1306,18 +1409,25 @@ async function buildOfficeFloorScene() {
 
             if (!window.tankPipesActive) {
                 window.tankPipesActive = true;
+                window.liquidBoiling = true;
                 showMessage('Liquid system activated');
-                console.log('Tank activated - green liquid flowing through pipes');
+                console.log('Tank activated - green liquid boiling and flowing through pipes');
 
-                // Make pipes glow green
-                window.tankPipes.forEach(pipe => {
-                    pipe.material.emissive = new THREE.Color(0x22aa44);
-                    pipe.material.emissiveIntensity = 0.8;
-                });
+                // Start pipe flow animation
+                window.pipeFlowProgress = 0;
 
-                // Increase liquid glow
+                // Make liquid appear to boil - brighter and more intense
                 if (window.liquidMesh) {
-                    window.liquidMesh.material.emissiveIntensity = 1.0;
+                    window.liquidMesh.material.emissiveIntensity = 1.5;
+                    window.liquidMesh.material.opacity = 0.85;
+                }
+
+                // Make bubbles more active
+                if (window.liquidBubbles) {
+                    window.liquidBubbles.forEach(bubble => {
+                        bubble.userData.speed *= 2.5; // Much faster bubble rise
+                        bubble.material.emissiveIntensity = 1.0;
+                    });
                 }
             } else {
                 showMessage('Liquid system already active');
@@ -1759,15 +1869,64 @@ function update(delta) {
         window.gameDoor.position.x = doorPosition;
     }
 
-    // Liquid tank animation - subtle bubbling/swirling motion
+    // Liquid tank animation - continuous bubbling and swirling
     const time = clock.getElapsedTime();
     if (window.liquidMesh) {
-        // Rotate liquid slightly for swirling effect
-        window.liquidMesh.rotation.y = time * 0.1;
+        // Swirling effect - rotate liquid
+        const swirlSpeed = window.liquidBoiling ? 0.3 : 0.1;
+        window.liquidMesh.rotation.y = time * swirlSpeed;
 
-        // Pulse emissive intensity for bubbling effect
-        const bubble = Math.sin(time * 2) * 0.1 + 0.5;
-        window.liquidMesh.material.emissiveIntensity = bubble;
+        // Pulsing emissive intensity for active bubbling
+        if (window.liquidBoiling) {
+            // Boiling - intense pulsing
+            const boil = Math.sin(time * 5) * 0.3 + 1.2;
+            window.liquidMesh.material.emissiveIntensity = boil;
+        } else {
+            // Normal bubbling
+            const bubble = Math.sin(time * 2) * 0.15 + 0.65;
+            window.liquidMesh.material.emissiveIntensity = bubble;
+        }
+    }
+
+    // Bubble animation - constantly rising and swirling
+    if (window.liquidBubbles) {
+        window.liquidBubbles.forEach((bubble, i) => {
+            // Rise upward
+            bubble.position.y += bubble.userData.speed * delta;
+
+            // Swirl around the cylinder
+            const angle = bubble.userData.angle + time * 0.5;
+            const radius = bubble.userData.radius * (1 + Math.sin(time * 2 + i) * 0.1);
+            bubble.position.x = radius * Math.cos(angle);
+            bubble.position.z = 25 + radius * Math.sin(angle); // scene2OffsetZ
+
+            // Reset bubble to bottom when it reaches top
+            if (bubble.position.y > 5.5) {
+                bubble.position.y = 0.5;
+            }
+
+            // Pulse emissive for visibility
+            if (window.liquidBoiling) {
+                const pulse = Math.sin(time * 6 + i) * 0.3 + 0.7;
+                bubble.material.emissiveIntensity = pulse;
+            }
+        });
+    }
+
+    // Pipe flow animation - green light traveling through pipes
+    if (window.tankPipesActive && window.tankPipes) {
+        // Increment flow progress
+        window.pipeFlowProgress += delta * 0.5;
+
+        // Pulsing green glow through all pipes
+        window.tankPipes.forEach((pipe, index) => {
+            // Create a wave effect that travels outward
+            const wave = Math.sin(window.pipeFlowProgress * 3 - index * 0.2) * 0.5 + 0.5;
+            const intensity = 0.5 + wave * 1.0;
+
+            pipe.material.emissive = new THREE.Color(0x22aa44);
+            pipe.material.emissiveIntensity = intensity;
+        });
     }
 
     // Evidence indicator lights - flickering blue glow
