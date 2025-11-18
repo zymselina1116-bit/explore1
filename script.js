@@ -4,8 +4,8 @@ import * as THREE from 'https://esm.sh/three@0.160.0';
 // TEXTURE URLS
 // ====================================================================
 const TEXTURES = {
-    scene1_floor: './Screenshot 2025-11-16 at 22.51.42.png',
-    scene1_wall: './Screenshot 2025-11-16 at 22.53.11.png',
+    scene1_floor: './Screenshot 2025-11-18 at 13.50.11.png',
+    scene1_wall: './Screenshot 2025-11-18 at 14.09.17.png',
     scene1_door: './Screenshot 2025-11-16 at 22.54.35.png',
     scene1_exit: './Screenshot 2025-11-16 at 22.55.14.png',
     scene2_floor: './Screenshot 2025-11-16 at 22.56.00.png',
@@ -477,11 +477,11 @@ async function buildIndustrialHallScene() {
     rightWall.rotation.y = -Math.PI / 2;
     scene.add(rightWall);
 
-    // Ceiling (with floor texture)
+    // Ceiling (with wall texture)
     const ceilingGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
     const ceilingMaterial = new THREE.MeshStandardMaterial({
-        map: floorTexture,
-        color: floorTexture ? 0xffffff : 0xff0000,
+        map: wallTexture,
+        color: wallTexture ? 0xffffff : 0xff0000,
         roughness: 0.8,
         metalness: 0.2,
     });
@@ -491,52 +491,29 @@ async function buildIndustrialHallScene() {
     ceiling.rotation.x = Math.PI / 2;
     scene.add(ceiling);
 
-    // Single ceiling light (reduced for performance)
-    const light = new THREE.PointLight(0xffddcc, 2.5, 25);
-    light.position.set(0, wallHeight - 1, 0);
-    light.castShadow = false; // Disable shadows for performance
-    scene.add(light);
-
-    // Ambient light (with red tint, much brighter)
-    const ambientLight = new THREE.AmbientLight(0xff4444, 1.5);
+    // Bright white ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
     scene.add(ambientLight);
 
-    // Two large red ceiling warning lights with gradient (much brighter)
-    const mainRedLight1 = new THREE.SpotLight(0xff0000, 15, 20, Math.PI / 4, 0.5, 2);
-    mainRedLight1.position.set(-6, wallHeight - 0.5, -4);
-    mainRedLight1.target.position.set(-6, 0, -4);
-    scene.add(mainRedLight1);
-    scene.add(mainRedLight1.target);
-
-    // Shared geometry and material for large red lights (optimized, brighter)
-    const largeRedGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24);
-    const largeRedMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff0000,
-        emissive: 0xff0000,
-        emissiveIntensity: 3.5,
-    });
-
-    // Visual mesh for first large red light
-    const largeRedMesh1 = new THREE.Mesh(largeRedGeometry, largeRedMaterial);
-    largeRedMesh1.position.set(-6, wallHeight - 0.5, -4);
-    scene.add(largeRedMesh1);
-
-    const mainRedLight2 = new THREE.SpotLight(0xff0000, 15, 20, Math.PI / 4, 0.5, 2);
-    mainRedLight2.position.set(6, wallHeight - 0.5, 4);
-    mainRedLight2.target.position.set(6, 0, 4);
-    scene.add(mainRedLight2);
-    scene.add(mainRedLight2.target);
-
-    // Visual mesh for second large red light
-    const largeRedMesh2 = new THREE.Mesh(largeRedGeometry, largeRedMaterial);
-    largeRedMesh2.position.set(6, wallHeight - 0.5, 4);
-    scene.add(largeRedMesh2);
-
-    // Store for animation
-    window.mainRedLights = [
-        { light: mainRedLight1, mesh: largeRedMesh1 },
-        { light: mainRedLight2, mesh: largeRedMesh2 }
+    // Multiple bright white ceiling lights for even coverage
+    const ceilingLightPositions = [
+        [-6, wallHeight - 0.5, -6],
+        [6, wallHeight - 0.5, -6],
+        [-6, wallHeight - 0.5, 6],
+        [6, wallHeight - 0.5, 6],
+        [0, wallHeight - 0.5, 0],
+        [-8, wallHeight - 0.5, 0],
+        [8, wallHeight - 0.5, 0],
+        [0, wallHeight - 0.5, -8],
+        [0, wallHeight - 0.5, 8]
     ];
+
+    ceilingLightPositions.forEach(pos => {
+        const whiteLight = new THREE.PointLight(0xffffff, 4.0, 20);
+        whiteLight.position.set(pos[0], pos[1], pos[2]);
+        whiteLight.castShadow = false; // Disable shadows for performance
+        scene.add(whiteLight);
+    });
 
     // Main door (with texture, flush with wall)
     const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
@@ -743,36 +720,7 @@ async function buildIndustrialHallScene() {
     };
     interactiveObjects.push(cardReaderInteractive);
 
-    // Red alarm lights (reduced for performance, adjusted for smaller room)
-    const alarmPositions = [
-        [-11, 5.5, -11],
-        [11, 5.5, -11],
-        [-11, 5.5, 11],
-        [11, 5.5, 11],
-    ];
-
-    // Shared material for all alarm lights (reduces GPU load, brighter)
-    const alarmMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff0000,
-        emissive: 0xff0000,
-        emissiveIntensity: 3.0,
-    });
-
-    alarmPositions.forEach(pos => {
-        const alarmMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(0.4, 16, 16), // Reduced geometry
-            alarmMaterial // Reuse same material
-        );
-        alarmMesh.position.set(...pos);
-        scene.add(alarmMesh);
-
-        const alarmLight = new THREE.PointLight(0xff0000, 5, 18);
-        alarmLight.position.set(...pos);
-        alarmLight.castShadow = false; // Disable shadows for performance
-        scene.add(alarmLight);
-
-        alarmLights.push({ mesh: alarmMesh, light: alarmLight });
-    });
+    // No alarm lights - Scene 1 is now bright and clean
 
     // Wooden door on back wall (opposite to Scene 2 entrance)
     const woodenDoor = new THREE.Mesh(
@@ -1475,24 +1423,6 @@ function update(delta) {
         const flicker1 = Math.sin(time * 3 + 0.5) * 0.2 + 0.6;
         window.creatureGlow.intensity = flicker1;
     }
-
-    // Main red ceiling lights - slow rhythmic breathing (brighter)
-    if (window.mainRedLights) {
-        const breathe = Math.sin(time * 0.8) * 0.3 + 0.7; // Slow pulse (0.4 to 1.0)
-        window.mainRedLights.forEach(redLight => {
-            redLight.light.intensity = 12 + breathe * 6;
-            redLight.mesh.material.emissiveIntensity = 3 + breathe * 2;
-        });
-    }
-
-    // Smaller alarm lights pulsing (dramatic flashing, brighter)
-    alarmLights.forEach((alarm, index) => {
-        const offset = index * 0.5;
-        const intensity = Math.abs(Math.sin(time * 4 + offset));
-        const sparkle = Math.random() * 0.3;
-        alarm.mesh.material.emissiveIntensity = 2.5 + intensity * 3 + sparkle;
-        alarm.light.intensity = 4 + intensity * 8 + sparkle;
-    });
 }
 
 // ====================================================================
