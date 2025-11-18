@@ -873,27 +873,27 @@ async function buildOfficeFloorScene() {
     ceiling.rotation.x = Math.PI / 2;
     scene.add(ceiling);
 
-    // Lighting: Soft, dim, calmer than Scene 1
-    const ambientLight = new THREE.AmbientLight(0xccccff, 0.6);
+    // Lighting: Blue and green environment (different from Scene 1's red)
+    const ambientLight = new THREE.AmbientLight(0x4466ff, 0.6); // Blue ambient light
     scene.add(ambientLight);
 
-    const mainLight = new THREE.PointLight(0xffffee, 3, 50);
+    const mainLight = new THREE.PointLight(0x44ff88, 3, 50); // Green main light
     mainLight.position.set(0, wallHeight - 1, scene2OffsetZ);
     scene.add(mainLight);
 
-    // Area lights for desks/objects
-    const areaLight1 = new THREE.PointLight(0xffffdd, 2, 15);
+    // Area lights for desks/objects - mix of blue and green
+    const areaLight1 = new THREE.PointLight(0x44ccff, 2, 15); // Cyan/blue area light
     areaLight1.position.set(-10, 3, scene2OffsetZ - 8);
     scene.add(areaLight1);
 
-    const areaLight2 = new THREE.PointLight(0xffffdd, 2, 15);
+    const areaLight2 = new THREE.PointLight(0x66ff99, 2, 15); // Light green area light
     areaLight2.position.set(10, 3, scene2OffsetZ + 8);
     scene.add(areaLight2);
 
-    // Update flashlight color to match calmer mood
+    // Update flashlight color to match blue-green theme
     if (flashlight) {
         flashlight.intensity = 6;
-        flashlight.color.setHex(0xffffdd);
+        flashlight.color.setHex(0x88ffbb); // Blue-green flashlight
     }
 
     // Furniture material
