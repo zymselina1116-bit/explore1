@@ -216,6 +216,20 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener('resize', onWindowResize);
+
+    // Backpack toggle functionality
+    const backpackIcon = document.getElementById('backpack-icon');
+    const backpackPanel = document.getElementById('backpack-panel');
+
+    if (backpackIcon && backpackPanel) {
+        backpackIcon.addEventListener('click', () => {
+            if (backpackPanel.style.display === 'none') {
+                backpackPanel.style.display = 'block';
+            } else {
+                backpackPanel.style.display = 'none';
+            }
+        });
+    }
 }
 
 function onKeyDown(event) {
@@ -890,6 +904,33 @@ async function buildOfficeFloorScene() {
     areaLight2.position.set(10, 3, scene2OffsetZ + 8);
     scene.add(areaLight2);
 
+    // Additional blue and green lights throughout the room for full coverage
+    const blueLights = [
+        [-15, 4, scene2OffsetZ - 10],
+        [-8, 4, scene2OffsetZ + 5],
+        [0, 4, scene2OffsetZ - 5],
+        [8, 4, scene2OffsetZ + 12]
+    ];
+
+    blueLights.forEach(pos => {
+        const blueLight = new THREE.PointLight(0x3388ff, 1.5, 12);
+        blueLight.position.set(pos[0], pos[1], pos[2]);
+        scene.add(blueLight);
+    });
+
+    const greenLights = [
+        [15, 4, scene2OffsetZ - 5],
+        [-12, 4, scene2OffsetZ + 10],
+        [5, 4, scene2OffsetZ - 12],
+        [12, 4, scene2OffsetZ + 5]
+    ];
+
+    greenLights.forEach(pos => {
+        const greenLight = new THREE.PointLight(0x44ff66, 1.5, 12);
+        greenLight.position.set(pos[0], pos[1], pos[2]);
+        scene.add(greenLight);
+    });
+
     // Update flashlight color to match blue-green theme
     if (flashlight) {
         flashlight.intensity = 6;
@@ -1012,7 +1053,7 @@ async function buildOfficeFloorScene() {
     scene.add(mapItem);
 
     // Interactive evidence items
-    const createEvidenceInteractive = (mesh, id, name) => ({
+    const createEvidenceInteractive = (mesh, id, name, textureUrl) => ({
         mesh,
         type: 'evidence',
         id,
@@ -1024,6 +1065,10 @@ async function buildOfficeFloorScene() {
             interactiveObjects = interactiveObjects.filter(obj => obj.id !== id);
             updateProgressUI();
 
+            // Add to backpack
+            addEvidenceToBackpack(name, textureUrl);
+            showMessage(`Collected: ${name}`);
+
             if (gameState.evidenceCollected.size === 3) {
                 console.log('All evidence collected! Golden key is now usable');
                 showMessage('All evidence collected');
@@ -1031,9 +1076,9 @@ async function buildOfficeFloorScene() {
         }
     });
 
-    interactiveObjects.push(createEvidenceInteractive(creatureSketch, 'evidence_creature', 'Creature Sketch'));
-    interactiveObjects.push(createEvidenceInteractive(profileCard, 'evidence_profile', 'Profile Card'));
-    interactiveObjects.push(createEvidenceInteractive(mapItem, 'evidence_map', 'Map'));
+    interactiveObjects.push(createEvidenceInteractive(creatureSketch, 'evidence_creature', 'Creature Sketch', TEXTURES.creatureSketch));
+    interactiveObjects.push(createEvidenceInteractive(profileCard, 'evidence_profile', 'Profile Card', TEXTURES.profileCard));
+    interactiveObjects.push(createEvidenceInteractive(mapItem, 'evidence_map', 'Map', TEXTURES.mapItem));
 
     // Drawer interactive (opens to reveal map item)
     const drawerInteractive = {
@@ -1064,7 +1109,7 @@ async function buildOfficeFloorScene() {
     };
     interactiveObjects.push(drawerInteractive);
 
-    // Wooden door (flush with front wall)
+    // Wooden door (moved into room for better accessibility)
     const woodenDoor = new THREE.Mesh(
         new THREE.BoxGeometry(4, 5, 0.2),
         new THREE.MeshStandardMaterial({
@@ -1074,7 +1119,7 @@ async function buildOfficeFloorScene() {
         })
     );
     woodenDoor.name = 'WoodenDoor';
-    woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth);
+    woodenDoor.position.set(0, 2.5, scene2OffsetZ + halfDepth - 1.5); // Moved 1.5 units into room
     scene.add(woodenDoor);
 
     // Key board 2 next to wooden door (moved further into room for accessibility)
@@ -1267,6 +1312,41 @@ function updateProgressUI() {
 }
 
 // ====================================================================
+// BACKPACK EVIDENCE SYSTEM
+// ====================================================================
+function addEvidenceToBackpack(evidenceName, evidenceTexture) {
+    const backpackContents = document.getElementById('backpack-contents');
+    if (!backpackContents) return;
+
+    // Create evidence item element
+    const evidenceItem = document.createElement('div');
+    evidenceItem.style.cssText = `
+        background: rgba(255, 170, 0, 0.2);
+        border: 2px solid #ffaa00;
+        border-radius: 8px;
+        padding: 10px;
+        color: #ffaa00;
+        font-family: monospace;
+        font-size: 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: background 0.3s;
+    `;
+    evidenceItem.textContent = evidenceName;
+    evidenceItem.setAttribute('data-texture', evidenceTexture);
+
+    // Hover effects
+    evidenceItem.addEventListener('mouseenter', () => {
+        evidenceItem.style.background = 'rgba(255, 170, 0, 0.4)';
+    });
+    evidenceItem.addEventListener('mouseleave', () => {
+        evidenceItem.style.background = 'rgba(255, 170, 0, 0.2)';
+    });
+
+    backpackContents.appendChild(evidenceItem);
+}
+
+// ====================================================================
 // FURNITURE COLLISION DETECTION
 // ====================================================================
 function checkFurnitureCollision(position) {
@@ -1399,10 +1479,11 @@ function update(delta) {
         const scene2End = 12.5 + 35; // 47.5
         hitWall = camera.position.x < -19 || camera.position.x > 19;
 
-        // Check wooden door collision - allow approaching wall, but block passage
-        const atWoodenDoorWall = camera.position.z > scene2End - 0.5;
+        // Check wooden door collision - allow free movement up to door area
+        // Only block passage beyond the door (when door is locked)
+        const beyondDoor = camera.position.z > scene2End;
         const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
-        doorBlocked = atWoodenDoorWall && (!gameState.woodenDoorUnlocked || !inWoodenDoorArea);
+        doorBlocked = beyondDoor && (!gameState.woodenDoorUnlocked || !inWoodenDoorArea);
 
         // Collision with desks and furniture
         const furnitureCollision = checkFurnitureCollision(camera.position);
