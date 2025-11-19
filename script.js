@@ -365,7 +365,11 @@ worldObjects.push(doorCollider);
 // Wooden door (WEST wall, interactive - opens with golden key, larger: 3m wide x 4.5m tall)
 const woodenDoor = new THREE.Mesh(
     new THREE.PlaneGeometry(3, 4.5),
-    new THREE.MeshStandardMaterial({ map: textures.woodenDoor, transparent: true })
+    new THREE.MeshStandardMaterial({
+        map: textures.woodenDoor,
+        transparent: true,
+        side: THREE.FrontSide // Only visible from Room1 side
+    })
 );
 woodenDoor.position.set(-roomSize / 2 + 0.05, 2.25, 0.05); // Offset z to avoid Z-fighting
 woodenDoor.rotation.y = Math.PI / 2;
@@ -373,6 +377,36 @@ scene.add(woodenDoor);
 woodenDoor.userData.isWoodenDoor = true;
 woodenDoor.userData.closed = true;
 interactiveObjects.push(woodenDoor);
+
+// Arched doorway frame (visible from Garden side)
+const archFrameMaterial = new THREE.MeshStandardMaterial({
+    color: 0xf8f8f8,
+    metalness: 0.6,
+    roughness: 0.3
+});
+
+// Arch top (semi-circular curve)
+const archCurve = new THREE.TorusGeometry(1.5, 0.12, 8, 32, Math.PI);
+const archTop = new THREE.Mesh(archCurve, archFrameMaterial);
+archTop.rotation.z = Math.PI;
+archTop.rotation.y = Math.PI / 2;
+archTop.position.set(-roomSize / 2 - 0.1, 2.25 + 1.5, 0);
+scene.add(archTop);
+
+// Arch side pillars
+const leftPillar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, 3.75, 12),
+    archFrameMaterial
+);
+leftPillar.position.set(-roomSize / 2 - 0.1, 2.25 - 0.375, -1.5);
+scene.add(leftPillar);
+
+const rightPillar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, 3.75, 12),
+    archFrameMaterial
+);
+rightPillar.position.set(-roomSize / 2 - 0.1, 2.25 - 0.375, 1.5);
+scene.add(rightPillar);
 
 // Wooden door collider (player cannot walk through until opened)
 const woodenDoorCollider = new THREE.Mesh(
@@ -1110,24 +1144,31 @@ function buildGardenInterior() {
 
     const ground = new THREE.Mesh(
         groundGeometry,
-        new THREE.MeshStandardMaterial({ map: textures.gardenGrass })
+        new THREE.MeshStandardMaterial({
+            map: textures.gardenGrass,
+            color: 0xf5f5dc // Soft beige tint for dreamy atmosphere
+        })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(gardenOffsetX, 0, 0);
     scene.add(ground);
     worldObjects.push(ground);
 
-    // Glass walls (transparent greenhouse)
-    const glassMaterial = new THREE.MeshStandardMaterial({
+    // Dreamy glass conservatory - semi-transparent glass with soft reflections
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.65,
-        metalness: 0.1,
-        roughness: 0.05,
+        opacity: 0.3,
+        transmission: 0.9,
+        metalness: 0.0,
+        roughness: 0.1,
+        ior: 1.5,
+        thickness: 0.5,
+        envMapIntensity: 0.5,
         side: THREE.DoubleSide
     });
 
-    const wallHeight = 8;
+    const wallHeight = 10; // Taller walls for grand conservatory feel
 
     // North glass wall
     const glassNorth = new THREE.Mesh(
@@ -1200,23 +1241,25 @@ function buildGardenInterior() {
     glassEastSouth.rotation.y = -Math.PI / 2;
     scene.add(glassEastSouth);
 
-    // Glass ceiling panels
-    const ceilingGlass = new THREE.Mesh(
-        new THREE.PlaneGeometry(gardenSize, gardenSize),
-        glassMaterial
-    );
-    ceilingGlass.rotation.x = Math.PI / 2;
-    ceilingGlass.position.set(gardenOffsetX, wallHeight, 0);
-    scene.add(ceilingGlass);
+    // Curved glass dome ceiling (arch shape, botanical palace style)
+    const domeSegments = 16;
+    const domeRadius = gardenSize / 1.5;
+    const domeHeight = 12;
 
-    // Metal frame structure (thin dark beams with texture)
+    // Create curved dome using hemisphere geometry
+    const domeGeometry = new THREE.SphereGeometry(domeRadius, domeSegments, domeSegments / 2, 0, Math.PI * 2, 0, Math.PI / 2);
+    const dome = new THREE.Mesh(domeGeometry, glassMaterial);
+    dome.position.set(gardenOffsetX, wallHeight, 0);
+    scene.add(dome);
+
+    // White structural frames (elegant conservatory style)
     const frameMaterial = new THREE.MeshStandardMaterial({
-        map: textures.glassFrameTexture,
-        metalness: 0.8,
-        roughness: 0.3
+        color: 0xf8f8f8,
+        metalness: 0.6,
+        roughness: 0.2
     });
 
-    // Vertical corner posts
+    // Vertical corner posts (taller for grand conservatory)
     const postPositions = [
         [gardenOffsetX - gardenSize / 2, wallHeight / 2, -gardenSize / 2],
         [gardenOffsetX + gardenSize / 2, wallHeight / 2, -gardenSize / 2],
@@ -1225,27 +1268,113 @@ function buildGardenInterior() {
     ];
     postPositions.forEach(pos => {
         const post = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.08, 0.08, wallHeight, 8),
+            new THREE.CylinderGeometry(0.1, 0.1, wallHeight, 8),
             frameMaterial
         );
         post.position.set(...pos);
         scene.add(post);
     });
 
-    // Warm sunlight from ceiling
-    const sunLight = new THREE.DirectionalLight(0xffffcc, 0.8);
-    sunLight.position.set(gardenOffsetX, wallHeight - 1, 0);
+    // Additional vertical supports around perimeter (every 4 units)
+    const perimeterPosts = [];
+    for (let i = -gardenSize / 2; i <= gardenSize / 2; i += 4) {
+        if (Math.abs(i) < 2) continue; // Skip doorway area on east side
+
+        // North wall posts
+        const northPost = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, wallHeight, 8),
+            frameMaterial
+        );
+        northPost.position.set(gardenOffsetX + i, wallHeight / 2, -gardenSize / 2);
+        scene.add(northPost);
+
+        // South wall posts
+        const southPost = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, wallHeight, 8),
+            frameMaterial
+        );
+        southPost.position.set(gardenOffsetX + i, wallHeight / 2, gardenSize / 2);
+        scene.add(southPost);
+
+        // West wall posts
+        const westPost = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, wallHeight, 8),
+            frameMaterial
+        );
+        westPost.position.set(gardenOffsetX - gardenSize / 2, wallHeight / 2, i);
+        scene.add(westPost);
+    }
+
+    // Horizontal frame beams at mid-height (curved window tops)
+    for (let i = -gardenSize / 2; i <= gardenSize / 2; i += 4) {
+        if (Math.abs(i) < 2) continue; // Skip doorway
+
+        // Create arched window frame tops
+        const archCurve = new THREE.TorusGeometry(2, 0.06, 8, 16, Math.PI);
+        const archTop = new THREE.Mesh(archCurve, frameMaterial);
+        archTop.rotation.z = Math.PI;
+        archTop.position.set(gardenOffsetX + i, wallHeight * 0.6, -gardenSize / 2 + 0.1);
+        scene.add(archTop);
+    }
+
+    // Dome structural ribs (radial pattern from center)
+    for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const ribCurve = new THREE.TorusGeometry(domeRadius * 0.8, 0.08, 8, 16, Math.PI);
+        const rib = new THREE.Mesh(ribCurve, frameMaterial);
+        rib.rotation.y = angle;
+        rib.rotation.x = Math.PI / 2;
+        rib.position.set(gardenOffsetX, wallHeight + domeRadius * 0.3, 0);
+        scene.add(rib);
+    }
+
+    // Strong natural sunlight from above (golden hour glow)
+    const sunLight = new THREE.DirectionalLight(0xfff4d6, 2.5);
+    sunLight.position.set(gardenOffsetX, wallHeight + domeHeight, 3);
     sunLight.target.position.set(gardenOffsetX, 0, 0);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
     scene.add(sunLight);
     scene.add(sunLight.target);
 
-    // Soft ambient lighting (warm + green) - BRIGHTER
-    const gardenAmbient = new THREE.AmbientLight(0xaaff88, 1.2);
+    // Wide global illumination - soft warm highlights, pastel golden + green
+    const gardenAmbient = new THREE.AmbientLight(0xf5e6d3, 1.8);
     scene.add(gardenAmbient);
 
-    const warmGlow = new THREE.PointLight(0xffeeaa, 0.8, 30);
-    warmGlow.position.set(gardenOffsetX, 4, 0);
-    scene.add(warmGlow);
+    // Pastel green fill light
+    const greenFill = new THREE.HemisphereLight(0xdfffcc, 0xe8f5e0, 1.2);
+    scene.add(greenFill);
+
+    // Multiple warm point lights for soft highlights (no dark areas)
+    const warmLightPositions = [
+        [gardenOffsetX - 6, 6, -6],
+        [gardenOffsetX + 6, 6, -6],
+        [gardenOffsetX - 6, 6, 6],
+        [gardenOffsetX + 6, 6, 6],
+        [gardenOffsetX, 8, 0]
+    ];
+    warmLightPositions.forEach(pos => {
+        const warmLight = new THREE.PointLight(0xfff8e7, 0.8, 25);
+        warmLight.position.set(...pos);
+        scene.add(warmLight);
+    });
+
+    // God-rays effect through ceiling (volumetric light simulation)
+    const godRayPositions = [
+        [gardenOffsetX - 4, wallHeight + 2, -4],
+        [gardenOffsetX + 4, wallHeight + 2, -4],
+        [gardenOffsetX, wallHeight + 3, 0],
+        [gardenOffsetX - 4, wallHeight + 2, 4],
+        [gardenOffsetX + 4, wallHeight + 2, 4]
+    ];
+    godRayPositions.forEach(pos => {
+        const godRay = new THREE.SpotLight(0xfffaee, 1.5, 30, Math.PI / 6, 0.3, 0.8);
+        godRay.position.set(...pos);
+        godRay.target.position.set(pos[0], 0, pos[2]);
+        scene.add(godRay);
+        scene.add(godRay.target);
+    });
 
     // Garden boundary colliders (invisible walls)
     const boundaryMaterial = new THREE.MeshBasicMaterial({ visible: false });
@@ -1294,177 +1423,234 @@ function buildGardenInterior() {
     scene.add(eastBoundarySouth);
     worldObjects.push(eastBoundarySouth);
 
-    // 3D Flower bushes (expanded with more positions)
-    const bushPositions = [
-        { x: -4, z: -6 }, { x: -2, z: -8 }, { x: 4, z: -7 },
-        { x: 6, z: -4 }, { x: -5, z: 5 }, { x: -2, z: 7 },
-        { x: 3, z: 6 }, { x: 5, z: 8 }, { x: -7, z: -2 },
-        { x: 7, z: 2 }, { x: -4, z: 0 }, { x: 4, z: -2 },
-        // Additional bushes
-        { x: -8, z: -6 }, { x: -6, z: -8 }, { x: 8, z: -6 },
-        { x: 8, z: 6 }, { x: -8, z: 6 }, { x: -1, z: -4 },
-        { x: 1, z: -6 }, { x: -3, z: 3 }, { x: 6, z: 0 },
-        { x: -6, z: 2 }, { x: 2, z: -3 }, { x: 0, z: 5 }
+    // Spherical trimmed hedges (rounded, soft appearance)
+    const hedgePositions = [
+        { x: -6, z: -7, radius: 0.9 }, { x: 6, z: -7, radius: 0.8 },
+        { x: -7, z: 0, radius: 1.0 }, { x: 7, z: 0, radius: 0.85 },
+        { x: -6, z: 7, radius: 0.9 }, { x: 6, z: 7, radius: 0.95 }
     ];
 
-    bushPositions.forEach(pos => {
-        const bushGroup = new THREE.Group();
+    hedgePositions.forEach(pos => {
+        const hedgeGroup = new THREE.Group();
 
-        // Volumetric bush made with 8-15 crossed transparent planes
-        const numPlanes = 8 + Math.floor(Math.random() * 8); // 8-15 planes
-        const bushHeight = 1.2 + Math.random() * 0.8;
-        const bushWidth = 1.0 + Math.random() * 0.6;
+        // Create sphere using icosahedron for smooth rounded appearance
+        const hedgeSphere = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(pos.radius, 3),
+            new THREE.MeshStandardMaterial({
+                color: 0x6b8e5a,
+                roughness: 0.9,
+                flatShading: false
+            })
+        );
+        hedgeSphere.position.y = pos.radius * 0.9;
+        hedgeGroup.add(hedgeSphere);
 
-        const bushMaterial = new THREE.MeshStandardMaterial({
-            map: textures.bushTexture,
-            transparent: true,
-            alphaTest: 0.5,
-            side: THREE.DoubleSide,
-            color: 0xffffff
-        });
-
-        for (let i = 0; i < numPlanes; i++) {
-            const angle = (Math.PI / numPlanes) * i;
-            const plane = new THREE.Mesh(
-                new THREE.PlaneGeometry(bushWidth, bushHeight),
-                bushMaterial
-            );
-            plane.position.y = bushHeight / 2;
-            plane.rotation.y = angle;
-            bushGroup.add(plane);
-        }
-
-        // Optional flower layer with crossed planes (smaller, on top)
-        const numFlowerPlanes = 4 + Math.floor(Math.random() * 4);
-        const flowerHeight = bushHeight * 0.6;
-        const flowerWidth = bushWidth * 0.7;
-
-        const flowerMaterial = new THREE.MeshStandardMaterial({
-            map: textures.flowerTexture,
-            transparent: true,
-            alphaTest: 0.5,
-            side: THREE.DoubleSide,
-            emissive: 0xffaa88,
-            emissiveIntensity: 0.2
-        });
-
-        for (let i = 0; i < numFlowerPlanes; i++) {
-            const angle = (Math.PI / numFlowerPlanes) * i;
-            const flowerPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(flowerWidth, flowerHeight),
-                flowerMaterial
-            );
-            flowerPlane.position.y = bushHeight * 0.6;
-            flowerPlane.rotation.y = angle;
-            bushGroup.add(flowerPlane);
-        }
-
-        bushGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
-        scene.add(bushGroup);
-        gardenObjects.push(bushGroup);
+        hedgeGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(hedgeGroup);
+        gardenObjects.push(hedgeGroup);
     });
 
-    // Separate standalone flowers scattered throughout garden
-    const flowerPositions = [
-        { x: -3, z: -3 }, { x: 2, z: -5 }, { x: -1, z: -7 },
-        { x: 5, z: -5 }, { x: -7, z: 0 }, { x: 3, z: 1 },
-        { x: -5, z: 3 }, { x: 1, z: 4 }, { x: 7, z: 5 },
-        { x: -2, z: 6 }, { x: 4, z: 7 }, { x: -6, z: -4 },
-        { x: 6, z: -2 }, { x: -4, z: 2 }, { x: 2, z: 3 },
-        { x: 0, z: -2 }, { x: -1, z: 1 }, { x: 3, z: -4 }
+    // Low rounded shrubs (smaller, softer)
+    const shrubPositions = [
+        { x: -4, z: -5 }, { x: -2, z: -7 }, { x: 2, z: -6 },
+        { x: 4, z: -4 }, { x: -5, z: 4 }, { x: -2, z: 6 },
+        { x: 2, z: 5 }, { x: 5, z: 7 }, { x: -7, z: -2 },
+        { x: 7, z: 2 }, { x: -3, z: 0 }, { x: 3, z: -2 }
     ];
 
-    flowerPositions.forEach(pos => {
-        const flowerGroup = new THREE.Group();
+    shrubPositions.forEach(pos => {
+        const shrubGroup = new THREE.Group();
 
-        // Create small flower cluster with crossed planes
-        const numPlanes = 4 + Math.floor(Math.random() * 4);
-        const flowerHeight = 0.4 + Math.random() * 0.3;
-        const flowerWidth = 0.3 + Math.random() * 0.2;
-
-        const flowerMaterial = new THREE.MeshStandardMaterial({
-            map: textures.flowerTexture,
-            transparent: true,
-            alphaTest: 0.5,
-            side: THREE.DoubleSide,
-            emissive: [0xff69b4, 0xffff00, 0xff6347, 0x9370db, 0xffa500][Math.floor(Math.random() * 5)],
-            emissiveIntensity: 0.4
-        });
-
-        for (let i = 0; i < numPlanes; i++) {
-            const angle = (Math.PI / numPlanes) * i;
-            const flowerPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(flowerWidth, flowerHeight),
-                flowerMaterial
+        // Multiple small spheres clustered for natural shrub look
+        const numSpheres = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numSpheres; i++) {
+            const radius = 0.3 + Math.random() * 0.2;
+            const sphere = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(radius, 2),
+                new THREE.MeshStandardMaterial({
+                    color: 0x7a9e65,
+                    roughness: 0.85
+                })
             );
-            flowerPlane.position.y = flowerHeight / 2;
-            flowerPlane.rotation.y = angle;
-            flowerGroup.add(flowerPlane);
+            sphere.position.set(
+                (Math.random() - 0.5) * 0.4,
+                radius * 0.8,
+                (Math.random() - 0.5) * 0.4
+            );
+            shrubGroup.add(sphere);
         }
 
-        flowerGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
-        scene.add(flowerGroup);
-        gardenObjects.push(flowerGroup);
+        shrubGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(shrubGroup);
+        gardenObjects.push(shrubGroup);
     });
 
-    // Center fountain with glowing water
+    // Flower patches near fountain (soft lavender, cream, peach colors)
+    const flowerPatchPositions = [
+        { x: -3, z: -2.5, color: 0xd8b4e2 }, // Soft lavender
+        { x: 3, z: -2.5, color: 0xfff5e1 }, // Cream
+        { x: -3, z: 2.5, color: 0xffdab9 }, // Peach
+        { x: 3, z: 2.5, color: 0xe6d0ff }, // Light lavender
+        { x: 0, z: -3.5, color: 0xffe5cc }, // Light peach
+        { x: 0, z: 3.5, color: 0xf5f5dc } // Beige cream
+    ];
+
+    flowerPatchPositions.forEach(pos => {
+        const patchGroup = new THREE.Group();
+
+        // Create flower patch with multiple small flowers
+        const numFlowers = 8 + Math.floor(Math.random() * 6);
+        for (let i = 0; i < numFlowers; i++) {
+            const flowerSize = 0.15 + Math.random() * 0.1;
+            const flower = new THREE.Mesh(
+                new THREE.CircleGeometry(flowerSize, 6),
+                new THREE.MeshStandardMaterial({
+                    color: pos.color,
+                    emissive: pos.color,
+                    emissiveIntensity: 0.3,
+                    side: THREE.DoubleSide
+                })
+            );
+            flower.position.set(
+                (Math.random() - 0.5) * 0.8,
+                0.05,
+                (Math.random() - 0.5) * 0.8
+            );
+            flower.rotation.x = -Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+            patchGroup.add(flower);
+
+            // Add small stem (tiny cylinder)
+            const stem = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.15, 4),
+                new THREE.MeshStandardMaterial({ color: 0x4a7c3a })
+            );
+            stem.position.set(flower.position.x, 0.075, flower.position.z);
+            patchGroup.add(stem);
+        }
+
+        patchGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(patchGroup);
+        gardenObjects.push(patchGroup);
+    });
+
+    // Tall thin trees with soft leaves (NOT cubes!)
+    const tallTreePositions = [
+        { x: -8, z: -8 }, { x: 8, z: -8 },
+        { x: -8, z: 8 }, { x: 8, z: 8 }
+    ];
+
+    tallTreePositions.forEach(pos => {
+        const treeGroup = new THREE.Group();
+
+        // Tall thin trunk (dark brown)
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.15, 6, 8),
+            new THREE.MeshStandardMaterial({
+                color: 0x3e2a1f,
+                roughness: 0.95
+            })
+        );
+        trunk.position.y = 3;
+        treeGroup.add(trunk);
+
+        // Soft leaves - multiple layers of crossed transparent planes
+        const leafLayers = 4;
+        for (let layer = 0; layer < leafLayers; layer++) {
+            const layerY = 4.5 + layer * 0.8;
+            const layerSize = 2.0 - layer * 0.3;
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const leaf = new THREE.Mesh(
+                    new THREE.PlaneGeometry(layerSize, layerSize * 1.2),
+                    new THREE.MeshStandardMaterial({
+                        color: 0x4a6b3a,
+                        transparent: true,
+                        opacity: 0.7,
+                        side: THREE.DoubleSide
+                    })
+                );
+                leaf.position.y = layerY;
+                leaf.rotation.y = angle;
+                leaf.rotation.x = (Math.random() - 0.5) * 0.4;
+                treeGroup.add(leaf);
+            }
+        }
+
+        treeGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(treeGroup);
+        gardenObjects.push(treeGroup);
+    });
+
+    // Center fountain - smooth stone bowl with magical water
     const fountainGroup = new THREE.Group();
 
-    // Stone base with texture
-    const fountainBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.6, 1.9, 0.5, 20),
+    // Smooth stone bowl (hemisphere shape)
+    const bowlGeometry = new THREE.SphereGeometry(1.8, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    const stoneBowl = new THREE.Mesh(
+        bowlGeometry,
         new THREE.MeshStandardMaterial({
             map: textures.stoneTexture,
-            roughness: 0.7
+            roughness: 0.6,
+            color: 0xe8e0d8 // Soft cream stone tint
         })
     );
-    fountainBase.position.y = 0.25;
-    fountainGroup.add(fountainBase);
+    stoneBowl.position.y = 0.3;
+    stoneBowl.rotation.x = Math.PI; // Flip to create bowl shape
+    fountainGroup.add(stoneBowl);
 
-    // Water basin with physical material and normal map
+    // Magical water surface with shimmer texture
     textures.waterNormalTexture.wrapS = textures.waterNormalTexture.wrapT = THREE.RepeatWrapping;
-    textures.waterNormalTexture.repeat.set(2, 2);
+    textures.waterNormalTexture.repeat.set(3, 3);
 
-    const waterBasin = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.4, 1.4, 0.3, 20),
+    const waterSurface = new THREE.Mesh(
+        new THREE.CircleGeometry(1.5, 32),
         new THREE.MeshPhysicalMaterial({
-            color: 0xaaffff,
-            emissive: 0x44ddff,
-            emissiveIntensity: 0.4,
-            transmission: 0.9,
+            map: textures.waterNormalTexture,
+            color: 0xb8e6ff,
+            emissive: 0x88d4ff,
+            emissiveIntensity: 0.5,
+            transmission: 0.95,
             opacity: 1,
-            roughness: 0.1,
+            roughness: 0.05,
             ior: 1.33,
-            thickness: 0.5,
+            thickness: 0.3,
             normalMap: textures.waterNormalTexture,
-            normalScale: new THREE.Vector2(0.3, 0.3)
+            normalScale: new THREE.Vector2(0.5, 0.5),
+            transparent: true
         })
     );
-    waterBasin.position.y = 0.55;
-    fountainGroup.add(waterBasin);
-    fountainGroup.userData.waterBasin = waterBasin;
+    waterSurface.rotation.x = -Math.PI / 2;
+    waterSurface.position.y = 0.6;
+    fountainGroup.add(waterSurface);
+    fountainGroup.userData.waterSurface = waterSurface;
 
-    // Sparkle particles (gentle animation)
+    // Magical glow particles rising from water (subtle shimmer)
     const particles = [];
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 30; i++) {
         const particle = new THREE.Mesh(
-            new THREE.SphereGeometry(0.04, 6, 6),
-            new THREE.MeshBasicMaterial({ color: 0xddffff, transparent: true, opacity: 0.7 })
+            new THREE.SphereGeometry(0.03, 6, 6),
+            new THREE.MeshBasicMaterial({
+                color: 0xddeeff,
+                transparent: true,
+                opacity: 0.6
+            })
         );
         particle.position.set(
-            (Math.random() - 0.5) * 0.4,
-            0.7 + Math.random() * 0.6,
-            (Math.random() - 0.5) * 0.4
+            (Math.random() - 0.5) * 1.2,
+            0.65 + Math.random() * 0.4,
+            (Math.random() - 0.5) * 1.2
         );
-        particle.userData.speed = 0.008 + Math.random() * 0.015;
-        particle.userData.resetY = 0.7;
+        particle.userData.speed = 0.005 + Math.random() * 0.01;
+        particle.userData.resetY = 0.65;
+        particle.userData.floatOffset = Math.random() * Math.PI * 2;
         particles.push(particle);
         fountainGroup.add(particle);
     }
     fountainGroup.userData.particles = particles;
 
-    // Fountain glow light
-    const fountainLight = new THREE.PointLight(0xaaffff, 0.7, 10);
+    // Gentle magical glow light
+    const fountainLight = new THREE.PointLight(0xaaddff, 0.9, 12);
     fountainLight.position.y = 0.7;
     fountainGroup.add(fountainLight);
 
@@ -1520,52 +1706,29 @@ function buildGardenInterior() {
     interactiveObjects.push(footprintMesh);
     gardenObjects.push(footprintMesh);
 
-    // Stylized trees at garden perimeter (near glass walls, clear of evidence)
-    const treePositions = [
-        { x: -9, z: -9 }, { x: -8, z: 9 }, { x: 8, z: -9 },
-        { x: 9, z: 8 }, { x: -9, z: 3 }, { x: 9, z: -3 },
-        { x: 3, z: -9 }, { x: -3, z: 9 }
-    ];
-
-    treePositions.forEach(pos => {
-        const treeGroup = new THREE.Group();
-
-        // Tree trunk - brown cylinder
-        const trunk = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.15, 0.2, 2.5, 8),
-            new THREE.MeshStandardMaterial({
-                color: 0x4a3520,
-                roughness: 0.9
+    // Sparkling dust particles floating in air (atmospheric effect)
+    const dustParticles = [];
+    for (let i = 0; i < 80; i++) {
+        const dustParticle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.015, 4, 4),
+            new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.4
             })
         );
-        trunk.position.y = 1.25;
-        treeGroup.add(trunk);
-
-        // Tree canopy - green crossed planes for volumetric look
-        const canopyHeight = 2.0;
-        const canopyWidth = 1.5;
-        const numCanopyPlanes = 6;
-
-        for (let i = 0; i < numCanopyPlanes; i++) {
-            const angle = (Math.PI / numCanopyPlanes) * i;
-            const canopyPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(canopyWidth, canopyHeight),
-                new THREE.MeshStandardMaterial({
-                    color: 0x2a5a1f,
-                    transparent: true,
-                    opacity: 0.8,
-                    side: THREE.DoubleSide
-                })
-            );
-            canopyPlane.position.y = 3.0;
-            canopyPlane.rotation.y = angle;
-            treeGroup.add(canopyPlane);
-        }
-
-        treeGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
-        scene.add(treeGroup);
-        gardenObjects.push(treeGroup);
-    });
+        dustParticle.position.set(
+            gardenOffsetX + (Math.random() - 0.5) * gardenSize,
+            Math.random() * wallHeight,
+            (Math.random() - 0.5) * gardenSize
+        );
+        dustParticle.userData.floatSpeed = 0.003 + Math.random() * 0.005;
+        dustParticle.userData.drift = (Math.random() - 0.5) * 0.01;
+        dustParticle.userData.sparkleOffset = Math.random() * Math.PI * 2;
+        dustParticles.push(dustParticle);
+        scene.add(dustParticle);
+        gardenObjects.push(dustParticle);
+    }
 
     console.log('Garden interior built behind wooden door');
 }
@@ -2176,9 +2339,9 @@ function animate() {
     flashlightDirection.applyQuaternion(camera.quaternion);
     flashlightTarget.position.copy(camera.position).add(flashlightDirection);
 
-    // Reduced movement speed in garden (80% slower than normal)
+    // Movement speed (slower in Garden conservatory for dreamy atmosphere)
     const baseSpeed = 0.1;
-    const speed = currentScene === 'garden' ? baseSpeed * 0.2 : baseSpeed;
+    const speed = currentScene === 'garden' ? baseSpeed * 0.7 : baseSpeed; // 70% normal speed in Garden
 
     // Get camera forward direction (projected onto horizontal plane)
     const forward = new THREE.Vector3();
@@ -2262,24 +2425,46 @@ function animate() {
         // Fountain water animations
         if (obj.userData.particles) {
             obj.userData.particles.forEach(particle => {
+                // Magical particles rising from water with gentle float
                 particle.position.y += particle.userData.speed;
-                if (particle.position.y > 2) {
+                particle.position.x += Math.sin(time * 0.001 + particle.userData.floatOffset) * 0.002;
+                particle.position.z += Math.cos(time * 0.001 + particle.userData.floatOffset) * 0.002;
+
+                if (particle.position.y > 1.5) {
                     particle.position.y = particle.userData.resetY;
-                    particle.position.x = (Math.random() - 0.5) * 0.4;
-                    particle.position.z = (Math.random() - 0.5) * 0.4;
+                    particle.position.x = (Math.random() - 0.5) * 1.2;
+                    particle.position.z = (Math.random() - 0.5) * 1.2;
                 }
             });
 
-            // Animate water basin surface (gentle ripple + normal map scrolling)
-            const waterBasin = obj.userData.waterBasin;
-            if (waterBasin) {
-                waterBasin.position.y = 0.55 + Math.sin(time * 0.002) * 0.02;
+            // Animate water surface (subtle ripple + shimmering normal map scrolling)
+            const waterSurface = obj.userData.waterSurface;
+            if (waterSurface) {
+                waterSurface.position.y = 0.6 + Math.sin(time * 0.0015) * 0.015;
 
-                // Scroll normal map for water movement effect
-                if (waterBasin.material.normalMap) {
-                    waterBasin.material.normalMap.offset.x = (time * 0.00005) % 1;
-                    waterBasin.material.normalMap.offset.y = (time * 0.00003) % 1;
+                // Scroll normal map for shimmering water effect
+                if (waterSurface.material.normalMap) {
+                    waterSurface.material.normalMap.offset.x = (time * 0.00008) % 1;
+                    waterSurface.material.normalMap.offset.y = (time * 0.00005) % 1;
                 }
+            }
+        }
+
+        // Floating dust particles (sparkle in god-rays)
+        if (obj.userData.floatSpeed) {
+            obj.position.y += obj.userData.floatSpeed;
+            obj.position.x += obj.userData.drift;
+
+            // Gentle sparkle effect
+            obj.material.opacity = 0.3 + Math.sin(time * 0.002 + obj.userData.sparkleOffset) * 0.2;
+
+            // Reset when reaching top or drifting too far
+            if (obj.position.y > 10) {
+                obj.position.y = 0;
+            }
+            const gardenOffsetX = -17.5;
+            if (Math.abs(obj.position.x - gardenOffsetX) > 10) {
+                obj.position.x = gardenOffsetX + (Math.random() - 0.5) * 20;
             }
         }
 
