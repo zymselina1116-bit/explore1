@@ -292,6 +292,12 @@ woodenDoorCollider.userData.woodenDoorCollider = true;
 woodenDoorCollider.userData.door = woodenDoor;
 worldObjects.push(woodenDoorCollider);
 
+// Garden trigger zone (invisible, behind wooden door)
+const gardenTrigger = new THREE.Box3(
+    new THREE.Vector3(-roomSize / 2 - 1, 0, -2),
+    new THREE.Vector3(-roomSize / 2 + 0.5, 5, 2)
+);
+
 // Mailbox
 const mailbox = new THREE.Mesh(
     new THREE.BoxGeometry(0.6, 0.8, 0.4),
@@ -1053,12 +1059,26 @@ function onClick(event) {
             const hasGoldenKey = inventory.some(item => item.type === 'goldenKey');
             if (hasGoldenKey) {
                 obj.userData.closed = false;
-                console.log('Wooden door opening - transitioning to garden');
+                console.log('Wooden door opening');
 
-                // Transition to garden after brief animation
-                setTimeout(() => {
-                    buildGardenScene();
-                }, 500);
+                // Rotate door open smoothly around left hinge
+                const targetRotation = obj.rotation.y + Math.PI / 2;
+                const openAnim = setInterval(() => {
+                    obj.rotation.y += 0.05;
+
+                    if (obj.rotation.y >= targetRotation) {
+                        clearInterval(openAnim);
+                        obj.rotation.y = targetRotation;
+
+                        // Remove collider so player can walk through
+                        const collider = worldObjects.find(w => w.userData.woodenDoorCollider && w.userData.door === obj);
+                        if (collider) {
+                            worldObjects.splice(worldObjects.indexOf(collider), 1);
+                            scene.remove(collider);
+                        }
+                        console.log('Wooden door fully opened - you can now walk through');
+                    }
+                }, 16);
             } else {
                 console.log('Need golden key to open wooden door');
             }
@@ -1191,6 +1211,14 @@ function animate() {
 
         if (!checkCollision(newPos)) {
             camera.position.copy(newPos);
+        }
+    }
+
+    // Check if player walked through wooden door into garden trigger zone
+    if (currentScene === 'room1' && woodenDoor.userData.closed === false) {
+        if (gardenTrigger.containsPoint(camera.position)) {
+            console.log('Entering garden...');
+            buildGardenScene();
         }
     }
 
