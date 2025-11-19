@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Industrial Hall - Exploration Game</title>
+    <title>Scene 1 - Industrial Room</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- UI Overlay -->
-    <div id="ui-overlay">
-        <!-- Progress Indicator (top-right, icons only) -->
-        <div id="progress-indicator" style="display: none; position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.8); color: #ffaa00; padding: 15px 25px; border-radius: 8px; font-size: 32px; font-weight: bold; border: 2px solid #ffaa00; z-index: 1000; font-family: monospace;"></div>
-
-        <!-- Backpack Icon (top-right corner, below progress) -->
-        <div id="backpack-icon" style="position: absolute; top: 80px; right: 20px; width: 60px; height: 60px; background: rgba(0, 0, 0, 0.8); border: 2px solid #ffaa00; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 32px; z-index: 1000; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,170,0,0.3)'" onmouseout="this.style.background='rgba(0,0,0,0.8)'">🎒</div>
-
-        <!-- Backpack Inventory Panel (hidden by default) -->
-        <div id="backpack-panel" style="display: none; position: absolute; top: 150px; right: 20px; width: 300px; background: rgba(0, 0, 0, 0.9); border: 3px solid #ffaa00; border-radius: 10px; padding: 20px; z-index: 1001;">
-            <div style="color: #ffaa00; font-size: 20px; font-weight: bold; margin-bottom: 15px; text-align: center; font-family: monospace;">EVIDENCE</div>
-            <div id="backpack-contents" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    <div id="start-screen">
+        <div id="start-content">
+            <h1>Industrial Room</h1>
+            <p>Click to start</p>
+            <p class="controls">WASD to move | Hold left-click and drag to look around</p>
         </div>
-
-        <!-- Message Display -->
-        <div id="message-display" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); color: #ff4444; padding: 30px 60px; border-radius: 10px; font-size: 24px; font-weight: bold; border: 3px solid #ff4444; z-index: 1000;"></div>
     </div>
 
-    <script type="module" src="./script.js"></script>
+    <div id="backpack">
+        <div id="backpack-toggle">📦</div>
+        <div id="backpack-items"></div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <script type="module" src="script.js"></script>
 </body>
 </html>
