@@ -388,93 +388,6 @@ const blueLight4 = new THREE.PointLight(0x4488ff, 3, 20);
 blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
 scene.add(blueLight4);
 
-// LAB CYLINDERS - Futuristic glass tanks with glowing liquid
-const cylinders = [];
-
-function createLabCylinder(height, radius, posX, posZ) {
-    const group = new THREE.Group();
-
-    // Glass outer shell
-    const glassGeometry = new THREE.CylinderGeometry(radius, radius, height, 32);
-    const glassMaterial = new THREE.MeshStandardMaterial({
-        color: 0xccffff,
-        transparent: true,
-        opacity: 0.2,
-        metalness: 0.1,
-        roughness: 0.1
-    });
-    const glassCylinder = new THREE.Mesh(glassGeometry, glassMaterial);
-    glassCylinder.position.y = height / 2;
-    group.add(glassCylinder);
-
-    // Glowing liquid core
-    const liquidGeometry = new THREE.CylinderGeometry(radius * 0.85, radius * 0.85, height * 0.9, 32);
-    const liquidMaterial = new THREE.MeshStandardMaterial({
-        emissive: 0x00ff55,
-        emissiveIntensity: 2.2,
-        color: 0x00ff55,
-        transparent: true,
-        opacity: 0.85
-    });
-    const liquidCore = new THREE.Mesh(liquidGeometry, liquidMaterial);
-    liquidCore.position.y = height / 2;
-    group.add(liquidCore);
-
-    // Green point light inside
-    const greenLight = new THREE.PointLight(0x00ff55, 0.8, 8);
-    greenLight.position.y = height / 2;
-    group.add(greenLight);
-
-    // Bubbles
-    const bubbles = [];
-    for (let i = 0; i < 8; i++) {
-        const bubbleSize = 0.03 + Math.random() * 0.05;
-        const bubbleGeometry = new THREE.SphereGeometry(bubbleSize, 8, 8);
-        const bubbleMaterial = new THREE.MeshBasicMaterial({
-            color: 0xccffcc,
-            transparent: true,
-            opacity: 0.4
-        });
-        const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
-        bubble.position.x = (Math.random() - 0.5) * radius * 1.5;
-        bubble.position.z = (Math.random() - 0.5) * radius * 1.5;
-        bubble.position.y = Math.random() * height;
-        bubble.userData.resetY = Math.random() * height * 0.3;
-        bubble.userData.speed = 0.01 + Math.random() * 0.02;
-        bubble.userData.popTime = Math.random() * 10000;
-        bubbles.push(bubble);
-        group.add(bubble);
-    }
-
-    group.position.set(posX, 0, posZ);
-    group.userData.liquidCore = liquidCore;
-    group.userData.bubbles = bubbles;
-    group.userData.height = height;
-    group.userData.radius = radius;
-
-    return group;
-}
-
-// Cylinder 1: Tall, thin
-const cylinder1 = createLabCylinder(4, 0.4, room2Offset + 5, -5);
-scene.add(cylinder1);
-cylinders.push(cylinder1);
-
-// Cylinder 2: Shorter, very thick
-const cylinder2 = createLabCylinder(2.5, 0.8, room2Offset - 5, -5);
-scene.add(cylinder2);
-cylinders.push(cylinder2);
-
-// Cylinder 3: Medium height, medium thickness
-const cylinder3 = createLabCylinder(3, 0.6, room2Offset + 5, 5);
-scene.add(cylinder3);
-cylinders.push(cylinder3);
-
-// Cylinder 4: Tall and wide (largest)
-const cylinder4 = createLabCylinder(4.5, 1, room2Offset - 5, 5);
-scene.add(cylinder4);
-cylinders.push(cylinder4);
-
 // Laboratory desk (larger)
 const labDesk = new THREE.Mesh(
     new THREE.BoxGeometry(2.5, 1.2, 1.5),
@@ -729,44 +642,6 @@ function animate() {
     const flashlightDirection = new THREE.Vector3(0, 0, -1);
     flashlightDirection.applyQuaternion(camera.quaternion);
     flashlightTarget.position.copy(camera.position).add(flashlightDirection);
-
-    // Animate lab cylinders
-    const time = Date.now();
-    cylinders.forEach((cylinder, idx) => {
-        const liquidCore = cylinder.userData.liquidCore;
-        const bubbles = cylinder.userData.bubbles;
-        const height = cylinder.userData.height;
-        const radius = cylinder.userData.radius;
-
-        // Swirling liquid motion
-        const swirSpeed = 0.0003 + idx * 0.0001;
-        liquidCore.rotation.y += swirSpeed;
-
-        // Gentle wobble
-        const wobbleSpeed = 0.001 + idx * 0.0002;
-        liquidCore.position.x = Math.sin(time * wobbleSpeed) * 0.02;
-        liquidCore.position.z = Math.cos(time * wobbleSpeed) * 0.02;
-
-        // Animate bubbles
-        bubbles.forEach(bubble => {
-            // Rise upward
-            bubble.position.y += bubble.userData.speed;
-
-            // Reset when reaching top
-            if (bubble.position.y > height) {
-                bubble.position.y = bubble.userData.resetY;
-                bubble.position.x = (Math.random() - 0.5) * radius * 1.5;
-                bubble.position.z = (Math.random() - 0.5) * radius * 1.5;
-                bubble.scale.set(1, 1, 1);
-            }
-
-            // Pop effect (random)
-            if (time % bubble.userData.popTime < 50) {
-                const popScale = 1 + Math.sin(time * 0.1) * 0.3;
-                bubble.scale.set(popScale, popScale, popScale);
-            }
-        });
-    });
 
     const speed = 0.1;
     const moveDir = new THREE.Vector3();
