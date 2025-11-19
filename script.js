@@ -195,7 +195,7 @@ const keyPositions = [
 ];
 keyPositions.forEach(pos => {
     const decorKey = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.5, 0.5),
+        new THREE.PlaneGeometry(0.3, 0.3),
         new THREE.MeshStandardMaterial({ map: textures.randomKey, transparent: true })
     );
     decorKey.position.set(pos.x, pos.y, -roomSize / 2 + 0.06);
