@@ -12,6 +12,11 @@ document.body.appendChild(renderer.domElement);
 
 camera.position.set(0, 2.5, 0);
 
+scene.background = new THREE.Color(0x000000);
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
 const textureLoader = new THREE.TextureLoader();
 const inventory = [];
 const collectedEvidence = new Set();
@@ -27,33 +32,33 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const moveState = { forward: false, backward: false, left: false, right: false };
 
-function loadTexture(url) {
-    const texture = textureLoader.load(url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/'));
+function loadTexture(path) {
+    const texture = textureLoader.load(path);
     texture.encoding = THREE.sRGBEncoding;
     return texture;
 }
 
 const textures = {
     room1: {
-        wall: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/bc6cc02efce2574779b5c11bbd7d45fd5c88c0f7/Screenshot%202025-11-16%20at%2022.53.11.png'),
-        floor: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/dff059a88212ae711ad111cd1c7e122d5960b4c6/Screenshot%202025-11-16%20at%2022.51.42.png'),
-        exitSign: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/5d3e31b7b410add1d2eb0c84ad5b7b226538c480/Screenshot%202025-11-16%20at%2022.55.14.png'),
-        door: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/5d3e31b7b410add1d2eb0c84ad5b7b226538c480/Screenshot%202025-11-16%20at%2022.54.35.png'),
-        keyBoard: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/9ab3c168a10a41d2fe3597c3822f637864d4cd87/Screenshot%202025-11-17%20at%2011.10.47.png'),
-        decorativeKey: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/dd860cf4ac71beb6913db100d1620c43ea7a9db3/Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
-        card: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/c047a4d3a7c936d4139a67e599e3b2e9bf8d72e0/Screenshot_2025-11-17_at_12.30.02-removebg-preview%20(1).png'),
-        cardReader: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/ab2a7a7ae2c696ba19c868a450f29b93a7cf741a/64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png')
+        wall: loadTexture('Screenshot 2025-11-16 at 22.53.11.png'),
+        floor: loadTexture('Screenshot 2025-11-16 at 22.51.42.png'),
+        exitSign: loadTexture('Screenshot 2025-11-16 at 22.55.14.png'),
+        door: loadTexture('Screenshot 2025-11-16 at 22.54.35.png'),
+        keyBoard: loadTexture('Screenshot 2025-11-16 at 22.53.11.png'),
+        decorativeKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
+        card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
+        cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png')
     },
     room2: {
-        floor: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/065d4eb3c2ae1c5b3b33a8199bf266160fd5d135/Screenshot%202025-11-16%20at%2022.56.00.png'),
-        woodenDoor: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/abde0ebda68734a1b01823d64e4866f7de0576ac/870c5435ceffda4aa972afb3244c2eca-removebg-preview.png'),
-        drawer: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/22176af62993a5a20de5a1507d22889651da79ee/Screenshot%202025-11-17%20at%2022.38.36.png'),
-        deskChair: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/0cea118e27622c79370204d5d8f16df07b6c040a/Screenshot%202025-11-17%20at%2014.38.31.png'),
-        keyBoard2: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/0f765bfd4724117ff007b30c785519fded800442/Screenshot%202025-11-17%20at%2014.39.55.png'),
-        sketch: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/59a16a5bca99236efd7ccbe3aa5171537e9e601c/Screenshot%202025-11-17%20at%2014.12.36.png'),
-        profile: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/f926237eaddf468b678626e4a12502f8706ec9a1/Screenshot%202025-11-17%20at%2014.17.01.png'),
-        map: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/920492d25b27d3757056b528df0994eeaba4f374/Screenshot%202025-11-17%20at%2014.18.31.png'),
-        goldenKey: loadTexture('https://github.com/zymselina1116-bit/explore1/blob/5ab47d9b881a577ccdce9dcd7f8237378014ae1e/70dc331664376a64a8050baa7c7744a6-removebg-preview.png')
+        floor: loadTexture('Screenshot 2025-11-16 at 22.56.00.png'),
+        woodenDoor: loadTexture('870c5435ceffda4aa972afb3244c2eca-removebg-preview.png'),
+        drawer: loadTexture('Screenshot 2025-11-17 at 22.38.36.png'),
+        deskChair: loadTexture('Screenshot 2025-11-17 at 14.38.31.png'),
+        keyBoard2: loadTexture('Screenshot 2025-11-16 at 22.53.11.png'),
+        sketch: loadTexture('Screenshot 2025-11-17 at 14.12.36.png'),
+        profile: loadTexture('Screenshot 2025-11-17 at 14.17.01.png'),
+        map: loadTexture('Screenshot 2025-11-17 at 14.18.31.png'),
+        goldenKey: loadTexture('70dc331664376a64a8050baa7c7744a6-removebg-preview.png')
     }
 };
 
@@ -255,9 +260,6 @@ function createRoom2() {
     const greenLight = new THREE.PointLight(0x00ff88, 2, 20);
     greenLight.position.set(roomOffset + 3, wallHeight - 0.5, 3);
     scene.add(greenLight);
-
-    const ambientLight = new THREE.AmbientLight(0x446688, 0.5);
-    scene.add(ambientLight);
 
     for (let i = 0; i < 12; i++) {
         const desk = new THREE.Mesh(
