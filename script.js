@@ -67,7 +67,13 @@ const textures = {
     gardenGrass: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/10bd72d55c08bf6aa1d94153574f2cbfda0a1702/Screenshot%202025-11-18%20at%2021.19.28.png'),
     footprint: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/63b9e9a95c7e705c36df5553b89bb4bd083e5ea9/Screenshot_2025-11-18_at_19.23.01-removebg-preview.png'),
     footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png'),
-    postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/7acf9ef3117d8abc7730149321b3794b6b01ecd4/Screenshot%202025-11-18%20at%2020.18.59.png')
+    postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/7acf9ef3117d8abc7730149321b3794b6b01ecd4/Screenshot%202025-11-18%20at%2020.18.59.png'),
+    bushTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/1a447fbbb5aea7e6e56c4ca3dbe1b0aa73697c2c/Screenshot%202025-11-19%20at%2000.57.00.png'),
+    flowerTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/bf0e2df20354a430956b68ac9c97e34963a2c5fb/934cf2913e8cfeb7be072f66db469185-removebg-preview.png'),
+    glassFrameTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/faf4c32b96cf87e28797e870b44d64edd85d7f4f/Screenshot%202025-11-19%20at%2001.02.50.png'),
+    stoneTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5573d4fea0431be2ee1e177482d81860a1b5bdb7/Screenshot%202025-11-19%20at%2000.59.27.png'),
+    waterNormalTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/91e007b95ebf8381b04b6c76cc0c5079353bfae1/Screenshot%202025-11-19%20at%2000.58.22.png'),
+    boneTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/d41f0186e74850cc0c40dc7fbf80e20a6e6fdcdb/Screenshot%202025-11-19%20at%2000.56.06.png')
 };
 
 textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
@@ -1102,8 +1108,12 @@ function buildGardenInterior() {
     ceilingGlass.position.set(gardenOffsetX, wallHeight, 0);
     scene.add(ceilingGlass);
 
-    // Metal frame structure (thin dark beams)
-    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.8, roughness: 0.3 });
+    // Metal frame structure (thin dark beams with texture)
+    const frameMaterial = new THREE.MeshStandardMaterial({
+        map: textures.glassFrameTexture,
+        metalness: 0.8,
+        roughness: 0.3
+    });
 
     // Vertical corner posts
     const postPositions = [
@@ -1147,34 +1157,53 @@ function buildGardenInterior() {
     bushPositions.forEach(pos => {
         const bushGroup = new THREE.Group();
 
-        // Green foliage
-        const bushHeight = 0.8 + Math.random() * 0.6;
-        const bushRadius = 0.7 + Math.random() * 0.5;
-        const foliage = new THREE.Mesh(
-            new THREE.SphereGeometry(bushRadius, 10, 10),
-            new THREE.MeshStandardMaterial({ color: 0x3a7d44, roughness: 0.9 })
-        );
-        foliage.position.y = bushHeight;
-        foliage.scale.y = 0.7;
-        bushGroup.add(foliage);
+        // Volumetric bush made with 8-15 crossed transparent planes
+        const numPlanes = 8 + Math.floor(Math.random() * 8); // 8-15 planes
+        const bushHeight = 1.2 + Math.random() * 0.8;
+        const bushWidth = 1.0 + Math.random() * 0.6;
 
-        // Colorful flowers
-        for (let i = 0; i < 10; i++) {
-            const flower = new THREE.Mesh(
-                new THREE.SphereGeometry(0.1, 8, 8),
-                new THREE.MeshStandardMaterial({
-                    color: [0xff69b4, 0xffff00, 0xff6347, 0x9370db, 0xffa500][Math.floor(Math.random() * 5)],
-                    emissive: [0xff69b4, 0xffff00, 0xff6347, 0x9370db, 0xffa500][Math.floor(Math.random() * 5)],
-                    emissiveIntensity: 0.3
-                })
+        const bushMaterial = new THREE.MeshStandardMaterial({
+            map: textures.bushTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            side: THREE.DoubleSide,
+            color: 0xffffff
+        });
+
+        for (let i = 0; i < numPlanes; i++) {
+            const angle = (Math.PI / numPlanes) * i;
+            const plane = new THREE.Mesh(
+                new THREE.PlaneGeometry(bushWidth, bushHeight),
+                bushMaterial
             );
-            const angle = (Math.PI * 2 * i) / 10;
-            flower.position.set(
-                Math.cos(angle) * bushRadius * 0.85,
-                bushHeight + Math.random() * 0.4,
-                Math.sin(angle) * bushRadius * 0.85
+            plane.position.y = bushHeight / 2;
+            plane.rotation.y = angle;
+            bushGroup.add(plane);
+        }
+
+        // Optional flower layer with crossed planes (smaller, on top)
+        const numFlowerPlanes = 4 + Math.floor(Math.random() * 4);
+        const flowerHeight = bushHeight * 0.6;
+        const flowerWidth = bushWidth * 0.7;
+
+        const flowerMaterial = new THREE.MeshStandardMaterial({
+            map: textures.flowerTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            side: THREE.DoubleSide,
+            emissive: 0xffaa88,
+            emissiveIntensity: 0.2
+        });
+
+        for (let i = 0; i < numFlowerPlanes; i++) {
+            const angle = (Math.PI / numFlowerPlanes) * i;
+            const flowerPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(flowerWidth, flowerHeight),
+                flowerMaterial
             );
-            bushGroup.add(flower);
+            flowerPlane.position.y = bushHeight * 0.6;
+            flowerPlane.rotation.y = angle;
+            bushGroup.add(flowerPlane);
         }
 
         bushGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
@@ -1185,25 +1214,34 @@ function buildGardenInterior() {
     // Center fountain with glowing water
     const fountainGroup = new THREE.Group();
 
-    // Stone base
+    // Stone base with texture
     const fountainBase = new THREE.Mesh(
         new THREE.CylinderGeometry(1.6, 1.9, 0.5, 20),
-        new THREE.MeshStandardMaterial({ color: 0x8b7d6b, roughness: 0.7 })
+        new THREE.MeshStandardMaterial({
+            map: textures.stoneTexture,
+            roughness: 0.7
+        })
     );
     fountainBase.position.y = 0.25;
     fountainGroup.add(fountainBase);
 
-    // Water basin with glow
+    // Water basin with physical material and normal map
+    textures.waterNormalTexture.wrapS = textures.waterNormalTexture.wrapT = THREE.RepeatWrapping;
+    textures.waterNormalTexture.repeat.set(2, 2);
+
     const waterBasin = new THREE.Mesh(
         new THREE.CylinderGeometry(1.4, 1.4, 0.3, 20),
-        new THREE.MeshStandardMaterial({
+        new THREE.MeshPhysicalMaterial({
             color: 0xaaffff,
             emissive: 0x44ddff,
-            emissiveIntensity: 0.6,
-            transparent: true,
-            opacity: 0.75,
-            metalness: 0.2,
-            roughness: 0.05
+            emissiveIntensity: 0.4,
+            transmission: 0.9,
+            opacity: 1,
+            roughness: 0.1,
+            ior: 1.33,
+            thickness: 0.5,
+            normalMap: textures.waterNormalTexture,
+            normalScale: new THREE.Vector2(0.3, 0.3)
         })
     );
     waterBasin.position.y = 0.55;
@@ -1238,19 +1276,20 @@ function buildGardenInterior() {
     scene.add(fountainGroup);
     gardenObjects.push(fountainGroup);
 
-    // BONE collectible (glowing, near bushes)
+    // BONE collectible (glowing, with texture, near bushes)
     const bone = new THREE.Mesh(
-        new THREE.BoxGeometry(0.15, 0.05, 0.4),
+        new THREE.PlaneGeometry(0.5, 0.5),
         new THREE.MeshStandardMaterial({
-            color: 0xffffff,
+            map: textures.boneTexture,
+            transparent: true,
             emissive: 0x88ff88,
             emissiveIntensity: 1.6,
-            transparent: true,
-            opacity: 1
+            side: THREE.DoubleSide
         })
     );
     bone.position.set(gardenOffsetX - 4, 0.25, -6);
-    bone.rotation.y = Math.random() * Math.PI;
+    bone.rotation.x = -Math.PI / 2; // Lay flat on ground
+    bone.rotation.z = Math.random() * Math.PI;
     scene.add(bone);
     bone.userData.isCollectible = true;
     bone.userData.itemType = 'bone';
@@ -1272,7 +1311,7 @@ function buildGardenInterior() {
             map: textures.footprint,
             transparent: true,
             emissive: 0xaaffaa,
-            emissiveIntensity: 0.4
+            emissiveIntensity: 1.0
         })
     );
     footprintMesh.rotation.x = -Math.PI / 2;
@@ -1547,7 +1586,9 @@ function animate() {
     flashlightDirection.applyQuaternion(camera.quaternion);
     flashlightTarget.position.copy(camera.position).add(flashlightDirection);
 
-    const speed = 0.1;
+    // Reduced movement speed in garden (0.7x)
+    const baseSpeed = 0.1;
+    const speed = currentScene === 'garden' ? baseSpeed * 0.7 : baseSpeed;
 
     // Get camera forward direction (projected onto horizontal plane)
     const forward = new THREE.Vector3();
@@ -1639,10 +1680,16 @@ function animate() {
                 }
             });
 
-            // Animate water basin surface (gentle ripple)
+            // Animate water basin surface (gentle ripple + normal map scrolling)
             const waterBasin = obj.userData.waterBasin;
             if (waterBasin) {
                 waterBasin.position.y = 0.55 + Math.sin(time * 0.002) * 0.02;
+
+                // Scroll normal map for water movement effect
+                if (waterBasin.material.normalMap) {
+                    waterBasin.material.normalMap.offset.x = (time * 0.00005) % 1;
+                    waterBasin.material.normalMap.offset.y = (time * 0.00003) % 1;
+                }
             }
         }
 
