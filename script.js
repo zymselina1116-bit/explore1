@@ -978,7 +978,7 @@ function buildGardenScene() {
 
 // Build Garden Interior (greenhouse behind wooden door)
 function buildGardenInterior() {
-    const gardenOffsetX = -25; // Garden center X position (behind wooden door)
+    const gardenOffsetX = -17.5; // Garden center X position (RIGHT behind wooden door)
     const gardenSize = 20;
 
     // Garden ground with grass/moss texture
