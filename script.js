@@ -29,6 +29,8 @@ const textureLoader = new THREE.TextureLoader();
 const inventory = [];
 const interactiveObjects = [];
 const worldObjects = [];
+let currentScene = 'room1';
+const gardenObjects = [];
 
 let isMouseDown = false;
 let previousMousePosition = { x: 0, y: 0 };
@@ -61,13 +63,18 @@ const textures = {
     deskChair: loadTexture('Screenshot 2025-11-17 at 14.38.31.png'),
     evidence1: loadTexture('Screenshot 2025-11-17 at 14.12.36.png'),
     evidence2: loadTexture('Screenshot 2025-11-17 at 14.17.01.png'),
-    evidence3: loadTexture('Screenshot 2025-11-17 at 14.18.31.png')
+    evidence3: loadTexture('Screenshot 2025-11-17 at 14.18.31.png'),
+    gardenSoil: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/99e4555667f6736bd1a77eb5143396c6213feb6d/ca51356d700791cda042c52ae96bcca0.jpg'),
+    footprint: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/63b9e9a95c7e705c36df5553b89bb4bd083e5ea9/Screenshot_2025-11-18_at_19.23.01-removebg-preview.png'),
+    footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png')
 };
 
 textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
 textures.floor.repeat.set(4, 4);
 textures.wall.wrapS = textures.wall.wrapT = THREE.RepeatWrapping;
 textures.wall.repeat.set(2, 2);
+textures.gardenSoil.wrapS = textures.gardenSoil.wrapT = THREE.RepeatWrapping;
+textures.gardenSoil.repeat.set(6, 6);
 
 // Create Room 1
 const roomSize = 15;
@@ -756,6 +763,231 @@ evidence3.userData.itemType = 'evidence3';
 evidence3.userData.texture = textures.evidence3;
 interactiveObjects.push(evidence3);
 
+// GARDEN SCENE
+function buildGardenScene() {
+    // Clear current scene
+    while(scene.children.length > 0) {
+        scene.remove(scene.children[0]);
+    }
+    scene.add(camera);
+    worldObjects.length = 0;
+    interactiveObjects.length = 0;
+    gardenObjects.length = 0;
+
+    currentScene = 'garden';
+    camera.position.set(-roomSize / 2 + 1, 2.5, 0);
+
+    // Garden ground with height variation
+    const gardenSize = 20;
+    const groundGeometry = new THREE.PlaneGeometry(gardenSize, gardenSize, 32, 32);
+    const vertices = groundGeometry.attributes.position.array;
+    for (let i = 0; i < vertices.length; i += 3) {
+        vertices[i + 2] = Math.random() * 0.3 - 0.15;
+    }
+    groundGeometry.attributes.position.needsUpdate = true;
+    groundGeometry.computeVertexNormals();
+
+    const ground = new THREE.Mesh(
+        groundGeometry,
+        new THREE.MeshStandardMaterial({ map: textures.gardenSoil })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    scene.add(ground);
+    worldObjects.push(ground);
+
+    // Magical ambient lighting
+    const ambientLight = new THREE.AmbientLight(0xaaff88, 0.8);
+    scene.add(ambientLight);
+
+    const warmLight = new THREE.DirectionalLight(0xffffaa, 0.6);
+    warmLight.position.set(5, 10, 5);
+    scene.add(warmLight);
+
+    // Hedge walls (green plant walls)
+    const hedgeMaterial = new THREE.MeshStandardMaterial({ color: 0x2d5016 });
+
+    const hedgeNorth = new THREE.Mesh(
+        new THREE.BoxGeometry(gardenSize, 3, 1),
+        hedgeMaterial
+    );
+    hedgeNorth.position.set(0, 1.5, -gardenSize / 2);
+    scene.add(hedgeNorth);
+    worldObjects.push(hedgeNorth);
+
+    const hedgeSouth = new THREE.Mesh(
+        new THREE.BoxGeometry(gardenSize, 3, 1),
+        hedgeMaterial
+    );
+    hedgeSouth.position.set(0, 1.5, gardenSize / 2);
+    scene.add(hedgeSouth);
+    worldObjects.push(hedgeSouth);
+
+    const hedgeEast = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 3, gardenSize),
+        hedgeMaterial
+    );
+    hedgeEast.position.set(gardenSize / 2, 1.5, 0);
+    scene.add(hedgeEast);
+    worldObjects.push(hedgeEast);
+
+    const hedgeWest = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 3, gardenSize - 4),
+        hedgeMaterial
+    );
+    hedgeWest.position.set(-gardenSize / 2, 1.5, 0);
+    scene.add(hedgeWest);
+    worldObjects.push(hedgeWest);
+
+    // 3D Flower bushes
+    const bushPositions = [
+        { x: -6, z: -6 }, { x: -4, z: -8 }, { x: 6, z: -7 },
+        { x: 8, z: -4 }, { x: -7, z: 5 }, { x: -3, z: 7 },
+        { x: 4, z: 6 }, { x: 7, z: 8 }, { x: -8, z: -2 },
+        { x: 8, z: 2 }, { x: -5, z: 0 }, { x: 5, z: -2 }
+    ];
+
+    bushPositions.forEach((pos, idx) => {
+        const bushGroup = new THREE.Group();
+
+        // Green foliage
+        const bushHeight = 0.8 + Math.random() * 0.5;
+        const bushRadius = 0.6 + Math.random() * 0.4;
+        const foliage = new THREE.Mesh(
+            new THREE.SphereGeometry(bushRadius, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0x3a7d44, roughness: 0.9 })
+        );
+        foliage.position.y = bushHeight;
+        foliage.scale.y = 0.7;
+        bushGroup.add(foliage);
+
+        // Colorful flowers
+        for (let i = 0; i < 8; i++) {
+            const flower = new THREE.Mesh(
+                new THREE.SphereGeometry(0.08, 6, 6),
+                new THREE.MeshStandardMaterial({
+                    color: [0xff69b4, 0xffff00, 0xff6347, 0x9370db][Math.floor(Math.random() * 4)],
+                    emissive: [0xff69b4, 0xffff00, 0xff6347, 0x9370db][Math.floor(Math.random() * 4)],
+                    emissiveIntensity: 0.3
+                })
+            );
+            const angle = (Math.PI * 2 * i) / 8;
+            flower.position.set(
+                Math.cos(angle) * bushRadius * 0.8,
+                bushHeight + Math.random() * 0.3,
+                Math.sin(angle) * bushRadius * 0.8
+            );
+            bushGroup.add(flower);
+        }
+
+        bushGroup.position.set(pos.x, 0, pos.z);
+        scene.add(bushGroup);
+        gardenObjects.push(bushGroup);
+    });
+
+    // Magical fountain in center
+    const fountainGroup = new THREE.Group();
+
+    // Stone base
+    const fountainBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.8, 0.5, 16),
+        new THREE.MeshStandardMaterial({ color: 0x8b7d6b, roughness: 0.7 })
+    );
+    fountainBase.position.y = 0.25;
+    fountainGroup.add(fountainBase);
+
+    // Water basin
+    const waterBasin = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.3, 1.3, 0.3, 16),
+        new THREE.MeshStandardMaterial({
+            color: 0x88ffee,
+            emissive: 0x44ccaa,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.7,
+            metalness: 0.3,
+            roughness: 0.1
+        })
+    );
+    waterBasin.position.y = 0.55;
+    fountainGroup.add(waterBasin);
+    fountainGroup.userData.waterBasin = waterBasin;
+
+    // Water particles
+    const particles = [];
+    for (let i = 0; i < 20; i++) {
+        const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 6, 6),
+            new THREE.MeshBasicMaterial({ color: 0xaaffff, transparent: true, opacity: 0.6 })
+        );
+        particle.position.set(
+            (Math.random() - 0.5) * 0.3,
+            0.7 + Math.random() * 0.5,
+            (Math.random() - 0.5) * 0.3
+        );
+        particle.userData.speed = 0.01 + Math.random() * 0.02;
+        particle.userData.resetY = 0.7;
+        particles.push(particle);
+        fountainGroup.add(particle);
+    }
+    fountainGroup.userData.particles = particles;
+
+    // Fountain glow light
+    const fountainLight = new THREE.PointLight(0x88ffee, 0.6, 8);
+    fountainLight.position.y = 0.7;
+    fountainGroup.add(fountainLight);
+
+    scene.add(fountainGroup);
+    gardenObjects.push(fountainGroup);
+
+    // Bone collectible (hidden in bush)
+    const bone = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.05, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xf5f5dc })
+    );
+    bone.position.set(-6, 0.5, -6);
+    bone.rotation.y = Math.random() * Math.PI;
+    scene.add(bone);
+    bone.userData.isCollectible = true;
+    bone.userData.itemType = 'bone';
+    bone.userData.texture = textures.evidence1;
+    interactiveObjects.push(bone);
+
+    // Footprint on ground
+    const footprintMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.6, 0.8),
+        new THREE.MeshStandardMaterial({ map: textures.footprint, transparent: true })
+    );
+    footprintMesh.rotation.x = -Math.PI / 2;
+    footprintMesh.position.set(3, 0.05, -4);
+    scene.add(footprintMesh);
+    footprintMesh.userData.isCollectible = true;
+    footprintMesh.userData.itemType = 'footprint';
+    footprintMesh.userData.texture = textures.footprintPhoto;
+    interactiveObjects.push(footprintMesh);
+
+    // Glowing feather (in bush)
+    const feather = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.15, 0.4),
+        new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xaaddff,
+            emissiveIntensity: 1.5,
+            transparent: true,
+            side: THREE.DoubleSide
+        })
+    );
+    feather.position.set(7, 0.8, 6);
+    feather.rotation.y = Math.random() * Math.PI;
+    scene.add(feather);
+    feather.userData.isCollectible = true;
+    feather.userData.itemType = 'feather';
+    feather.userData.texture = textures.evidence2;
+    feather.userData.bobTime = 0;
+    interactiveObjects.push(feather);
+    gardenObjects.push(feather);
+}
+
 // Raycaster for clicks
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -821,26 +1053,12 @@ function onClick(event) {
             const hasGoldenKey = inventory.some(item => item.type === 'goldenKey');
             if (hasGoldenKey) {
                 obj.userData.closed = false;
-                console.log('Wooden door opening');
+                console.log('Wooden door opening - transitioning to garden');
 
-                // Rotate door open smoothly around left hinge
-                const targetRotation = obj.rotation.y + Math.PI / 2;
-                const openAnim = setInterval(() => {
-                    obj.rotation.y += 0.05;
-
-                    if (obj.rotation.y >= targetRotation) {
-                        clearInterval(openAnim);
-                        obj.rotation.y = targetRotation;
-
-                        // Remove collider so player can walk through
-                        const collider = worldObjects.find(w => w.userData.woodenDoorCollider && w.userData.door === obj);
-                        if (collider) {
-                            worldObjects.splice(worldObjects.indexOf(collider), 1);
-                            scene.remove(collider);
-                        }
-                        console.log('Wooden door fully opened');
-                    }
-                }, 16);
+                // Transition to garden after brief animation
+                setTimeout(() => {
+                    buildGardenScene();
+                }, 500);
             } else {
                 console.log('Need golden key to open wooden door');
             }
@@ -1015,6 +1233,41 @@ function animate() {
             }
         });
     });
+
+    // Garden animations
+    if (currentScene === 'garden') {
+        gardenObjects.forEach(obj => {
+            // Fountain water animations
+            if (obj.userData.particles) {
+                obj.userData.particles.forEach(particle => {
+                    particle.position.y += particle.userData.speed;
+                    if (particle.position.y > 2) {
+                        particle.position.y = particle.userData.resetY;
+                        particle.position.x = (Math.random() - 0.5) * 0.3;
+                        particle.position.z = (Math.random() - 0.5) * 0.3;
+                    }
+                });
+
+                // Animate water basin surface
+                const waterBasin = obj.userData.waterBasin;
+                if (waterBasin) {
+                    waterBasin.position.y = 0.55 + Math.sin(time * 0.002) * 0.02;
+                }
+            }
+
+            // Feather bobbing animation
+            if (obj.userData && obj.userData.bobTime !== undefined) {
+                obj.userData.bobTime += 0.02;
+                obj.position.y = 0.8 + Math.sin(obj.userData.bobTime) * 0.1;
+
+                // Pulsing emissive
+                const mat = obj.material;
+                if (mat.emissiveIntensity !== undefined) {
+                    mat.emissiveIntensity = 1.5 + Math.sin(time * 0.003) * 0.5;
+                }
+            }
+        });
+    }
 
     renderer.render(scene, camera);
 }
