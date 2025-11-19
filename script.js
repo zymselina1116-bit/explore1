@@ -294,8 +294,8 @@ worldObjects.push(woodenDoorCollider);
 
 // Garden trigger zone (invisible, behind wooden door)
 const gardenTrigger = new THREE.Box3(
-    new THREE.Vector3(-roomSize / 2 - 1, 0, -2),
-    new THREE.Vector3(-roomSize / 2 + 0.5, 5, 2)
+    new THREE.Vector3(-roomSize / 2 - 3, 0, -2),
+    new THREE.Vector3(-roomSize / 2 - 1.5, 5, 2)
 );
 
 // Mailbox
