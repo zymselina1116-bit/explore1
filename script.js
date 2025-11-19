@@ -138,39 +138,67 @@ wallSouth.rotation.y = Math.PI;
 scene.add(wallSouth);
 worldObjects.push(wallSouth);
 
-// West wall with doorway opening for wooden door (3m opening)
-const westWallTop = new THREE.Mesh(
-    new THREE.PlaneGeometry(roomSize, 0.5),
-    new THREE.MeshStandardMaterial({
-        map: textures.wall,
-        color: 0xff3333 // Deep red tint
-    })
-);
-westWallTop.position.set(-roomSize / 2, wallHeight - 0.25, 0);
-westWallTop.rotation.y = Math.PI / 2;
-scene.add(westWallTop);
-// NOT added to worldObjects - purely visual, no collision
+// West wall with doorway opening for wooden door (3m wide x 4.5m tall)
+// Door opening exactly matches door dimensions: 3m wide (Z: -1.5 to 1.5), 4.5m tall (Y: 0 to 4.5)
 
-const westWallNorth = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, wallHeight),
+// Top segment above door opening (3m wide, matches door width exactly)
+const westWallTopCenter = new THREE.Mesh(
+    new THREE.PlaneGeometry(3, 0.5),
     new THREE.MeshStandardMaterial({
         map: textures.wall,
         color: 0xff3333 // Deep red tint
     })
 );
-westWallNorth.position.set(-roomSize / 2, wallHeight / 2, -4.5);
+westWallTopCenter.position.set(-roomSize / 2, wallHeight - 0.25, 0);
+westWallTopCenter.rotation.y = Math.PI / 2;
+scene.add(westWallTopCenter);
+
+// Top north corner (fills space above and beside north segment)
+const westWallTopNorth = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, 0.5),
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
+);
+westWallTopNorth.position.set(-roomSize / 2, wallHeight - 0.25, -4.5);
+westWallTopNorth.rotation.y = Math.PI / 2;
+scene.add(westWallTopNorth);
+
+// Top south corner (fills space above and beside south segment)
+const westWallTopSouth = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, 0.5),
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
+);
+westWallTopSouth.position.set(-roomSize / 2, wallHeight - 0.25, 4.5);
+westWallTopSouth.rotation.y = Math.PI / 2;
+scene.add(westWallTopSouth);
+
+// North side segment (4.5m tall, matches door height exactly)
+const westWallNorth = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, 4.5),
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
+);
+westWallNorth.position.set(-roomSize / 2, 2.25, -4.5);
 westWallNorth.rotation.y = Math.PI / 2;
 scene.add(westWallNorth);
 worldObjects.push(westWallNorth);
 
+// South side segment (4.5m tall, matches door height exactly)
 const westWallSouth = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, wallHeight),
+    new THREE.PlaneGeometry(6, 4.5),
     new THREE.MeshStandardMaterial({
         map: textures.wall,
         color: 0xff3333 // Deep red tint
     })
 );
-westWallSouth.position.set(-roomSize / 2, wallHeight / 2, 4.5);
+westWallSouth.position.set(-roomSize / 2, 2.25, 4.5);
 westWallSouth.rotation.y = Math.PI / 2;
 scene.add(westWallSouth);
 worldObjects.push(westWallSouth);
