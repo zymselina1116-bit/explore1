@@ -1180,7 +1180,7 @@ async function buildOfficeFloorScene() {
 // BUILD GARDEN SCENE
 // ====================================================================
 async function buildGardenScene() {
-    console.log('Building Garden scene...');
+    console.log('Building Garden scene - Glass Greenhouse...');
 
     // Load textures
     const soilTexture = await loadTexture(TEXTURES.gardenSoil, 8, 8);
@@ -1189,21 +1189,27 @@ async function buildGardenScene() {
     console.log('Garden textures loaded');
 
     // Garden dimensions
-    const gardenSize = 30;
+    const gardenSize = 35;
     const halfGarden = gardenSize / 2;
-    const hedgeHeight = 4.0;
+    const glassWallHeight = 8.0; // Tall glass walls
 
     // Garden position - directly behind the wooden door
-    // Wooden door is at z = -12.5, garden starts at z = -12.5 - halfGarden
     const gardenOffsetZ = -12.5 - halfGarden;
 
-    // Ground
-    const groundGeometry = new THREE.PlaneGeometry(gardenSize, gardenSize);
+    // Ground - lush green moss-grass with gentle unevenness
+    const groundGeometry = new THREE.PlaneGeometry(gardenSize, gardenSize, 40, 40);
+    const vertices = groundGeometry.attributes.position;
+    for (let i = 0; i < vertices.count; i++) {
+        const z = vertices.getZ(i);
+        // Add gentle random displacement for natural uneven terrain
+        vertices.setZ(i, z + (Math.random() - 0.5) * 0.25);
+    }
+    groundGeometry.computeVertexNormals();
+
     const groundMaterial = new THREE.MeshStandardMaterial({
-        map: soilTexture,
-        color: 0xffffff,
+        color: 0x88cc66, // Lush green moss color
         roughness: 0.9,
-        metalness: 0.1,
+        metalness: 0.0,
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.name = 'Garden_Ground';
@@ -1211,140 +1217,209 @@ async function buildGardenScene() {
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
-    // Lighting - dreamy, magical atmosphere
-    const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x88ff88, 1.2);
+    // Lighting - Warm sunlight from glass ceiling
+    const sunlight = new THREE.DirectionalLight(0xffffdd, 2.5);
+    sunlight.position.set(0, 20, gardenOffsetZ);
+    scene.add(sunlight);
+
+    const hemisphereLight = new THREE.HemisphereLight(0xffee88, 0x88dd66, 1.5);
     scene.add(hemisphereLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffe0, 0.8);
+    const ambientLight = new THREE.AmbientLight(0xfff8e0, 1.0);
     scene.add(ambientLight);
 
-    const mainLight = new THREE.PointLight(0xffffaa, 2.0, 50);
-    mainLight.position.set(0, 10, gardenOffsetZ);
-    scene.add(mainLight);
-
-    // Hedge walls - natural boundaries
-    const hedgeMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2d5016,
-        roughness: 0.9,
-        metalness: 0.0,
-    });
-
-    // Back hedge wall
-    for (let i = -3; i <= 3; i++) {
-        const hedge = new THREE.Mesh(
-            new THREE.BoxGeometry(4.5, hedgeHeight, 1.2),
-            hedgeMaterial
-        );
-        hedge.name = 'Hedge_Back';
-        const xOffset = i * 4.2;
-        hedge.position.set(xOffset, hedgeHeight / 2, gardenOffsetZ - halfGarden);
-        scene.add(hedge);
-    }
-
-    // Left hedge wall
-    for (let i = -3; i <= 3; i++) {
-        const hedge = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, hedgeHeight, 4.5),
-            hedgeMaterial
-        );
-        hedge.name = 'Hedge_Left';
-        const zPos = gardenOffsetZ + i * 4.2;
-        hedge.position.set(-halfGarden, hedgeHeight / 2, zPos);
-        scene.add(hedge);
-    }
-
-    // Right hedge wall
-    for (let i = -3; i <= 3; i++) {
-        const hedge = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, hedgeHeight, 4.5),
-            hedgeMaterial
-        );
-        hedge.name = 'Hedge_Right';
-        const zPos = gardenOffsetZ + i * 4.2;
-        hedge.position.set(halfGarden, hedgeHeight / 2, zPos);
-        scene.add(hedge);
-    }
-
-    // Front hedge wall (with gap for entrance)
-    for (let i = -3; i <= 3; i++) {
-        if (i >= -1 && i <= 1) continue; // Gap for doorway
-        const hedge = new THREE.Mesh(
-            new THREE.BoxGeometry(4.5, hedgeHeight, 1.2),
-            hedgeMaterial
-        );
-        hedge.name = 'Hedge_Front';
-        const xOffset = i * 4.2;
-        hedge.position.set(xOffset, hedgeHeight / 2, gardenOffsetZ + halfGarden);
-        scene.add(hedge);
-    }
-
-    // Flowers - glowing bushes
-    const flowerPositions = [
-        [-8, gardenOffsetZ - 8], [-5, gardenOffsetZ - 10], [3, gardenOffsetZ - 9],
-        [7, gardenOffsetZ - 6], [-10, gardenOffsetZ - 3], [9, gardenOffsetZ - 2],
-        [-7, gardenOffsetZ + 4], [-3, gardenOffsetZ + 6], [5, gardenOffsetZ + 8],
-        [10, gardenOffsetZ + 10], [-9, gardenOffsetZ + 9], [2, gardenOffsetZ - 4]
+    // Soft golden accent lights
+    const accentLights = [
+        [10, 6, gardenOffsetZ - 10],
+        [-10, 6, gardenOffsetZ - 10],
+        [10, 6, gardenOffsetZ + 10],
+        [-10, 6, gardenOffsetZ + 10]
     ];
 
-    flowerPositions.forEach((pos, idx) => {
-        const flowerHeight = 0.4 + Math.random() * 0.4;
-        const flowerBush = new THREE.Mesh(
-            new THREE.SphereGeometry(0.3 + Math.random() * 0.2, 8, 8),
-            new THREE.MeshStandardMaterial({
-                color: Math.random() > 0.5 ? 0xff6699 : 0xffaa44,
-                emissive: Math.random() > 0.5 ? 0xff3366 : 0xff8800,
-                emissiveIntensity: 0.4,
-                roughness: 0.7,
-            })
-        );
-        flowerBush.name = `Flower_${idx}`;
-        flowerBush.position.set(pos[0], flowerHeight, pos[1]);
-        scene.add(flowerBush);
-
-        const flowerGlow = new THREE.PointLight(
-            Math.random() > 0.5 ? 0xff6699 : 0xffaa44,
-            0.5,
-            3
-        );
-        flowerGlow.position.set(pos[0], flowerHeight + 0.2, pos[1]);
-        scene.add(flowerGlow);
+    accentLights.forEach(pos => {
+        const light = new THREE.PointLight(0xffd699, 1.0, 15);
+        light.position.set(pos[0], pos[1], pos[2]);
+        scene.add(light);
     });
 
-    // Fountain
-    const fountainMaterial = new THREE.MeshStandardMaterial({
-        color: 0xaaddff,
+    // Glass walls - transparent with dark metal frames
+    const glassMaterial = new THREE.MeshStandardMaterial({
+        color: 0xddeeff,
+        transparent: true,
+        opacity: 0.15,
+        roughness: 0.1,
         metalness: 0.3,
-        roughness: 0.4,
-        emissive: 0x4488ff,
-        emissiveIntensity: 0.3,
+        side: THREE.DoubleSide
+    });
+
+    const frameMaterial = new THREE.MeshStandardMaterial({
+        color: 0x222222,
+        roughness: 0.5,
+        metalness: 0.8,
+    });
+
+    // Back glass wall with frame
+    const backGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, glassWallHeight),
+        glassMaterial
+    );
+    backGlass.position.set(0, glassWallHeight / 2, gardenOffsetZ - halfGarden);
+    scene.add(backGlass);
+
+    // Front glass wall with frame (with gap for entrance)
+    const frontGlassLeft = new THREE.Mesh(
+        new THREE.PlaneGeometry(12, glassWallHeight),
+        glassMaterial
+    );
+    frontGlassLeft.position.set(-11, glassWallHeight / 2, gardenOffsetZ + halfGarden);
+    frontGlassLeft.rotation.y = Math.PI;
+    scene.add(frontGlassLeft);
+
+    const frontGlassRight = new THREE.Mesh(
+        new THREE.PlaneGeometry(12, glassWallHeight),
+        glassMaterial
+    );
+    frontGlassRight.position.set(11, glassWallHeight / 2, gardenOffsetZ + halfGarden);
+    frontGlassRight.rotation.y = Math.PI;
+    scene.add(frontGlassRight);
+
+    // Left glass wall
+    const leftGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, glassWallHeight),
+        glassMaterial
+    );
+    leftGlass.position.set(-halfGarden, glassWallHeight / 2, gardenOffsetZ);
+    leftGlass.rotation.y = Math.PI / 2;
+    scene.add(leftGlass);
+
+    // Right glass wall
+    const rightGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, glassWallHeight),
+        glassMaterial
+    );
+    rightGlass.position.set(halfGarden, glassWallHeight / 2, gardenOffsetZ);
+    rightGlass.rotation.y = -Math.PI / 2;
+    scene.add(rightGlass);
+
+    // Glass ceiling
+    const ceiling = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, gardenSize),
+        glassMaterial
+    );
+    ceiling.position.set(0, glassWallHeight, gardenOffsetZ);
+    ceiling.rotation.x = Math.PI / 2;
+    scene.add(ceiling);
+
+    // Dark metal frames for glass structure
+    const framePositions = [
+        // Vertical corner frames
+        [-halfGarden, glassWallHeight / 2, gardenOffsetZ - halfGarden],
+        [halfGarden, glassWallHeight / 2, gardenOffsetZ - halfGarden],
+        [-halfGarden, glassWallHeight / 2, gardenOffsetZ + halfGarden],
+        [halfGarden, glassWallHeight / 2, gardenOffsetZ + halfGarden],
+    ];
+
+    framePositions.forEach(pos => {
+        const frame = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, glassWallHeight, 8),
+            frameMaterial
+        );
+        frame.position.set(pos[0], pos[1], pos[2]);
+        scene.add(frame);
+    });
+
+    // Flowers and bushes - varying heights, soft colors, naturally arranged
+    const flowerClusters = [
+        // Avoid center (fountain area) and avoid overlap with collectibles
+        [-12, gardenOffsetZ - 12], [-8, gardenOffsetZ - 14], [-5, gardenOffsetZ - 10],
+        [12, gardenOffsetZ - 13], [9, gardenOffsetZ - 9], [6, gardenOffsetZ - 7],
+        [-13, gardenOffsetZ - 3], [-9, gardenOffsetZ + 2], [-6, gardenOffsetZ + 5],
+        [11, gardenOffsetZ + 3], [8, gardenOffsetZ + 7], [5, gardenOffsetZ + 11],
+        [-11, gardenOffsetZ + 10], [-7, gardenOffsetZ + 13], [-4, gardenOffsetZ + 9],
+        [13, gardenOffsetZ + 12], [10, gardenOffsetZ + 14], [7, gardenOffsetZ + 10]
+    ];
+
+    flowerClusters.forEach((pos, idx) => {
+        const flowerHeight = 0.5 + Math.random() * 0.8;
+        const flowerBush = new THREE.Mesh(
+            new THREE.SphereGeometry(0.4 + Math.random() * 0.3, 12, 12),
+            new THREE.MeshStandardMaterial({
+                color: [0xffb3d9, 0xffd9b3, 0xd9b3ff, 0xb3d9ff][Math.floor(Math.random() * 4)],
+                emissive: [0xff80c0, 0xffc080, 0xc080ff, 0x80c0ff][Math.floor(Math.random() * 4)],
+                emissiveIntensity: 0.3,
+                roughness: 0.6,
+            })
+        );
+        flowerBush.position.set(pos[0], flowerHeight, pos[1]);
+        scene.add(flowerBush);
+    });
+
+    // Taller decorative plants along glass walls
+    const tallPlantPositions = [
+        [-halfGarden + 1, gardenOffsetZ - 10],
+        [-halfGarden + 1, gardenOffsetZ + 0],
+        [-halfGarden + 1, gardenOffsetZ + 10],
+        [halfGarden - 1, gardenOffsetZ - 10],
+        [halfGarden - 1, gardenOffsetZ + 0],
+        [halfGarden - 1, gardenOffsetZ + 10],
+    ];
+
+    tallPlantPositions.forEach(pos => {
+        const tallPlant = new THREE.Mesh(
+            new THREE.ConeGeometry(0.5, 2.5, 8),
+            new THREE.MeshStandardMaterial({
+                color: 0x66aa44,
+                roughness: 0.8,
+            })
+        );
+        tallPlant.position.set(pos[0], 1.25, pos[1]);
+        scene.add(tallPlant);
+    });
+
+    // Central fountain - smooth stone with glowing water, shimmering movement
+    const fountainMaterial = new THREE.MeshStandardMaterial({
+        color: 0xe8dcc8,
+        roughness: 0.3,
+        metalness: 0.1,
+    });
+
+    const waterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x88ccff,
+        transparent: true,
+        opacity: 0.6,
+        emissive: 0x66aaff,
+        emissiveIntensity: 0.8,
+        roughness: 0.1,
+        metalness: 0.3,
     });
 
     const fountainBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(2, 2.5, 0.5, 16),
+        new THREE.CylinderGeometry(1.8, 2.0, 0.4, 24),
         fountainMaterial
     );
-    fountainBase.position.set(0, 0.25, gardenOffsetZ);
+    fountainBase.position.set(0, 0.2, gardenOffsetZ);
     scene.add(fountainBase);
 
     const fountainBowl = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.5, 1.8, 1.2, 16),
-        fountainMaterial
+        new THREE.CylinderGeometry(1.3, 1.5, 0.8, 24),
+        waterMaterial
     );
-    fountainBowl.position.set(0, 1.1, gardenOffsetZ);
+    fountainBowl.position.set(0, 0.8, gardenOffsetZ);
     scene.add(fountainBowl);
 
     const fountainTop = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 16, 16),
-        fountainMaterial
+        new THREE.SphereGeometry(0.4, 16, 16),
+        waterMaterial
     );
-    fountainTop.position.set(0, 2.0, gardenOffsetZ);
+    fountainTop.position.set(0, 1.5, gardenOffsetZ);
     scene.add(fountainTop);
 
-    const fountainLight = new THREE.PointLight(0x88ddff, 1.5, 8);
-    fountainLight.position.set(0, 2, gardenOffsetZ);
-    scene.add(fountainLight);
+    // Fountain glow light
+    const fountainGlow = new THREE.PointLight(0x88ddff, 2.0, 6);
+    fountainGlow.position.set(0, 1.5, gardenOffsetZ);
+    scene.add(fountainGlow);
 
-    // BONE collectible
+    // BONE collectible - positioned away from fountain and bushes
     const boneMaterial = new THREE.MeshStandardMaterial({
         color: 0xf0e6d2,
         roughness: 0.6,
@@ -1366,36 +1441,34 @@ async function buildGardenScene() {
     boneEnd2.position.set(0.25, 0, 0);
     boneGroup.add(boneEnd2);
 
-    boneGroup.position.set(-6, 0.3, gardenOffsetZ + 8);
+    // Position: left side, away from fountain
+    boneGroup.position.set(-10, 0.3, gardenOffsetZ - 6);
     scene.add(boneGroup);
 
-    // Bone interactive - adds icon to backpack (no text)
+    // Bone interactive
     const boneInteractive = {
         mesh: boneGroup,
         type: 'bone',
         id: 'garden_bone',
         hintText: 'Click to collect bone',
         onClick: () => {
-            if (gameState.hasBone) return; // Prevent duplicate collection
+            if (gameState.hasBone) return;
             console.log('Bone collected!');
             gameState.hasBone = true;
 
-            // Remove bone mesh
             scene.remove(boneGroup);
             interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'garden_bone');
-
-            // Add icon to backpack (no text)
-            addEvidenceToBackpack('', TEXTURES.key); // Empty string for no text
+            addEvidenceToBackpack('', TEXTURES.key);
         }
     };
     interactiveObjects.push(boneInteractive);
 
-    // FOOTPRINT with blue glow
+    // FOOTPRINT with faint/weak blue glow
     const footprintMaterial = new THREE.MeshStandardMaterial({
         map: footprintTexture,
         transparent: true,
         emissive: 0x4488ff, // Blue glow
-        emissiveIntensity: 1.2,
+        emissiveIntensity: 0.4, // Weak/faint glow
     });
 
     const footprintMesh = new THREE.Mesh(
@@ -1403,60 +1476,62 @@ async function buildGardenScene() {
         footprintMaterial
     );
     footprintMesh.name = 'Footprint';
-    footprintMesh.position.set(8, 0.02, gardenOffsetZ - 5);
+    // Position: right side, away from fountain and bushes
+    footprintMesh.position.set(11, 0.02, gardenOffsetZ + 6);
     footprintMesh.rotation.x = -Math.PI / 2;
     scene.add(footprintMesh);
 
     // Store material for glow animation
     footprintGlowMaterial = footprintMaterial;
 
-    // Footprint interactive - shows photo then adds icon (no text)
+    // Footprint interactive - shows photo in CENTER of screen for 0.5s
     const footprintInteractive = {
         mesh: footprintMesh,
         type: 'footprint',
         id: 'garden_footprint',
         hintText: 'Click to examine footprint',
         onClick: () => {
-            if (gameState.hasFootprintPhoto) return; // Prevent duplicate collection
-            console.log('Footprint clicked - spawning photo!');
+            if (gameState.hasFootprintPhoto) return;
+            console.log('Footprint clicked - spawning photo in center!');
             gameState.hasFootprintPhoto = true;
 
             // Remove footprint mesh
             scene.remove(footprintMesh);
             interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'garden_footprint');
 
-            // Spawn floating photo
-            const photoMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(2, 2),
-                new THREE.MeshStandardMaterial({
-                    map: footprintPhotoTexture,
-                    transparent: true,
-                })
-            );
-            photoMesh.name = 'FootprintPhoto';
-            photoMesh.position.set(8, 1.5, gardenOffsetZ - 5);
-            scene.add(photoMesh);
+            // Show photo in CENTER of screen as 2D overlay
+            const photoOverlay = document.createElement('div');
+            photoOverlay.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 400px;
+                height: 400px;
+                z-index: 2000;
+                pointer-events: none;
+            `;
 
-            // Float and fade animation (0.4 seconds)
-            let floatProgress = 0;
-            const floatInterval = setInterval(() => {
-                floatProgress += 0.05;
-                photoMesh.position.y += 0.05;
-                photoMesh.material.opacity = 1 - floatProgress;
+            const photoImg = document.createElement('img');
+            photoImg.src = TEXTURES.footprintPhoto;
+            photoImg.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            `;
+            photoOverlay.appendChild(photoImg);
+            document.body.appendChild(photoOverlay);
 
-                if (floatProgress >= 1) {
-                    clearInterval(floatInterval);
-                    scene.remove(photoMesh);
-
-                    // Add icon to backpack AFTER photo fades (no text)
-                    addEvidenceToBackpack('', TEXTURES.footprintPhoto); // Empty string for no text
-                }
-            }, 20);
+            // Remove after 0.5 seconds and add to backpack
+            setTimeout(() => {
+                document.body.removeChild(photoOverlay);
+                addEvidenceToBackpack('', TEXTURES.footprintPhoto);
+            }, 500);
         }
     };
     interactiveObjects.push(footprintInteractive);
 
-    console.log('Garden scene built successfully');
+    console.log('Glass Greenhouse Garden built successfully');
 }
 
 // ====================================================================
@@ -1650,7 +1725,7 @@ function update(delta) {
 
     // Scene 1 boundaries (z: -12.5 to 12.5, x: -12.5 to 12.5)
     // Scene 2 boundaries (z: 12.5 to 37.5, x: -12.5 to 12.5)
-    // Garden boundaries (z: -27.5 to -12.5, x: -15 to 15)
+    // Garden boundaries (z: -47.5 to -12.5, x: -17.5 to 17.5)
 
     const inScene1 = camera.position.z >= -12.5 && camera.position.z < 12.5;
     const inScene2 = camera.position.z >= 12.5;
@@ -1703,11 +1778,11 @@ function update(delta) {
             return;
         }
     } else if (gameState.currentScene === 'garden') {
-        // Garden collision (30x30, centered at z = -27.5)
-        const gardenOffsetZ = -12.5 - 15; // -27.5
-        const gardenHalfSize = 15;
+        // Garden collision (35x35 glass greenhouse)
+        const gardenOffsetZ = -12.5 - 17.5; // -30
+        const gardenHalfSize = 17.5;
 
-        // Hedge boundaries
+        // Glass wall boundaries
         const minX = -gardenHalfSize + 1;
         const maxX = gardenHalfSize - 1;
         const minZ = gardenOffsetZ - gardenHalfSize + 1;
@@ -1721,7 +1796,7 @@ function update(delta) {
         // Fountain collision (circular)
         const fountainX = 0;
         const fountainZ = gardenOffsetZ;
-        const fountainRadius = 2.8;
+        const fountainRadius = 2.5;
         const distToFountain = Math.sqrt(
             Math.pow(camera.position.x - fountainX, 2) +
             Math.pow(camera.position.z - fountainZ, 2)
@@ -1781,9 +1856,9 @@ function update(delta) {
         window.creatureGlow.intensity = flicker1;
     }
 
-    // Garden footprint blue glow animation
+    // Garden footprint faint blue glow animation
     if (footprintGlowMaterial && !gameState.hasFootprintPhoto) {
-        const glowIntensity = 1.0 + Math.sin(time * 2) * 0.4;
+        const glowIntensity = 0.4 + Math.sin(time * 2) * 0.2; // Weak/faint glow
         footprintGlowMaterial.emissiveIntensity = glowIntensity;
     }
 }
