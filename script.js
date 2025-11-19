@@ -1093,10 +1093,7 @@ function onClick(event) {
                             worldObjects.splice(worldObjects.indexOf(collider), 1);
                             scene.remove(collider);
                         }
-                        console.log('Wooden door fully opened - entering garden...');
-
-                        // Load garden scene immediately
-                        buildGardenScene();
+                        console.log('Wooden door fully opened - you can now walk through');
                     }
                 }, 16);
             } else {
