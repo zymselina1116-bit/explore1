@@ -48,6 +48,17 @@
         camera.position.set(0, 2.5, 0);
         scene.background = new THREE.Color(0x000000);
 
+        // Flashlight setup
+        const flashlight = new THREE.SpotLight(0xffffff, 3.0, 25, 0.35, 0.3, 2);
+        flashlight.position.set(0, 0, 0);
+        camera.add(flashlight);
+        scene.add(camera);
+
+        const flashlightTarget = new THREE.Object3D();
+        flashlightTarget.position.set(0, 0, -1);
+        scene.add(flashlightTarget);
+        flashlight.target = flashlightTarget;
+
         const textureLoader = new THREE.TextureLoader();
         const inventory = [];
         const interactiveObjects = [];
@@ -660,6 +671,11 @@
             const quaternion = new THREE.Quaternion();
             quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
             camera.quaternion.copy(quaternion);
+
+            // Update flashlight target to point forward from camera
+            const flashlightDirection = new THREE.Vector3(0, 0, -1);
+            flashlightDirection.applyQuaternion(camera.quaternion);
+            flashlightTarget.position.copy(camera.position).add(flashlightDirection);
 
             const speed = 0.1;
             const moveDir = new THREE.Vector3();
