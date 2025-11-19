@@ -392,7 +392,7 @@ scene.add(blueLight4);
 const cylinders = [];
 
 // Cylinder 1 - Back corner
-const cyl1Height = 3.5;
+const cyl1Height = 5;
 const cyl1Radius = 0.6;
 const cylinder1Group = new THREE.Group();
 
@@ -456,7 +456,7 @@ scene.add(cylinder1Group);
 cylinders.push(cylinder1Group);
 
 // Cylinder 2 - Front corner
-const cyl2Height = 4;
+const cyl2Height = 5;
 const cyl2Radius = 0.7;
 const cylinder2Group = new THREE.Group();
 
