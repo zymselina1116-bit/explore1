@@ -34,7 +34,7 @@ const gardenObjects = [];
 
 // Evidence delivery system
 const droppedEvidence = [];
-const deliveryState = { bone: false, footprint: false };
+const deliveryState = { bone: false, footprint: false, evidence1: false, evidence2: false, evidence3: false };
 let selectedInventoryIndex = -1;
 let draggedEvidence = null;
 let isDragging = false;
@@ -534,26 +534,14 @@ room2WestWallSouth.rotation.y = Math.PI / 2;
 scene.add(room2WestWallSouth);
 worldObjects.push(room2WestWallSouth);
 
-// Blue ambient light for Room 2
-const room2AmbientLight = new THREE.AmbientLight(0x3366ff, 0.6);
+// Dark ambient light for Room 2 (minimal base illumination)
+const room2AmbientLight = new THREE.AmbientLight(0x001a1a, 0.15);
 scene.add(room2AmbientLight);
 
-// Blue ceiling lights for Room 2
-const blueLight1 = new THREE.PointLight(0x4488ff, 3, 20);
-blueLight1.position.set(room2Offset - 3, wallHeight - 0.5, -3);
-scene.add(blueLight1);
+// Add fog to Room 2 for dark atmosphere
+scene.fog = new THREE.FogExp2(0x002200, 0.012);
 
-const blueLight2 = new THREE.PointLight(0x4488ff, 3, 20);
-blueLight2.position.set(room2Offset + 3, wallHeight - 0.5, 3);
-scene.add(blueLight2);
-
-const blueLight3 = new THREE.PointLight(0x4488ff, 3, 20);
-blueLight3.position.set(room2Offset - 3, wallHeight - 0.5, 3);
-scene.add(blueLight3);
-
-const blueLight4 = new THREE.PointLight(0x4488ff, 3, 20);
-blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
-scene.add(blueLight4);
+// Remove bright ceiling lights - only cylinder glow will illuminate the room
 
 // LAB CYLINDERS - 4 futuristic glass tanks reaching ceiling
 const cylinders = [];
@@ -591,8 +579,8 @@ const liquid1 = new THREE.Mesh(
 liquid1.position.y = cyl1Height / 2;
 cylinder1Group.add(liquid1);
 
-// Green light
-const greenLight1 = new THREE.PointLight(0x00ff55, 1.5, 10);
+// Strong green light (primary illumination for dark room)
+const greenLight1 = new THREE.PointLight(0x00ff55, 5.0, 25);
 greenLight1.position.y = cyl1Height / 2;
 cylinder1Group.add(greenLight1);
 
@@ -656,7 +644,7 @@ liquid2.position.y = cyl2Height / 2;
 cylinder2Group.add(liquid2);
 
 // Green light
-const greenLight2 = new THREE.PointLight(0x00ff55, 1.5, 10);
+const greenLight2 = new THREE.PointLight(0x00ff55, 5.0, 25);
 greenLight2.position.y = cyl2Height / 2;
 cylinder2Group.add(greenLight2);
 
@@ -717,7 +705,7 @@ const liquid3 = new THREE.Mesh(
 liquid3.position.y = cyl3Height / 2;
 cylinder3Group.add(liquid3);
 
-const greenLight3 = new THREE.PointLight(0x00ff55, 1.5, 10);
+const greenLight3 = new THREE.PointLight(0x00ff55, 5.0, 25);
 greenLight3.position.y = cyl3Height / 2;
 cylinder3Group.add(greenLight3);
 
@@ -777,7 +765,7 @@ const liquid4 = new THREE.Mesh(
 liquid4.position.y = cyl4Height / 2;
 cylinder4Group.add(liquid4);
 
-const greenLight4 = new THREE.PointLight(0x00ff55, 1.5, 10);
+const greenLight4 = new THREE.PointLight(0x00ff55, 5.0, 25);
 greenLight4.position.y = cyl4Height / 2;
 cylinder4Group.add(greenLight4);
 
@@ -824,10 +812,14 @@ labChair.position.set(room2Offset - 3, 0.75, -1.5);
 scene.add(labChair);
 worldObjects.push(labChair);
 
-// Evidence 1: On desk surface
+// Evidence 1: On desk surface (deliverable sketch)
 const evidence1 = new THREE.Mesh(
     new THREE.PlaneGeometry(0.4, 0.4),
-    new THREE.MeshStandardMaterial({ map: textures.evidence1 })
+    new THREE.MeshStandardMaterial({
+        map: textures.evidence1,
+        emissive: 0xaaffaa,
+        emissiveIntensity: 0.3
+    })
 );
 evidence1.position.set(room2Offset - 3, 1.25, -3);
 evidence1.rotation.x = -Math.PI / 2;
@@ -835,12 +827,17 @@ scene.add(evidence1);
 evidence1.userData.isCollectible = true;
 evidence1.userData.itemType = 'evidence1';
 evidence1.userData.texture = textures.evidence1;
+evidence1.userData.isEvidence = true; // Flag for pulsing
 interactiveObjects.push(evidence1);
 
-// Evidence 2: Wall poster
+// Evidence 2: Wall poster (deliverable sketch)
 const evidence2 = new THREE.Mesh(
     new THREE.PlaneGeometry(0.6, 0.8),
-    new THREE.MeshStandardMaterial({ map: textures.evidence2 })
+    new THREE.MeshStandardMaterial({
+        map: textures.evidence2,
+        emissive: 0xaaffaa,
+        emissiveIntensity: 0.3
+    })
 );
 evidence2.position.set(room2Offset, 2.5, -roomSize / 2 + 0.05);
 evidence2.rotation.y = 0;
@@ -848,12 +845,17 @@ scene.add(evidence2);
 evidence2.userData.isCollectible = true;
 evidence2.userData.itemType = 'evidence2';
 evidence2.userData.texture = textures.evidence2;
+evidence2.userData.isEvidence = true; // Flag for pulsing
 interactiveObjects.push(evidence2);
 
-// Evidence 3: On floor
+// Evidence 3: On floor (deliverable sketch)
 const evidence3 = new THREE.Mesh(
     new THREE.PlaneGeometry(0.5, 0.5),
-    new THREE.MeshStandardMaterial({ map: textures.evidence3 })
+    new THREE.MeshStandardMaterial({
+        map: textures.evidence3,
+        emissive: 0xaaffaa,
+        emissiveIntensity: 0.3
+    })
 );
 evidence3.position.set(room2Offset + 4, 0.01, 4);
 evidence3.rotation.x = -Math.PI / 2;
@@ -861,6 +863,7 @@ scene.add(evidence3);
 evidence3.userData.isCollectible = true;
 evidence3.userData.itemType = 'evidence3';
 evidence3.userData.texture = textures.evidence3;
+evidence3.userData.isEvidence = true; // Flag for pulsing
 interactiveObjects.push(evidence3);
 
 // Build Garden Interior (in same scene, behind wooden door)
@@ -1481,6 +1484,53 @@ function buildGardenInterior() {
     interactiveObjects.push(footprintMesh);
     gardenObjects.push(footprintMesh);
 
+    // Stylized trees at garden perimeter (near glass walls, clear of evidence)
+    const treePositions = [
+        { x: -9, z: -9 }, { x: -8, z: 9 }, { x: 8, z: -9 },
+        { x: 9, z: 8 }, { x: -9, z: 3 }, { x: 9, z: -3 },
+        { x: 3, z: -9 }, { x: -3, z: 9 }
+    ];
+
+    treePositions.forEach(pos => {
+        const treeGroup = new THREE.Group();
+
+        // Tree trunk - brown cylinder
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.15, 0.2, 2.5, 8),
+            new THREE.MeshStandardMaterial({
+                color: 0x4a3520,
+                roughness: 0.9
+            })
+        );
+        trunk.position.y = 1.25;
+        treeGroup.add(trunk);
+
+        // Tree canopy - green crossed planes for volumetric look
+        const canopyHeight = 2.0;
+        const canopyWidth = 1.5;
+        const numCanopyPlanes = 6;
+
+        for (let i = 0; i < numCanopyPlanes; i++) {
+            const angle = (Math.PI / numCanopyPlanes) * i;
+            const canopyPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(canopyWidth, canopyHeight),
+                new THREE.MeshStandardMaterial({
+                    color: 0x2a5a1f,
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                })
+            );
+            canopyPlane.position.y = 3.0;
+            canopyPlane.rotation.y = angle;
+            treeGroup.add(canopyPlane);
+        }
+
+        treeGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(treeGroup);
+        gardenObjects.push(treeGroup);
+    });
+
     console.log('Garden interior built behind wooden door');
 }
 
@@ -1762,7 +1812,7 @@ window.addEventListener('resize', () => {
 // Drop evidence from backpack to world
 function dropEvidenceToWorld(inventoryIndex) {
     const item = inventory[inventoryIndex];
-    if (!item || (item.type !== 'bone' && item.type !== 'footprint')) return;
+    if (!item || (item.type !== 'bone' && item.type !== 'footprint' && item.type !== 'evidence1' && item.type !== 'evidence2' && item.type !== 'evidence3')) return;
 
     // Spawn 3D evidence near player's feet
     const spawnPos = camera.position.clone();
@@ -1791,6 +1841,39 @@ function dropEvidenceToWorld(inventoryIndex) {
                 transparent: true,
                 emissive: 0xaaffaa,
                 emissiveIntensity: 0.8
+            })
+        );
+        evidenceMesh.rotation.x = -Math.PI / 2;
+    } else if (item.type === 'evidence1') {
+        evidenceMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.4, 0.4),
+            new THREE.MeshStandardMaterial({
+                map: textures.evidence1,
+                transparent: true,
+                emissive: 0xaaffaa,
+                emissiveIntensity: 0.6
+            })
+        );
+        evidenceMesh.rotation.x = -Math.PI / 2;
+    } else if (item.type === 'evidence2') {
+        evidenceMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.6, 0.8),
+            new THREE.MeshStandardMaterial({
+                map: textures.evidence2,
+                transparent: true,
+                emissive: 0xaaffaa,
+                emissiveIntensity: 0.6
+            })
+        );
+        evidenceMesh.rotation.x = -Math.PI / 2;
+    } else if (item.type === 'evidence3') {
+        evidenceMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.5, 0.5),
+            new THREE.MeshStandardMaterial({
+                map: textures.evidence3,
+                transparent: true,
+                emissive: 0xaaffaa,
+                emissiveIntensity: 0.6
             })
         );
         evidenceMesh.rotation.x = -Math.PI / 2;
@@ -1903,8 +1986,8 @@ function deliverEvidence(evidenceMesh) {
             deliveryState[evidenceType] = true;
             console.log(`${evidenceType} delivered!`);
 
-            // Check if both delivered
-            if (deliveryState.bone && deliveryState.footprint && !finalLetterSpawned) {
+            // Check if all 5 evidence items delivered
+            if (deliveryState.bone && deliveryState.footprint && deliveryState.evidence1 && deliveryState.evidence2 && deliveryState.evidence3 && !finalLetterSpawned) {
                 setTimeout(() => spawnFinalLetter(), 500);
             }
         }
@@ -2167,6 +2250,11 @@ function animate() {
         // Bone pulsing glow animation
         if (obj.userData.isBone && !obj.userData.collected) {
             obj.material.emissiveIntensity = 1.4 + Math.sin(time * 0.002) * 0.4;
+        }
+
+        // Evidence items pulsing glow animation (Room 2)
+        if (obj.userData.isEvidence && !obj.userData.collected) {
+            obj.material.emissiveIntensity = 0.3 + Math.sin(time * 0.003) * 0.15;
         }
     });
 
