@@ -430,14 +430,12 @@
 
             // Glass outer shell
             const glassGeometry = new THREE.CylinderGeometry(radius, radius, height, 32);
-            const glassMaterial = new THREE.MeshPhysicalMaterial({
-                transmission: 1,
-                thickness: 0.25,
-                roughness: 0,
-                ior: 1.45,
-                color: 0xffffff,
+            const glassMaterial = new THREE.MeshStandardMaterial({
+                color: 0xccffff,
                 transparent: true,
-                opacity: 1
+                opacity: 0.2,
+                metalness: 0.1,
+                roughness: 0.1
             });
             const glassCylinder = new THREE.Mesh(glassGeometry, glassMaterial);
             glassCylinder.position.y = height / 2;
