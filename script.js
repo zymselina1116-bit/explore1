@@ -111,11 +111,33 @@ wallSouth.rotation.y = Math.PI;
 scene.add(wallSouth);
 worldObjects.push(wallSouth);
 
-const wallWest = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
-wallWest.position.set(-roomSize / 2, wallHeight / 2, 0);
-wallWest.rotation.y = Math.PI / 2;
-scene.add(wallWest);
-worldObjects.push(wallWest);
+// West wall with doorway opening for wooden door (3m opening)
+const westWallTop = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomSize, 0.5),
+    new THREE.MeshStandardMaterial({ map: textures.wall })
+);
+westWallTop.position.set(-roomSize / 2, wallHeight - 0.25, 0);
+westWallTop.rotation.y = Math.PI / 2;
+scene.add(westWallTop);
+// NOT added to worldObjects - purely visual, no collision
+
+const westWallNorth = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, wallHeight),
+    new THREE.MeshStandardMaterial({ map: textures.wall })
+);
+westWallNorth.position.set(-roomSize / 2, wallHeight / 2, -4.5);
+westWallNorth.rotation.y = Math.PI / 2;
+scene.add(westWallNorth);
+worldObjects.push(westWallNorth);
+
+const westWallSouth = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, wallHeight),
+    new THREE.MeshStandardMaterial({ map: textures.wall })
+);
+westWallSouth.position.set(-roomSize / 2, wallHeight / 2, 4.5);
+westWallSouth.rotation.y = Math.PI / 2;
+scene.add(westWallSouth);
+worldObjects.push(westWallSouth);
 
 // East wall with doorway opening (exact 3m opening matching door)
 const eastWallTop = new THREE.Mesh(
@@ -145,34 +167,59 @@ eastWallSouth.rotation.y = -Math.PI / 2;
 scene.add(eastWallSouth);
 worldObjects.push(eastWallSouth);
 
-// Ambient light for base brightness (DARKER)
-const ambientLight = new THREE.AmbientLight(0xff3333, 0.3);
+// Ambient light for base brightness (MORE RED)
+const ambientLight = new THREE.AmbientLight(0xff3333, 0.5);
 scene.add(ambientLight);
 
-// Red pulsing lights (DARKER)
-const redLight1 = new THREE.PointLight(0xff0000, 3, 30);
+// Red pulsing lights (MORE AND BRIGHTER)
+const redLight1 = new THREE.PointLight(0xff0000, 5, 30);
 redLight1.position.set(-3, wallHeight - 0.5, -3);
 scene.add(redLight1);
 redLight1.userData.pulseLight = true;
-redLight1.userData.baseIntensity = 3;
+redLight1.userData.baseIntensity = 5;
 
-const redLight2 = new THREE.PointLight(0xff0000, 3, 30);
+const redLight2 = new THREE.PointLight(0xff0000, 5, 30);
 redLight2.position.set(3, wallHeight - 0.5, 3);
 scene.add(redLight2);
 redLight2.userData.pulseLight = true;
-redLight2.userData.baseIntensity = 3;
+redLight2.userData.baseIntensity = 5;
 
-const redLight3 = new THREE.PointLight(0xff0000, 3, 30);
+const redLight3 = new THREE.PointLight(0xff0000, 5, 30);
 redLight3.position.set(-3, wallHeight - 0.5, 3);
 scene.add(redLight3);
 redLight3.userData.pulseLight = true;
-redLight3.userData.baseIntensity = 3;
+redLight3.userData.baseIntensity = 5;
 
-const redLight4 = new THREE.PointLight(0xff0000, 3, 30);
+const redLight4 = new THREE.PointLight(0xff0000, 5, 30);
 redLight4.position.set(3, wallHeight - 0.5, -3);
 scene.add(redLight4);
 redLight4.userData.pulseLight = true;
-redLight4.userData.baseIntensity = 3;
+redLight4.userData.baseIntensity = 5;
+
+// Additional red lights at mid-wall positions
+const redLight5 = new THREE.PointLight(0xff0000, 4, 25);
+redLight5.position.set(0, wallHeight - 0.5, -6);
+scene.add(redLight5);
+redLight5.userData.pulseLight = true;
+redLight5.userData.baseIntensity = 4;
+
+const redLight6 = new THREE.PointLight(0xff0000, 4, 25);
+redLight6.position.set(0, wallHeight - 0.5, 6);
+scene.add(redLight6);
+redLight6.userData.pulseLight = true;
+redLight6.userData.baseIntensity = 4;
+
+const redLight7 = new THREE.PointLight(0xff0000, 4, 25);
+redLight7.position.set(-6, wallHeight - 0.5, 0);
+scene.add(redLight7);
+redLight7.userData.pulseLight = true;
+redLight7.userData.baseIntensity = 4;
+
+const redLight8 = new THREE.PointLight(0xff0000, 4, 25);
+redLight8.position.set(6, wallHeight - 0.5, 0);
+scene.add(redLight8);
+redLight8.userData.pulseLight = true;
+redLight8.userData.baseIntensity = 4;
 
 // Spotlight on key board - brighter (now on NORTH wall)
 const keyBoardSpotlight = new THREE.SpotLight(0xffaa77, 6, 15, Math.PI / 6);
