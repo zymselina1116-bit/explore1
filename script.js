@@ -2057,9 +2057,9 @@ function animate() {
     flashlightDirection.applyQuaternion(camera.quaternion);
     flashlightTarget.position.copy(camera.position).add(flashlightDirection);
 
-    // Reduced movement speed in garden (60% slower than normal)
+    // Reduced movement speed in garden (80% slower than normal)
     const baseSpeed = 0.1;
-    const speed = currentScene === 'garden' ? baseSpeed * 0.4 : baseSpeed;
+    const speed = currentScene === 'garden' ? baseSpeed * 0.2 : baseSpeed;
 
     // Get camera forward direction (projected onto horizontal plane)
     const forward = new THREE.Vector3();
