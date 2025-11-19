@@ -1,1447 +1,373 @@
-import * as THREE from 'https://esm.sh/three@0.160.0';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
 
-// ====================================================================
-// TEXTURE URLS
-// ====================================================================
-const TEXTURES = {
-    scene1_floor: './Screenshot 2025-11-16 at 22.51.42.png',
-    scene1_wall: './Screenshot 2025-11-16 at 22.53.11.png',
-    scene1_door: './Screenshot 2025-11-16 at 22.54.35.png',
-    scene1_exit: './Screenshot 2025-11-16 at 22.55.14.png',
-    scene2_floor: './Screenshot 2025-11-16 at 22.56.00.png',
-    keyBoard: './Screenshot 2025-11-16 at 23.31.20.png',
-    accessCard: './card-new.png',
-    key: './key-new.png',
-    cardReader: './card-reader.png',
-    // Scene 2 textures
-    woodenDoor: './870c5435ceffda4aa972afb3244c2eca-removebg-preview.png',
-    creatureSketch: './Screenshot 2025-11-17 at 14.12.36.png',
-    goldenKey: './70dc331664376a64a8050baa7c7744a6-removebg-preview.png',
-    profileCard: './Screenshot 2025-11-17 at 14.17.01.png',
-    mapItem: './Screenshot 2025-11-17 at 14.18.31.png',
-    furniture: './Screenshot 2025-11-17 at 14.38.31.png',
-    keyBoard2: './Screenshot 2025-11-17 at 14.39.55.png',
-    drawer: './Screenshot 2025-11-17 at 22.38.36.png'
-};
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 
-// ====================================================================
-// GAME STATE
-// ====================================================================
-const gameState = {
-    currentScene: 'industrialHall',
-    hasAccessCard: false,
-    doorUnlocked: false,
-    enteredNextRoom: false,
-    inventory: new Set(),
-    // Scene 2 state
-    evidenceCollected: new Set(), // tracks: 'creature', 'profile', 'map'
-    hasGoldenKey: false,
-    woodenDoorUnlocked: false,
-    deskDrawerOpen: false,
-};
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
 
-const scenes = {
-    industrialHall: {
-        objects: [],
-        cleanup: null,
-    },
-    officeFloor: {
-        objects: [],
-        cleanup: null,
-    }
-};
+camera.position.set(0, 1.7, 0);
 
-// ====================================================================
-// GLOBAL VARIABLES
-// ====================================================================
-let scene, camera, renderer, controls;
-let raycaster, clock;
-let interactiveObjects = [];
-let currentHoveredObject = null;
-
-// Mouse drag camera controls
+const controls = new PointerLockControls(camera, document.body);
 let isMouseDown = false;
-let isDragging = false;
-let previousMousePosition = { x: 0, y: 0 };
-let mouseDownPosition = { x: 0, y: 0 };
-let cameraRotation = { yaw: 0, pitch: 0 };
 
-// Movement
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
+document.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+        isMouseDown = true;
+        controls.lock();
+    }
+});
+
+document.addEventListener('mouseup', (e) => {
+    if (e.button === 0) {
+        isMouseDown = false;
+        controls.unlock();
+    }
+});
+
+const moveState = { w: false, s: false, a: false, d: false };
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const PLAYER_SPEED = 25.0;
-const PLAYER_HEIGHT = 2.2;
 
-// Flashlight
-let flashlight = null; // Flashlight that follows camera
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'w') moveState.w = true;
+    if (e.key === 's') moveState.s = true;
+    if (e.key === 'a') moveState.a = true;
+    if (e.key === 'd') moveState.d = true;
+});
 
-// Door animation
-let doorAnimating = false;
-let doorPosition = 0;
-const DOOR_TARGET_POSITION = 5;
-const DOOR_ANIMATION_SPEED = 8.0; // Faster animation
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'w') moveState.w = false;
+    if (e.key === 's') moveState.s = false;
+    if (e.key === 'a') moveState.a = false;
+    if (e.key === 'd') moveState.d = false;
+});
 
-// Alarm lights
-let alarmLights = [];
-
-// Texture loader
 const textureLoader = new THREE.TextureLoader();
 
-// ====================================================================
-// TEXTURE LOADING
-// ====================================================================
-function loadTexture(url, repeatX = 1, repeatY = 1) {
-    return new Promise((resolve) => {
-        textureLoader.load(
-            url,
-            (texture) => {
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.wrapT = THREE.RepeatWrapping;
-                texture.repeat.set(repeatX, repeatY);
-                texture.colorSpace = THREE.SRGBColorSpace;
-                resolve(texture);
-            },
-            undefined,
-            (error) => {
-                console.warn(`Failed to load texture: ${url}`, error);
-                resolve(null);
-            }
-        );
-    });
-}
+const wallTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/bc6cc02efce2574779b5c11bbd7d45fd5c88c0f7/Screenshot%202025-11-16%20at%2022.53.11.png');
+const floorTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/dff059a88212ae711ad111cd1c7e122d5960b4c6/Screenshot%202025-11-16%20at%2022.51.42.png');
+const exitSignTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5d3e31b7b410add1d2eb0c84ad5b7b226538c480/Screenshot%202025-11-16%20at%2022.55.14.png');
+const metalDoorTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5d3e31b7b410add1d2eb0c84ad5b7b226538c480/Screenshot%202025-11-16%20at%2022.54.35.png');
+const woodenDoorTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/abde0ebda68734a1b01823d64e4866f7de0576ac/870c5435ceffda4aa972afb3244c2eca-removebg-preview.png');
+const keyBoardTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/9ab3c168a10a41d2fe3597c3822f637864d4cd87/Screenshot%202025-11-17%20at%2011.10.47.png');
+const keysTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/dd860cf4ac71beb691b5df190ce91ca23b69f4d6/Screenshot_2025-11-17_at_12.33.23-removebg-preview.png');
+const cardTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/c047a4d3a7c936d4139a67e599e3b2e9bf8d72e0/Screenshot_2025-11-17_at_12.30.02-removebg-preview%20(1).png');
+const cardReaderTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/ab2a7a7ae2c696ba19c868a450f29b93a7cf741a/64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png');
 
-// ====================================================================
-// INITIALIZATION
-// ====================================================================
-async function init() {
-    console.log('Initializing game...');
+wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+floorTexture.repeat.set(2, 2);
 
-    // Scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x2a1a1a);
-    scene.fog = new THREE.FogExp2(0x2a1515, 0.012);
-    console.log('Scene created');
+const roomWidth = 8;
+const roomHeight = 4;
+const roomDepth = 8;
 
-    // Camera
-    camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-    );
-    camera.position.set(0, PLAYER_HEIGHT, 0);
-    console.log('Camera created at:', camera.position);
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomWidth, roomDepth),
+    new THREE.MeshStandardMaterial({ map: floorTexture })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = 0;
+scene.add(floor);
 
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = false; // Disabled for GPU performance
-    document.body.appendChild(renderer.domElement);
-    console.log('Renderer added to DOM');
+const ceiling = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomWidth, roomDepth),
+    new THREE.MeshStandardMaterial({ map: floorTexture })
+);
+ceiling.rotation.x = Math.PI / 2;
+ceiling.position.y = roomHeight;
+scene.add(ceiling);
 
-    // Camera container for rotation
-    controls = {
-        getObject: () => camera,
-        isLocked: true
-    };
+const backWall = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomWidth, roomHeight),
+    new THREE.MeshStandardMaterial({ map: wallTexture })
+);
+backWall.position.set(0, roomHeight / 2, -roomDepth / 2);
+scene.add(backWall);
 
-    // Raycaster
-    raycaster = new THREE.Raycaster();
-    raycaster.far = 20; // Increased range to detect objects across the room
+const frontWall = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomWidth, roomHeight),
+    new THREE.MeshStandardMaterial({ map: wallTexture })
+);
+frontWall.rotation.y = Math.PI;
+frontWall.position.set(0, roomHeight / 2, roomDepth / 2);
+scene.add(frontWall);
 
-    // Clock
-    clock = new THREE.Clock();
+const leftWall = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomDepth, roomHeight),
+    new THREE.MeshStandardMaterial({ map: wallTexture })
+);
+leftWall.rotation.y = Math.PI / 2;
+leftWall.position.set(-roomWidth / 2, roomHeight / 2, 0);
+scene.add(leftWall);
 
-    // Event listeners
-    setupEventListeners();
+const rightWall = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomDepth, roomHeight),
+    new THREE.MeshStandardMaterial({ map: wallTexture })
+);
+rightWall.rotation.y = -Math.PI / 2;
+rightWall.position.set(roomWidth / 2, roomHeight / 2, 0);
+scene.add(rightWall);
 
-    // Build both scenes (connected)
-    console.log('Building scenes...');
-    await buildIndustrialHallScene();
-    await buildOfficeFloorScene();
-    console.log('Both scenes built successfully');
+const metalDoor = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.5, 2.5),
+    new THREE.MeshStandardMaterial({ map: metalDoorTexture, transparent: true })
+);
+metalDoor.position.set(0, 1.25, roomDepth / 2 - 0.01);
+metalDoor.rotation.y = Math.PI;
+metalDoor.userData.isInteractive = true;
+metalDoor.userData.type = 'metalDoor';
+scene.add(metalDoor);
 
-    // Debug: Print all meshes in the scene
-    console.log('\n========== SCENE MESH DEBUG ==========');
-    scene.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
-            const name = object.name || 'Unnamed';
-            const geomType = object.geometry.type;
-            const pos = object.position;
-            const mat = object.material;
+const exitSign = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.8, 0.3),
+    new THREE.MeshStandardMaterial({ map: exitSignTexture, transparent: true, emissive: new THREE.Color(0x00ff00), emissiveIntensity: 0.5 })
+);
+exitSign.position.set(0, 3.2, roomDepth / 2 - 0.01);
+exitSign.rotation.y = Math.PI;
+scene.add(exitSign);
 
-            let materialInfo = '';
-            if (mat.map) {
-                materialInfo = `Textured (${mat.map ? 'has texture' : 'no texture'})`;
-            } else {
-                materialInfo = `Plain color: ${mat.color ? '#' + mat.color.getHexString() : 'none'}`;
-            }
+const woodenDoor = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.5, 2.5),
+    new THREE.MeshStandardMaterial({ map: woodenDoorTexture, transparent: true })
+);
+woodenDoor.position.set(roomWidth / 2 - 0.01, 1.25, 0);
+woodenDoor.rotation.y = -Math.PI / 2;
+woodenDoor.userData.isInteractive = false;
+scene.add(woodenDoor);
 
-            console.log(`Mesh: "${name}"`);
-            console.log(`  Geometry: ${geomType}`);
-            console.log(`  Position: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
-            console.log(`  Material: ${materialInfo}`);
-            console.log(`  Has texture map: ${!!mat.map}`);
-            console.log('---');
-        }
-    });
-    console.log('========== END MESH DEBUG ==========\n');
+const keyBoard = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.2, 0.8),
+    new THREE.MeshStandardMaterial({ map: keyBoardTexture })
+);
+keyBoard.position.set(-roomWidth / 2 + 0.01, 2, 0);
+keyBoard.rotation.y = Math.PI / 2;
+keyBoard.userData.isInteractive = true;
+keyBoard.userData.type = 'keyBoard';
+scene.add(keyBoard);
 
-    // Start animation
-    console.log('Starting animation loop');
-    animate();
-}
+const decorativeKeys = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.3, 0.2),
+    new THREE.MeshStandardMaterial({ map: keysTexture, transparent: true })
+);
+decorativeKeys.position.set(-roomWidth / 2 + 0.02, 2.2, -0.3);
+decorativeKeys.rotation.y = Math.PI / 2;
+scene.add(decorativeKeys);
 
-// ====================================================================
-// EVENT LISTENERS
-// ====================================================================
-function setupEventListeners() {
-    // Keyboard
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
+const accessCard = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.15, 0.1),
+    new THREE.MeshStandardMaterial({ map: cardTexture, transparent: true })
+);
+accessCard.position.set(-roomWidth / 2 + 0.02, 1.8, 0.2);
+accessCard.rotation.y = Math.PI / 2;
+accessCard.userData.isInteractive = true;
+accessCard.userData.type = 'accessCard';
+scene.add(accessCard);
 
-    // Mouse drag for camera rotation
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-    document.addEventListener('click', onMouseClick);
+const cardReader = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.3, 0.4),
+    new THREE.MeshStandardMaterial({ map: cardReaderTexture, transparent: true })
+);
+cardReader.position.set(-0.8, 1.5, roomDepth / 2 - 0.01);
+cardReader.rotation.y = Math.PI;
+cardReader.userData.isInteractive = true;
+cardReader.userData.type = 'cardReader';
+scene.add(cardReader);
 
-    // Window resize
-    window.addEventListener('resize', onWindowResize);
+const mailbox = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.3, 0.2),
+    new THREE.MeshStandardMaterial({ map: wallTexture })
+);
+mailbox.position.set(2, 1.5, -roomDepth / 2 + 0.15);
+mailbox.userData.isInteractive = true;
+mailbox.userData.type = 'mailbox';
+scene.add(mailbox);
 
-    // Backpack toggle functionality
-    const backpackIcon = document.getElementById('backpack-icon');
-    const backpackPanel = document.getElementById('backpack-panel');
+const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+scene.add(ambientLight);
 
-    if (backpackIcon && backpackPanel) {
-        backpackIcon.addEventListener('click', () => {
-            if (backpackPanel.style.display === 'none') {
-                backpackPanel.style.display = 'block';
-            } else {
-                backpackPanel.style.display = 'none';
-            }
-        });
-    }
-}
+const redLight1 = new THREE.PointLight(0xff0000, 2, 15);
+redLight1.position.set(-2, roomHeight - 0.3, 0);
+scene.add(redLight1);
 
-function onKeyDown(event) {
-    switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-            moveForward = true;
-            break;
-        case 'KeyS':
-        case 'ArrowDown':
-            moveBackward = true;
-            break;
-        case 'KeyA':
-        case 'ArrowLeft':
-            moveLeft = true;
-            break;
-        case 'KeyD':
-        case 'ArrowRight':
-            moveRight = true;
-            break;
-    }
-}
+const redLight2 = new THREE.PointLight(0xff0000, 2, 15);
+redLight2.position.set(2, roomHeight - 0.3, 0);
+scene.add(redLight2);
 
-function onKeyUp(event) {
-    switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-            moveForward = false;
-            break;
-        case 'KeyS':
-        case 'ArrowDown':
-            moveBackward = false;
-            break;
-        case 'KeyA':
-        case 'ArrowLeft':
-            moveLeft = false;
-            break;
-        case 'KeyD':
-        case 'ArrowRight':
-            moveRight = false;
-            break;
-    }
-}
+const spotlight = new THREE.SpotLight(0xffaa88, 3, 5, Math.PI / 6, 0.5);
+spotlight.position.set(-roomWidth / 2 + 0.5, roomHeight - 0.5, 0);
+spotlight.target.position.set(-roomWidth / 2 + 0.01, 2, 0);
+scene.add(spotlight);
+scene.add(spotlight.target);
 
-function onMouseDown(event) {
-    if (event.button === 0) { // Left mouse button
-        isMouseDown = true;
-        isDragging = false; // Reset dragging
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-        mouseDownPosition = { x: event.clientX, y: event.clientY };
-    }
-}
+const collisionObjects = [
+    { box: new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(0, roomHeight / 2, -roomDepth / 2), new THREE.Vector3(roomWidth, roomHeight, 0.1)) },
+    { box: new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(0, roomHeight / 2, roomDepth / 2), new THREE.Vector3(roomWidth, roomHeight, 0.1)), door: metalDoor },
+    { box: new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(-roomWidth / 2, roomHeight / 2, 0), new THREE.Vector3(0.1, roomHeight, roomDepth)) },
+    { box: new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(roomWidth / 2, roomHeight / 2, 0), new THREE.Vector3(0.1, roomHeight, roomDepth)) },
+    { box: new THREE.Box3().setFromObject(keyBoard) },
+    { box: new THREE.Box3().setFromObject(cardReader) },
+    { box: new THREE.Box3().setFromObject(mailbox) }
+];
 
-function onMouseMove(event) {
-    if (isMouseDown) {
-        const deltaX = event.clientX - previousMousePosition.x;
-        const deltaY = event.clientY - previousMousePosition.y;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredObject = null;
 
-        // Check if mouse moved enough to be considered dragging
-        const dragDistance = Math.sqrt(
-            Math.pow(event.clientX - mouseDownPosition.x, 2) +
-            Math.pow(event.clientY - mouseDownPosition.y, 2)
-        );
+const inventory = {
+    hasCard: false
+};
 
-        if (dragDistance > 3) { // 3 pixels threshold
-            isDragging = true;
-        }
+let doorOpen = false;
+let doorAnimation = { progress: 0, opening: false };
 
-        if (isDragging) {
-            cameraRotation.yaw -= deltaX * 0.002;
-            cameraRotation.pitch -= deltaY * 0.002;
+document.addEventListener('click', (event) => {
+    if (isMouseDown || controls.isLocked) return;
 
-            // Clamp pitch to prevent over-rotation
-            cameraRotation.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.pitch));
-        }
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-    }
-
-    // Update hover object (only when not dragging)
-    if (!isDragging && controls.isLocked) {
-        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-        const intersects = raycaster.intersectObjects(
-            interactiveObjects.map(obj => obj.mesh)
-        );
-
-        if (intersects.length > 0) {
-            const intersectedMesh = intersects[0].object;
-            const interactiveObj = interactiveObjects.find(
-                obj => obj.mesh === intersectedMesh
-            );
-
-            if (interactiveObj) {
-                currentHoveredObject = interactiveObj;
-            } else {
-                currentHoveredObject = null;
-            }
-        } else {
-            currentHoveredObject = null;
-        }
-    }
-}
-
-function onMouseUp(event) {
-    if (event.button === 0) {
-        isMouseDown = false;
-        isDragging = false;
-    }
-}
-
-function onMouseClick(event) {
-    if (isDragging) return; // Don't interact if we were dragging
-
-    // Perform raycasting to find what we're clicking on
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(
-        interactiveObjects.map(obj => obj.mesh)
-    );
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
 
     if (intersects.length > 0) {
-        const intersectedMesh = intersects[0].object;
-        const interactiveObj = interactiveObjects.find(
-            obj => obj.mesh === intersectedMesh
-        );
+        const object = intersects[0].object;
 
-        if (interactiveObj && interactiveObj.onClick) {
-            console.log('Clicked on:', interactiveObj.id);
-            interactiveObj.onClick();
+        if (object.userData.type === 'accessCard') {
+            scene.remove(accessCard);
+            inventory.hasCard = true;
+            updateBackpack();
+        }
+
+        if (object.userData.type === 'cardReader' && inventory.hasCard && !doorOpen) {
+            doorAnimation.opening = true;
+            doorOpen = true;
+            collisionObjects[1].disabled = true;
         }
     }
-}
+});
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+document.addEventListener('mousemove', (event) => {
+    if (isMouseDown || controls.isLocked) return;
 
-// ====================================================================
-// MESSAGE DISPLAY
-// ====================================================================
-function showMessage(text) {
-    const messageDiv = document.getElementById('message-display');
-    if (messageDiv) {
-        messageDiv.textContent = text;
-        messageDiv.style.display = 'block';
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        // Hide message after 2 seconds
-        setTimeout(() => {
-            messageDiv.style.display = 'none';
-        }, 2000);
-    }
-}
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
 
-// ====================================================================
-// BUILD INDUSTRIAL HALL SCENE
-// ====================================================================
-async function buildIndustrialHallScene() {
-    // Load textures
-    const floorTexture = await loadTexture(TEXTURES.scene1_floor, 4, 4);
-    const wallTexture = await loadTexture(TEXTURES.scene1_wall, 2, 2);
-    const doorTexture = await loadTexture(TEXTURES.scene1_door, 1, 1);
-    const exitTexture = await loadTexture(TEXTURES.scene1_exit, 1, 1);
-    const keyBoardTexture = await loadTexture(TEXTURES.keyBoard, 1, 1);
-    const accessCardTexture = await loadTexture(TEXTURES.accessCard, 1, 1);
-    const keyTexture = await loadTexture(TEXTURES.key, 1, 1);
-    const woodenDoorTexture = await loadTexture(TEXTURES.woodenDoor, 1, 1);
-    const goldenKeyTexture = await loadTexture(TEXTURES.goldenKey, 1, 1);
-    const cardReaderTexture = await loadTexture(TEXTURES.cardReader, 1, 1);
-    console.log('Textures loaded - Floor:', !!floorTexture, 'Wall:', !!wallTexture, 'Door:', !!doorTexture, 'Exit:', !!exitTexture, 'KeyBoard:', !!keyBoardTexture, 'Card:', !!accessCardTexture, 'Key:', !!keyTexture, 'CardReader:', !!cardReaderTexture);
-
-    // Floor (extended beyond door for walkway)
-    const roomSize = 25;
-    const floorGeometry = new THREE.PlaneGeometry(40, 40); // Extended floor
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        map: floorTexture,
-        color: floorTexture ? 0xffffff : 0x444444,
-        roughness: 0.8,
-        metalness: 0.2,
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.name = 'Floor';
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
-
-    // Walls (with texture)
-    const wallHeight = 6;
-    const halfRoom = roomSize / 2;
-    const wallMaterial = new THREE.MeshStandardMaterial({
-        map: wallTexture,
-        color: wallTexture ? 0xffffff : 0xff0000, // Red if texture fails to load
-        metalness: 0.6,
-        roughness: 0.4,
-        side: THREE.DoubleSide, // Render both sides
-    });
-
-    // Back wall
-    const backWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(roomSize, wallHeight),
-        wallMaterial
-    );
-    backWall.name = 'BackWall';
-    backWall.position.set(0, wallHeight / 2, -halfRoom);
-    scene.add(backWall);
-
-    // Front wall (with door gap) - separates Scene 1 and Scene 2
-    // Door is 4 units wide, centered at x=0 (spans -2 to 2)
-    // Left wall: from -12.5 to -2 = 10.5 units
-    // Right wall: from 2 to 12.5 = 10.5 units
-    const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(10.5, wallHeight),
-        wallMaterial
-    );
-    frontWallLeft.name = 'FrontWallLeft';
-    frontWallLeft.position.set(-7.25, wallHeight / 2, halfRoom);
-    frontWallLeft.rotation.y = Math.PI;
-    scene.add(frontWallLeft);
-
-    const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(10.5, wallHeight),
-        wallMaterial
-    );
-    frontWallRight.name = 'FrontWallRight';
-    frontWallRight.position.set(7.25, wallHeight / 2, halfRoom);
-    frontWallRight.rotation.y = Math.PI;
-    scene.add(frontWallRight);
-
-    // Left wall
-    const leftWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(roomSize, wallHeight),
-        wallMaterial
-    );
-    leftWall.name = 'LeftWall';
-    leftWall.position.set(-halfRoom, wallHeight / 2, 0);
-    leftWall.rotation.y = Math.PI / 2;
-    scene.add(leftWall);
-
-    // Right wall
-    const rightWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(roomSize, wallHeight),
-        wallMaterial
-    );
-    rightWall.name = 'RightWall';
-    rightWall.position.set(halfRoom, wallHeight / 2, 0);
-    rightWall.rotation.y = -Math.PI / 2;
-    scene.add(rightWall);
-
-    // Ceiling (with wall texture)
-    const ceilingGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        map: wallTexture,
-        color: wallTexture ? 0xffffff : 0xff0000,
-        roughness: 0.8,
-        metalness: 0.2,
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.name = 'Ceiling';
-    ceiling.position.y = wallHeight;
-    ceiling.rotation.x = Math.PI / 2;
-    scene.add(ceiling);
-
-    // Bright white ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
-    scene.add(ambientLight);
-
-    // Multiple bright white ceiling lights for even coverage
-    const ceilingLightPositions = [
-        [-6, wallHeight - 0.5, -6],
-        [6, wallHeight - 0.5, -6],
-        [-6, wallHeight - 0.5, 6],
-        [6, wallHeight - 0.5, 6],
-        [0, wallHeight - 0.5, 0],
-        [-8, wallHeight - 0.5, 0],
-        [8, wallHeight - 0.5, 0],
-        [0, wallHeight - 0.5, -8],
-        [0, wallHeight - 0.5, 8]
-    ];
-
-    ceilingLightPositions.forEach(pos => {
-        const whiteLight = new THREE.PointLight(0xffffff, 4.0, 20);
-        whiteLight.position.set(pos[0], pos[1], pos[2]);
-        whiteLight.castShadow = false; // Disable shadows for performance
-        scene.add(whiteLight);
-    });
-
-    // Main door (with texture, flush with wall)
-    const doorGeometry = new THREE.BoxGeometry(4, 5, 0.2);
-    const doorMaterial = new THREE.MeshStandardMaterial({
-        map: doorTexture,
-        color: doorTexture ? 0xffffff : 0xff0000, // Red if texture fails
-        metalness: 0.3,
-        roughness: 0.4,
-        transparent: false,
-        opacity: 1.0,
-    });
-    const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.name = 'Door';
-    door.position.set(0, 2.5, halfRoom); // Flush with wall, no gap
-    scene.add(door);
-
-    // Store door reference for animation
-    window.gameDoor = door;
-
-    // Interactive door - shows message if no card
-    const doorInteractive = {
-        mesh: door,
-        type: 'door',
-        id: 'scene1_main_door',
-        hintText: 'Click to open door',
-        onClick: () => {
-            if (!gameState.hasAccessCard) {
-                showMessage('Find the key');
-            }
+    if (hoveredObject) {
+        if (hoveredObject.userData.originalEmissive !== undefined) {
+            hoveredObject.material.emissive.copy(hoveredObject.userData.originalEmissive);
         }
-    };
-    interactiveObjects.push(doorInteractive);
-
-    // Exit sign (with texture)
-    const exitSign = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 0.5, 0.1),
-        new THREE.MeshStandardMaterial({
-            map: exitTexture,
-            color: exitTexture ? 0xffffff : 0x00ff00,
-            emissive: 0x00ff00,
-            emissiveIntensity: 0.8,
-        })
-    );
-    exitSign.position.set(0, 5.5, halfRoom - 1);
-    scene.add(exitSign);
-
-    // Metal key board on wall (with texture)
-    const keyBoard = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 3, 0.15),
-        new THREE.MeshStandardMaterial({
-            map: keyBoardTexture,
-            color: keyBoardTexture ? 0xffffff : 0xff0000, // Red if texture fails
-            metalness: 0.3,
-            roughness: 0.5,
-        })
-    );
-    keyBoard.name = 'KeyBoard';
-    keyBoard.position.set(-8, 2.5, halfRoom - 0.75);
-    scene.add(keyBoard);
-
-    // Store keyBoard reference
-    window.keyBoardMesh = keyBoard;
-
-    // Spotlight lamp just above key board (very bright yellow light, focused)
-    const keyBoardSpotlight = new THREE.SpotLight(0xffff88, 15, 8, Math.PI / 7, 0.5, 2);
-    keyBoardSpotlight.position.set(-8, 4.2, halfRoom - 1.2);
-    keyBoardSpotlight.target.position.set(-8, 2.5, halfRoom - 0.75);
-    scene.add(keyBoardSpotlight);
-    scene.add(keyBoardSpotlight.target);
-
-    // Flashlight that follows camera (brighter and more visible)
-    flashlight = new THREE.SpotLight(0xffffcc, 8, 20, Math.PI / 7, 0.6, 1.2);
-    flashlight.position.copy(camera.position);
-    scene.add(flashlight);
-
-    const flashlightTarget = new THREE.Object3D();
-    scene.add(flashlightTarget);
-    flashlight.target = flashlightTarget;
-
-    // Lamp fixture removed - no grey objects allowed
-
-    // Decorative keys on board - facing the room (with texture)
-    const keyPositions = [
-        [-9.2, 3.2],
-        [-8.6, 3.5],
-        [-8.0, 3.3],
-        [-7.4, 3.6],
-        [-6.8, 3.4],
-        [-9.3, 2.5],
-        [-8.2, 2.6],
-        [-7.1, 2.4],
-        [-9.5, 1.8],
-        [-8.5, 1.7],
-        [-7.5, 1.9],
-        [-6.7, 1.6],
-    ];
-
-    // Shared key material with texture
-    const keyMaterial = new THREE.MeshStandardMaterial({
-        map: keyTexture,
-        transparent: true,
-        metalness: 0.3,
-        roughness: 0.5,
-    });
-
-    // Shared key geometry
-    const keyGeometry = new THREE.PlaneGeometry(0.2, 0.5);
-
-    keyPositions.forEach((pos, i) => {
-        const key = new THREE.Mesh(keyGeometry, keyMaterial);
-        key.position.set(pos[0], pos[1], halfRoom - 0.85); // In front of board, facing room
-        key.rotation.y = Math.PI; // Face the room
-        scene.add(key);
-    });
-
-    // Access card (interactive with texture) - positioned IN FRONT of key board
-    const cardGeometry = new THREE.PlaneGeometry(0.6, 0.9);
-    const cardMaterial = new THREE.MeshStandardMaterial({
-        map: accessCardTexture,
-        transparent: true,
-        metalness: 0.1,
-        roughness: 0.6,
-    });
-    const accessCard = new THREE.Mesh(cardGeometry, cardMaterial);
-    accessCard.name = 'AccessCard';
-    accessCard.position.set(-8, 2.5, halfRoom - 0.85); // In front of board
-    accessCard.rotation.y = Math.PI; // Rotate 180 degrees to face the room
-    scene.add(accessCard);
-
-    // Store card reference
-    window.accessCardMesh = accessCard;
-
-    // Interactive card object - single click to pick up
-    const cardInteractive = {
-        mesh: accessCard,
-        type: 'card',
-        id: 'scene1_card_access',
-        hintText: 'Click to pick up access card',
-        onClick: () => {
-            console.log('Access card clicked!');
-            // Pick up card with lift animation
-            const startZ = accessCard.position.z;
-            const startScale = 1;
-            let liftProgress = 0;
-
-            const liftInterval = setInterval(() => {
-                liftProgress += 0.05;
-                if (liftProgress >= 1) {
-                    clearInterval(liftInterval);
-                    gameState.hasAccessCard = true;
-                    gameState.inventory.add('Access Card');
-                    scene.remove(accessCard);
-                    interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'scene1_card_access');
-                    console.log('Access card picked up! gameState.hasAccessCard:', gameState.hasAccessCard);
-                } else {
-                    accessCard.position.z = startZ + liftProgress * 0.5;
-                    const scale = startScale + liftProgress * 0.2;
-                    accessCard.scale.set(scale, scale, scale);
-                }
-            }, 20);
-        }
-    };
-    interactiveObjects.push(cardInteractive);
-
-    // Card reader near door (with texture, flush with wall)
-    const cardReaderMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.5, 0.7),
-        new THREE.MeshStandardMaterial({
-            map: cardReaderTexture,
-            transparent: true,
-            metalness: 0.2,
-            roughness: 0.6,
-        })
-    );
-    cardReaderMesh.name = 'CardReader';
-    cardReaderMesh.position.set(3, 1.5, halfRoom); // Flush with wall, no gap
-    cardReaderMesh.rotation.y = Math.PI; // Face the room
-    scene.add(cardReaderMesh);
-
-    // Interactive card reader
-    const cardReaderInteractive = {
-        mesh: cardReaderMesh,
-        type: 'cardReader',
-        id: 'scene1_card_reader',
-        hintText: 'Click to use card reader',
-        onClick: () => {
-            console.log('Card reader clicked! Has card:', gameState.hasAccessCard, 'Door unlocked:', gameState.doorUnlocked);
-            if (!gameState.hasAccessCard) {
-                showMessage('You need an access card');
-                return;
-            }
-            if (!gameState.doorUnlocked) {
-                gameState.doorUnlocked = true;
-                // Start door opening animation
-                doorAnimating = true;
-                doorPosition = 0; // Reset door position
-                showMessage('Door unlocked - Opening!');
-                console.log('Door unlocked! doorAnimating:', doorAnimating, 'gameDoor:', !!window.gameDoor, 'doorPosition:', doorPosition);
-            } else {
-                showMessage('Door already open');
-                console.log('Door already unlocked');
-            }
-        }
-    };
-    interactiveObjects.push(cardReaderInteractive);
-
-    // No alarm lights - Scene 1 is now bright and clean
-
-    // Wooden door on back wall (opposite to Scene 2 entrance)
-    const woodenDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 5, 0.2),
-        new THREE.MeshStandardMaterial({
-            map: woodenDoorTexture,
-            transparent: true,
-            color: woodenDoorTexture ? 0xffffff : 0xff0000,
-        })
-    );
-    woodenDoor.name = 'WoodenDoor';
-    woodenDoor.position.set(0, 2.5, -halfRoom + 0.1); // Flush with back wall
-    scene.add(woodenDoor);
-
-    // Golden key next to wooden door on back wall
-    const goldenKey = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.4, 0.8),
-        new THREE.MeshStandardMaterial({
-            map: goldenKeyTexture,
-            transparent: true,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.5,
-        })
-    );
-    goldenKey.name = 'GoldenKey';
-    goldenKey.position.set(-6, 2.5, -halfRoom + 0.2);
-    scene.add(goldenKey);
-
-    // Golden key interactive (double-click to collect after evidence)
-    let lastGoldenKeyClickTime = 0;
-    const goldenKeyInteractive = {
-        mesh: goldenKey,
-        type: 'goldenKey',
-        id: 'golden_key',
-        hintText: 'Double-click to take golden key',
-        onClick: () => {
-            const now = Date.now();
-            const isDoubleClick = (now - lastGoldenKeyClickTime) < 300;
-            lastGoldenKeyClickTime = now;
-
-            if (!isDoubleClick) {
-                console.log('Single click on golden key (need double-click)');
-                return;
-            }
-
-            if (gameState.evidenceCollected.size < 3) {
-                showMessage('Collect all evidence first');
-                console.log('Need all 3 evidence items first');
-                return;
-            }
-
-            console.log('Golden key collected!');
-            gameState.hasGoldenKey = true;
-            scene.remove(goldenKey);
-            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'golden_key');
-            showMessage('Golden key obtained');
-        }
-    };
-    interactiveObjects.push(goldenKeyInteractive);
-
-    // Wooden door interactive (opens with golden key)
-    const woodenDoorInteractive = {
-        mesh: woodenDoor,
-        type: 'woodenDoor',
-        id: 'wooden_door',
-        hintText: 'Click to unlock door',
-        onClick: () => {
-            if (!gameState.hasGoldenKey) {
-                showMessage('Door is locked');
-                console.log('Need golden key to unlock wooden door');
-                return;
-            }
-
-            if (!gameState.woodenDoorUnlocked) {
-                gameState.woodenDoorUnlocked = true;
-                showMessage('Door unlocked');
-                console.log('Wooden door unlocked!');
-                // Animate door opening - rotate
-                const doorOpenInterval = setInterval(() => {
-                    woodenDoor.rotation.y -= 0.05; // Rotate door open
-                    if (woodenDoor.rotation.y <= -Math.PI / 2) { // Open 90 degrees
-                        woodenDoor.rotation.y = -Math.PI / 2;
-                        clearInterval(doorOpenInterval);
-                    }
-                }, 16);
-            }
-        }
-    };
-    interactiveObjects.push(woodenDoorInteractive);
-
-    console.log('Industrial Hall scene built');
-}
-
-// ====================================================================
-// BUILD OFFICE FLOOR SCENE (SCENE 2)
-// ====================================================================
-async function buildOfficeFloorScene() {
-    // Load textures
-    const floorTexture = await loadTexture(TEXTURES.scene2_floor, 5, 5);
-    const wallTexture = await loadTexture(TEXTURES.scene1_wall, 3, 3);
-    const furnitureTexture = await loadTexture(TEXTURES.furniture, 1, 1);
-    const keyBoard2Texture = await loadTexture(TEXTURES.keyBoard2, 1, 1);
-    const woodenDoorTexture = await loadTexture(TEXTURES.woodenDoor, 1, 1);
-    const goldenKeyTexture = await loadTexture(TEXTURES.goldenKey, 1, 1);
-    const keyTexture = await loadTexture(TEXTURES.key, 1, 1);
-    const creatureTexture = await loadTexture(TEXTURES.creatureSketch, 1, 1);
-    const profileTexture = await loadTexture(TEXTURES.profileCard, 1, 1);
-    const mapTexture = await loadTexture(TEXTURES.mapItem, 1, 1);
-    const drawerTexture = await loadTexture(TEXTURES.drawer, 1, 1);
-
-    console.log('Scene 2 textures loaded');
-
-    // Room size (same as Scene 1 for consistency)
-    const roomSize = 25;
-    const roomWidth = roomSize;
-    const roomDepth = roomSize;
-    const wallHeight = 6;
-    const halfRoom = roomSize / 2;
-    const halfWidth = halfRoom;
-    const halfDepth = halfRoom;
-
-    // Scene 2 offset - position it right behind Scene 1
-    // Scene 1 ends at z=12.5, Scene 2 back wall should be at z=12.5
-    // Scene 2 center = 12.5 + halfDepth = 25
-    const scene2OffsetZ = 12.5 + halfDepth;
-
-    // Floor
-    const floorGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        map: floorTexture,
-        color: floorTexture ? 0xffffff : 0xff0000,
-        roughness: 0.8,
-        metalness: 0.2,
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.name = 'Scene2_Floor';
-    floor.position.set(0, 0, scene2OffsetZ);
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
-
-    // Wall material
-    const wallMaterial = new THREE.MeshStandardMaterial({
-        map: wallTexture,
-        color: wallTexture ? 0xffffff : 0xff0000,
-        metalness: 0.6,
-        roughness: 0.4,
-        side: THREE.DoubleSide,
-    });
-
-    // Back wall removed - connects to Scene 1 door
-
-    // Front wall (with wooden door gap)
-    // Wooden door is 4 units wide, centered at x=0 (spans -2 to 2)
-    // Left wall: from -12.5 to -2 = 10.5 units
-    // Right wall: from 2 to 12.5 = 10.5 units
-    const frontWallLeft = new THREE.Mesh(
-        new THREE.PlaneGeometry(10.5, wallHeight),
-        wallMaterial
-    );
-    frontWallLeft.name = 'Scene2_FrontWallLeft';
-    frontWallLeft.position.set(-7.25, wallHeight / 2, scene2OffsetZ + halfDepth);
-    frontWallLeft.rotation.y = Math.PI;
-    scene.add(frontWallLeft);
-
-    const frontWallRight = new THREE.Mesh(
-        new THREE.PlaneGeometry(10.5, wallHeight),
-        wallMaterial
-    );
-    frontWallRight.name = 'Scene2_FrontWallRight';
-    frontWallRight.position.set(7.25, wallHeight / 2, scene2OffsetZ + halfDepth);
-    frontWallRight.rotation.y = Math.PI;
-    scene.add(frontWallRight);
-
-    // Left wall
-    const leftWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(roomDepth, wallHeight),
-        wallMaterial
-    );
-    leftWall.name = 'Scene2_LeftWall';
-    leftWall.position.set(-halfWidth, wallHeight / 2, scene2OffsetZ);
-    leftWall.rotation.y = Math.PI / 2;
-    scene.add(leftWall);
-
-    // Right wall
-    const rightWall = new THREE.Mesh(
-        new THREE.PlaneGeometry(roomDepth, wallHeight),
-        wallMaterial
-    );
-    rightWall.name = 'Scene2_RightWall';
-    rightWall.position.set(halfWidth, wallHeight / 2, scene2OffsetZ);
-    rightWall.rotation.y = -Math.PI / 2;
-    scene.add(rightWall);
-
-    // Ceiling
-    const ceilingGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
-    const ceilingMaterial = new THREE.MeshStandardMaterial({
-        map: floorTexture,
-        color: floorTexture ? 0xffffff : 0xff0000,
-        roughness: 0.8,
-        metalness: 0.2,
-    });
-    const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-    ceiling.name = 'Scene2_Ceiling';
-    ceiling.position.set(0, wallHeight, scene2OffsetZ);
-    ceiling.rotation.x = Math.PI / 2;
-    scene.add(ceiling);
-
-    // Lighting: Cool blue laboratory environment (futuristic industrial)
-    const ambientLight = new THREE.AmbientLight(0x3366ff, 0.5); // Cool blue ambient
-    scene.add(ambientLight);
-
-    const mainLight = new THREE.PointLight(0x4488ff, 2.5, 50); // Blue main light
-    mainLight.position.set(0, wallHeight - 1, scene2OffsetZ);
-    scene.add(mainLight);
-
-    // Blue ceiling lights for full coverage
-    const blueCeilingLights = [
-        [-10, wallHeight - 0.5, scene2OffsetZ - 10],
-        [-8, wallHeight - 0.5, scene2OffsetZ - 5],
-        [-5, wallHeight - 0.5, scene2OffsetZ - 8],
-        [0, wallHeight - 0.5, scene2OffsetZ - 10],
-        [5, wallHeight - 0.5, scene2OffsetZ - 5],
-        [8, wallHeight - 0.5, scene2OffsetZ - 8],
-        [10, wallHeight - 0.5, scene2OffsetZ - 10],
-        [-10, wallHeight - 0.5, scene2OffsetZ],
-        [-5, wallHeight - 0.5, scene2OffsetZ + 2],
-        [0, wallHeight - 0.5, scene2OffsetZ],
-        [5, wallHeight - 0.5, scene2OffsetZ - 2],
-        [10, wallHeight - 0.5, scene2OffsetZ],
-        [-10, wallHeight - 0.5, scene2OffsetZ + 10],
-        [-5, wallHeight - 0.5, scene2OffsetZ + 8],
-        [0, wallHeight - 0.5, scene2OffsetZ + 10],
-        [5, wallHeight - 0.5, scene2OffsetZ + 8],
-        [8, wallHeight - 0.5, scene2OffsetZ + 10],
-        [10, wallHeight - 0.5, scene2OffsetZ + 10]
-    ];
-
-    blueCeilingLights.forEach(pos => {
-        const blueCeilingLight = new THREE.PointLight(0x2266ff, 2.0, 16);
-        blueCeilingLight.position.set(pos[0], pos[1], pos[2]);
-        scene.add(blueCeilingLight);
-    });
-
-    // Additional blue area lights
-    const blueAreaLights = [
-        [-8, 3.5, scene2OffsetZ - 8],
-        [8, 3.5, scene2OffsetZ - 8],
-        [-8, 3.5, scene2OffsetZ + 8],
-        [8, 3.5, scene2OffsetZ + 8],
-        [0, 3.5, scene2OffsetZ]
-    ];
-
-    blueAreaLights.forEach(pos => {
-        const blueLight = new THREE.PointLight(0x3388ff, 1.5, 12);
-        blueLight.position.set(pos[0], pos[1], pos[2]);
-        scene.add(blueLight);
-    });
-
-    // Update flashlight color to match blue theme
-    if (flashlight) {
-        flashlight.intensity = 6;
-        flashlight.color.setHex(0x6699ff); // Cool blue flashlight
+        hoveredObject = null;
     }
-
-    // Materials for laboratory furniture using existing textures
-    const labMetalMaterial = new THREE.MeshStandardMaterial({
-        map: furnitureTexture,
-        color: 0xffffff,
-        roughness: 0.5,
-        metalness: 0.7,
-    });
-
-    const wallPanelMaterial = new THREE.MeshStandardMaterial({
-        map: wallTexture,
-        color: 0xffffff,
-        metalness: 0.6,
-        roughness: 0.4,
-    });
-
-    // Single desk with 5 drawers in center of room
-    const deskWidth = 4;
-    const deskHeight = 1.5;
-    const deskDepth = 2.5;
-
-    // Main desk surface
-    const mainDesk = new THREE.Mesh(
-        new THREE.BoxGeometry(deskWidth, deskHeight, deskDepth),
-        labMetalMaterial
-    );
-    mainDesk.name = 'MainDesk';
-    mainDesk.position.set(0, deskHeight / 2, scene2OffsetZ);
-    scene.add(mainDesk);
-
-    // Create 5 drawers - positioned in a row on the desk
-    const drawerWidth = 0.7;
-    const drawerHeight = 0.4;
-    const drawerDepth = 1.5;
-    const drawers = [];
-
-    for (let i = 0; i < 5; i++) {
-        const drawer = new THREE.Mesh(
-            new THREE.BoxGeometry(drawerWidth, drawerHeight, drawerDepth),
-            new THREE.MeshStandardMaterial({
-                map: drawerTexture,
-                color: drawerTexture ? 0xffffff : 0xff0000,
-            })
-        );
-        drawer.name = `Drawer_${i}`;
-        // Position drawers side by side
-        const xPos = -1.6 + i * 0.8; // Spread across desk width
-        drawer.position.set(xPos, 1.0, scene2OffsetZ);
-        drawer.userData.drawerIndex = i;
-        drawer.userData.isOpen = false;
-        drawer.userData.initialZ = scene2OffsetZ;
-        scene.add(drawer);
-        drawers.push(drawer);
-    }
-
-    window.scene2Drawers = drawers;
-
-    // Evidence items: 1 on desk, 2 hidden in drawers
-    const evidenceY = deskHeight + 0.1;
-
-    // Creature sketch - on top of desk (visible)
-    const creatureSketch = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.8, 1.0),
-        new THREE.MeshStandardMaterial({
-            map: creatureTexture,
-            transparent: true,
-        })
-    );
-    creatureSketch.name = 'CreatureSketch';
-    creatureSketch.position.set(0.5, evidenceY, scene2OffsetZ - 0.5);
-    creatureSketch.rotation.x = -Math.PI / 2;
-    scene.add(creatureSketch);
-
-    // Blue flickering glow for creature sketch on desk
-    const creatureGlow = new THREE.PointLight(0x4488ff, 0.8, 6);
-    creatureGlow.position.set(0.5, evidenceY + 0.5, scene2OffsetZ - 0.5);
-    scene.add(creatureGlow);
-    window.creatureGlow = creatureGlow; // Store for flicker animation
-
-    // Profile card - hidden in drawer 1 (index 1)
-    const profileCard = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.7, 1.0),
-        new THREE.MeshStandardMaterial({
-            map: profileTexture,
-            transparent: true,
-        })
-    );
-    profileCard.name = 'ProfileCard';
-    profileCard.position.set(drawers[1].position.x, 1.3, scene2OffsetZ);
-    profileCard.rotation.x = -Math.PI / 2;
-    profileCard.visible = false; // Hidden until drawer opens
-    scene.add(profileCard);
-
-    // Map item - hidden in drawer 3 (index 3)
-    const mapItem = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.9, 0.9),
-        new THREE.MeshStandardMaterial({
-            map: mapTexture,
-            transparent: true,
-        })
-    );
-    mapItem.name = 'MapItem';
-    mapItem.position.set(drawers[3].position.x, 1.3, scene2OffsetZ);
-    mapItem.rotation.x = -Math.PI / 2;
-    mapItem.visible = false; // Hidden until drawer opens
-    scene.add(mapItem);
-
-    // Store which evidence is in which drawer
-    drawers[1].userData.evidence = profileCard;
-    drawers[3].userData.evidence = mapItem;
-
-    // Interactive evidence items
-    const createEvidenceInteractive = (mesh, id, name, textureUrl) => ({
-        mesh,
-        type: 'evidence',
-        id,
-        hintText: `Click to collect ${name}`,
-        onClick: () => {
-            console.log(`Collected evidence: ${id}`);
-            gameState.evidenceCollected.add(id);
-            scene.remove(mesh);
-            interactiveObjects = interactiveObjects.filter(obj => obj.id !== id);
-            updateProgressUI();
-
-            // Add to backpack
-            addEvidenceToBackpack(name, textureUrl);
-            showMessage(`Collected: ${name}`);
-
-            if (gameState.evidenceCollected.size === 3) {
-                console.log('All evidence collected! Golden key is now usable');
-                showMessage('All evidence collected');
-            }
-        }
-    });
-
-    interactiveObjects.push(createEvidenceInteractive(creatureSketch, 'evidence_creature', 'Creature Sketch', TEXTURES.creatureSketch));
-    interactiveObjects.push(createEvidenceInteractive(profileCard, 'evidence_profile', 'Profile Card', TEXTURES.profileCard));
-    interactiveObjects.push(createEvidenceInteractive(mapItem, 'evidence_map', 'Map', TEXTURES.mapItem));
-
-    // Drawer interactives (opens to reveal evidence inside)
-    drawers.forEach((drawer, index) => {
-        const drawerInteractive = {
-            mesh: drawer,
-            type: 'drawer',
-            id: `drawer_${index}`,
-            hintText: 'Click to open drawer',
-            onClick: () => {
-                if (!drawer.userData.isOpen) {
-                    drawer.userData.isOpen = true;
-                    showMessage(`Drawer ${index + 1} opened`);
-                    console.log(`Drawer ${index} opened`);
-
-                    // Animate drawer sliding out
-                    const drawerOpenInterval = setInterval(() => {
-                        drawer.position.z += 0.05; // Slide drawer forward
-                        if (drawer.position.z >= drawer.userData.initialZ + 0.8) {
-                            drawer.position.z = drawer.userData.initialZ + 0.8;
-                            clearInterval(drawerOpenInterval);
-
-                            // Reveal evidence if this drawer contains one
-                            if (drawer.userData.evidence) {
-                                drawer.userData.evidence.visible = true;
-                                drawer.userData.evidence.position.z = drawer.position.z + 0.1;
-                            }
-                        }
-                    }, 16);
-                } else {
-                    showMessage('Drawer already open');
-                }
-            }
-        };
-        interactiveObjects.push(drawerInteractive);
-    });
-
-    // Wooden door moved to Scene 1 (no longer in Scene 2)
-    // Golden key moved to Scene 1 (no longer in Scene 2)
-
-    console.log('Scene 2 - Office Floor scene built with single desk and 5 drawers');
-}
-
-// ====================================================================
-// SCENE TRANSITION
-// ====================================================================
-function cleanupScene1() {
-    // Remove all Scene 1 objects
-    const toRemove = [];
-    scene.traverse((object) => {
-        if (object instanceof THREE.Mesh && !object.name.startsWith('Scene2_')) {
-            toRemove.push(object);
-        }
-    });
-
-    toRemove.forEach(obj => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-            if (obj.material.map) obj.material.map.dispose();
-            obj.material.dispose();
-        }
-        scene.remove(obj);
-    });
-
-    // Clear Scene 1 lights
-    const lights = scene.children.filter(child =>
-        child instanceof THREE.Light &&
-        !(child === flashlight)
-    );
-    lights.forEach(light => scene.remove(light));
-
-    // Clear alarm lights
-    alarmLights = [];
-    window.mainRedLights = null;
-    window.gameDoor = null;
-
-    console.log('Scene 1 cleaned up');
-}
-
-async function transitionToScene2() {
-    console.log('Starting transition to Scene 2');
-
-    // Clean up Scene 1
-    cleanupScene1();
-
-    // Reset interactive objects (keep only flashlight-related)
-    interactiveObjects = [];
-
-    // Reset player position for Scene 2 (start at back of room)
-    camera.position.set(0, PLAYER_HEIGHT, -15);
-    cameraRotation.yaw = 0;
-    cameraRotation.pitch = 0;
-
-    // Update game state
-    gameState.currentScene = 'officeFloor';
-
-    // Build Scene 2
-    await buildOfficeFloorScene();
-
-    // Show progress UI
-    updateProgressUI();
-
-    console.log('Transition to Scene 2 complete');
-}
-
-// ====================================================================
-// PROGRESS UI (ICONS ONLY)
-// ====================================================================
-function updateProgressUI() {
-    const progressDiv = document.getElementById('progress-indicator');
-    if (!progressDiv) return;
-
-    const collected = gameState.evidenceCollected.size;
-    progressDiv.textContent = `${collected}/3`;
-    progressDiv.style.display = 'block';
-}
-
-// ====================================================================
-// BACKPACK EVIDENCE SYSTEM
-// ====================================================================
-function addEvidenceToBackpack(evidenceName, evidenceTexture) {
-    const backpackContents = document.getElementById('backpack-contents');
-    if (!backpackContents) return;
-
-    // Create evidence item element
-    const evidenceItem = document.createElement('div');
-    evidenceItem.style.cssText = `
-        background: rgba(255, 170, 0, 0.2);
-        border: 2px solid #ffaa00;
-        border-radius: 8px;
-        padding: 10px;
-        color: #ffaa00;
-        font-family: monospace;
-        font-size: 14px;
-        text-align: center;
-        cursor: pointer;
-        transition: background 0.3s;
-    `;
-    evidenceItem.textContent = evidenceName;
-    evidenceItem.setAttribute('data-texture', evidenceTexture);
-
-    // Hover effects
-    evidenceItem.addEventListener('mouseenter', () => {
-        evidenceItem.style.background = 'rgba(255, 170, 0, 0.4)';
-    });
-    evidenceItem.addEventListener('mouseleave', () => {
-        evidenceItem.style.background = 'rgba(255, 170, 0, 0.2)';
-    });
-
-    backpackContents.appendChild(evidenceItem);
-}
-
-// ====================================================================
-// FURNITURE COLLISION DETECTION
-// ====================================================================
-function checkFurnitureCollision(position) {
-    // Scene 2 offset - same as in buildOfficeFloorScene (room size 25x25)
-    const scene2OffsetZ = 12.5 + 12.5; // 25
-
-    // Single desk collision (4 units wide, 2.5 units deep, centered at origin)
-    const deskX = 0;
-    const deskZ = scene2OffsetZ;
-    const deskHalfWidth = 4 / 2 + 0.5; // desk width / 2 + margin
-    const deskHalfDepth = 2.5 / 2 + 0.5; // desk depth / 2 + margin
-
-    if (position.x > deskX - deskHalfWidth && position.x < deskX + deskHalfWidth &&
-        position.z > deskZ - deskHalfDepth && position.z < deskZ + deskHalfDepth) {
-        return true;
-    }
-
-    return false;
-}
-
-// ====================================================================
-// UPDATE FUNCTION
-// ====================================================================
-function update(delta) {
-    if (!controls.isLocked) return;
-
-    // Update flashlight to follow camera
-    if (flashlight) {
-        flashlight.position.copy(camera.position);
-
-        // Point flashlight in camera direction
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction);
-        const targetPosition = camera.position.clone().add(direction.multiplyScalar(5));
-        flashlight.target.position.copy(targetPosition);
-    }
-
-    // Apply camera rotation from mouse drag
-    camera.rotation.order = 'YXZ';
-    camera.rotation.y = cameraRotation.yaw;
-    camera.rotation.x = cameraRotation.pitch;
-
-    // Movement
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
-
-    direction.z = Number(moveBackward) - Number(moveForward);
-    direction.x = Number(moveLeft) - Number(moveRight);
-    direction.normalize();
-
-    if (moveForward || moveBackward) {
-        velocity.z -= direction.z * PLAYER_SPEED * delta;
-    }
-    if (moveLeft || moveRight) {
-        velocity.x -= direction.x * PLAYER_SPEED * delta;
-    }
-
-    // Calculate movement direction based on camera yaw
-    const moveX = -velocity.x * Math.cos(cameraRotation.yaw) + velocity.z * Math.sin(cameraRotation.yaw);
-    const moveZ = -velocity.x * Math.sin(cameraRotation.yaw) - velocity.z * Math.cos(cameraRotation.yaw);
-
-    const prevPosition = camera.position.clone();
-    camera.position.x += moveX * delta;
-    camera.position.z += moveZ * delta;
-
-    // Collision detection - both rooms connected
-    let hitWall = false;
-    let doorBlocked = false;
-
-    // Scene 1 boundaries (z: -12.5 to 12.5, x: -12.5 to 12.5)
-    // Scene 2 boundaries (z: 12.5 to 37.5, x: -12.5 to 12.5) - Same size as Scene 1
-
-    const inScene1 = camera.position.z < 12.5;
-    const inScene2 = camera.position.z >= 12.5;
-
-    if (inScene1) {
-        // Scene 1 collision
-        hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11;
-
-        // Check if trying to go through Scene 1 door
-        const atDoorWall = camera.position.z > 12 && camera.position.z < 13;
-        const inDoorArea = camera.position.x > -2 && camera.position.x < 2;
-        doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
-    } else if (inScene2) {
-        // Scene 2 collision (same size room as Scene 1: 25x25)
-        const scene2End = 12.5 + 25; // 37.5
-        hitWall = camera.position.x < -11 || camera.position.x > 11;
-
-        // Check wooden door collision - allow free movement up to door area
-        // Only block passage beyond the door (when door is locked)
-        const beyondDoor = camera.position.z > scene2End;
-        const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
-        doorBlocked = beyondDoor && (!gameState.woodenDoorUnlocked || !inWoodenDoorArea);
-
-        // Collision with desks and furniture
-        const furnitureCollision = checkFurnitureCollision(camera.position);
-        if (furnitureCollision) {
-            camera.position.copy(prevPosition);
-            return;
-        }
-    }
-
-    if (hitWall || doorBlocked) {
-        camera.position.copy(prevPosition);
-    }
-
-    // Keep player at correct height
-    camera.position.y = PLAYER_HEIGHT;
-
-    // Raycasting for interactive objects
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(
-        interactiveObjects.map(obj => obj.mesh)
-    );
 
     if (intersects.length > 0) {
-        const intersectedMesh = intersects[0].object;
-        const interactiveObj = interactiveObjects.find(
-            obj => obj.mesh === intersectedMesh
-        );
-
-        if (interactiveObj) {
-            currentHoveredObject = interactiveObj;
-        } else {
-            currentHoveredObject = null;
+        const object = intersects[0].object;
+        if (object.userData.isInteractive) {
+            hoveredObject = object;
+            if (!hoveredObject.userData.originalEmissive) {
+                hoveredObject.userData.originalEmissive = hoveredObject.material.emissive.clone();
+            }
+            hoveredObject.material.emissive.setHex(0x333333);
         }
-    } else {
-        currentHoveredObject = null;
     }
+});
 
-    // Door animation (slide to the right)
-    if (doorAnimating && window.gameDoor) {
-        doorPosition += DOOR_ANIMATION_SPEED * delta;
-        if (doorPosition >= DOOR_TARGET_POSITION) {
-            doorPosition = DOOR_TARGET_POSITION;
-            doorAnimating = false;
-            console.log('Door animation complete! Final position:', doorPosition);
-        }
-        window.gameDoor.position.x = doorPosition;
-    }
+const backpackIcon = document.getElementById('backpack-icon');
+const backpackPanel = document.getElementById('backpack-panel');
 
-    // Animation timer for effects
-    const time = clock.getElapsedTime();
+backpackIcon.addEventListener('click', () => {
+    backpackPanel.style.display = backpackPanel.style.display === 'none' ? 'block' : 'none';
+});
 
-    // Evidence indicator light - flickering blue glow for creature sketch on desk
-    if (window.creatureGlow && !gameState.evidenceCollected.has('evidence_creature')) {
-        const flicker1 = Math.sin(time * 3 + 0.5) * 0.2 + 0.6;
-        window.creatureGlow.intensity = flicker1;
+function updateBackpack() {
+    const content = document.getElementById('backpack-content');
+    content.innerHTML = '';
+
+    if (inventory.hasCard) {
+        const cardItem = document.createElement('div');
+        cardItem.className = 'backpack-item';
+        cardItem.style.backgroundImage = `url('https://raw.githubusercontent.com/zymselina1116-bit/explore1/c047a4d3a7c936d4139a67e599e3b2e9bf8d72e0/Screenshot_2025-11-17_at_12.30.02-removebg-preview%20(1).png')`;
+        content.appendChild(cardItem);
     }
 }
 
-// ====================================================================
-// ANIMATION LOOP
-// ====================================================================
+const clock = new THREE.Clock();
+
 function animate() {
     requestAnimationFrame(animate);
 
     const delta = clock.getDelta();
-    update(delta);
+
+    const time = performance.now() * 0.001;
+    redLight1.intensity = 2 + Math.sin(time * 2) * 0.5;
+    redLight2.intensity = 2 + Math.sin(time * 2 + Math.PI) * 0.5;
+
+    if (doorAnimation.opening) {
+        doorAnimation.progress += delta * 0.8;
+        if (doorAnimation.progress >= 1) {
+            doorAnimation.progress = 1;
+            doorAnimation.opening = false;
+        }
+        metalDoor.position.x = -doorAnimation.progress * 1.5;
+    }
+
+    velocity.x = 0;
+    velocity.z = 0;
+
+    direction.z = Number(moveState.s) - Number(moveState.w);
+    direction.x = Number(moveState.d) - Number(moveState.a);
+    direction.normalize();
+
+    const speed = 3;
+
+    if (moveState.w || moveState.s) velocity.z = direction.z * speed * delta;
+    if (moveState.a || moveState.d) velocity.x = direction.x * speed * delta;
+
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    euler.setFromQuaternion(camera.quaternion);
+
+    const forward = new THREE.Vector3(0, 0, -1).applyEuler(euler);
+    const right = new THREE.Vector3(1, 0, 0).applyEuler(euler);
+
+    const moveVector = new THREE.Vector3();
+    moveVector.addScaledVector(forward, velocity.z);
+    moveVector.addScaledVector(right, velocity.x);
+
+    const newPosition = camera.position.clone().add(moveVector);
+    const playerBox = new THREE.Box3().setFromCenterAndSize(
+        new THREE.Vector3(newPosition.x, camera.position.y, newPosition.z),
+        new THREE.Vector3(0.5, 1.7, 0.5)
+    );
+
+    let collision = false;
+    for (const obj of collisionObjects) {
+        if (obj.disabled) continue;
+        if (playerBox.intersectsBox(obj.box)) {
+            collision = true;
+            break;
+        }
+    }
+
+    if (!collision) {
+        camera.position.add(moveVector);
+    }
 
     renderer.render(scene, camera);
 }
 
-// ====================================================================
-// START
-// ====================================================================
-console.log('Game script loading...');
-init().catch(error => {
-    console.error('Failed to initialize game:', error);
-    document.body.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error.message}</div>`;
+animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
