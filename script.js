@@ -295,8 +295,8 @@ worldObjects.push(woodenDoorCollider);
 
 // Garden trigger zone (invisible, behind wooden door)
 const gardenTrigger = new THREE.Box3(
-    new THREE.Vector3(-roomSize / 2 - 3, 0, -2),
-    new THREE.Vector3(-roomSize / 2 - 1.5, 5, 2)
+    new THREE.Vector3(-roomSize / 2 - 5, 0, -2),
+    new THREE.Vector3(-roomSize / 2 - 3.5, 5, 2)
 );
 
 // Mailbox (cylinder with postbox texture)
@@ -1100,14 +1100,14 @@ function onClick(event) {
                 obj.userData.closed = false;
                 console.log('Wooden door opening');
 
-                // Rotate door open smoothly around left hinge
-                const targetRotation = obj.rotation.y + Math.PI / 2;
+                // Slide door open along Z-axis
+                const targetZ = obj.position.z + 4.5;
                 const openAnim = setInterval(() => {
-                    obj.rotation.y += 0.05;
+                    obj.position.z += 0.1;
 
-                    if (obj.rotation.y >= targetRotation) {
+                    if (obj.position.z >= targetZ) {
                         clearInterval(openAnim);
-                        obj.rotation.y = targetRotation;
+                        obj.position.z = targetZ;
 
                         // Remove collider so player can walk through
                         const collider = worldObjects.find(w => w.userData.woodenDoorCollider && w.userData.door === obj);
