@@ -440,12 +440,12 @@ const blueLight4 = new THREE.PointLight(0x4488ff, 3, 20);
 blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
 scene.add(blueLight4);
 
-// LAB CYLINDERS - 2 futuristic glass tanks
+// LAB CYLINDERS - 4 futuristic glass tanks with varying sizes
 const cylinders = [];
 
-// Cylinder 1 - Back corner
-const cyl1Height = 5;
-const cyl1Radius = 0.6;
+// Cylinder 1 - Tall, thin
+const cyl1Height = 4.5;
+const cyl1Radius = 0.4;
 const cylinder1Group = new THREE.Group();
 
 // Glass shell
@@ -507,9 +507,9 @@ cylinder1Group.userData.radius = cyl1Radius;
 scene.add(cylinder1Group);
 cylinders.push(cylinder1Group);
 
-// Cylinder 2 - Front corner
-const cyl2Height = 5;
-const cyl2Radius = 0.7;
+// Cylinder 2 - Shorter, very thick
+const cyl2Height = 3.5;
+const cyl2Radius = 1.0;
 const cylinder2Group = new THREE.Group();
 
 // Glass shell
@@ -571,9 +571,9 @@ cylinder2Group.userData.radius = cyl2Radius;
 scene.add(cylinder2Group);
 cylinders.push(cylinder2Group);
 
-// Cylinder 3 - Left back corner
-const cyl3Height = 5;
-const cyl3Radius = 0.5;
+// Cylinder 3 - Medium height, medium thickness
+const cyl3Height = 4.0;
+const cyl3Radius = 0.6;
 const cylinder3Group = new THREE.Group();
 
 const glass3 = new THREE.Mesh(
@@ -631,9 +631,9 @@ cylinder3Group.userData.radius = cyl3Radius;
 scene.add(cylinder3Group);
 cylinders.push(cylinder3Group);
 
-// Cylinder 4 - Left front area
-const cyl4Height = 5;
-const cyl4Radius = 0.65;
+// Cylinder 4 - Tall and wide (largest)
+const cyl4Height = 4.8;
+const cyl4Radius = 0.85;
 const cylinder4Group = new THREE.Group();
 
 const glass4 = new THREE.Mesh(
@@ -690,66 +690,6 @@ cylinder4Group.userData.height = cyl4Height;
 cylinder4Group.userData.radius = cyl4Radius;
 scene.add(cylinder4Group);
 cylinders.push(cylinder4Group);
-
-// Cylinder 5 - Center
-const cyl5Height = 5;
-const cyl5Radius = 0.55;
-const cylinder5Group = new THREE.Group();
-
-const glass5 = new THREE.Mesh(
-    new THREE.CylinderGeometry(cyl5Radius, cyl5Radius, cyl5Height, 32),
-    new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.15,
-        metalness: 0.9,
-        roughness: 0.05
-    })
-);
-glass5.position.y = cyl5Height / 2;
-cylinder5Group.add(glass5);
-
-const liquid5 = new THREE.Mesh(
-    new THREE.CylinderGeometry(cyl5Radius * 0.85, cyl5Radius * 0.85, cyl5Height * 0.9, 32),
-    new THREE.MeshStandardMaterial({
-        emissive: 0x00ff55,
-        emissiveIntensity: 2.2,
-        color: 0x00ff55,
-        transparent: true,
-        opacity: 0.85
-    })
-);
-liquid5.position.y = cyl5Height / 2;
-cylinder5Group.add(liquid5);
-
-const greenLight5 = new THREE.PointLight(0x00ff55, 1.5, 10);
-greenLight5.position.y = cyl5Height / 2;
-cylinder5Group.add(greenLight5);
-
-const bubbles5 = [];
-for (let i = 0; i < 6; i++) {
-    const bubble = new THREE.Mesh(
-        new THREE.SphereGeometry(0.04, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xccffcc, transparent: true, opacity: 0.5 })
-    );
-    bubble.position.set(
-        (Math.random() - 0.5) * cyl5Radius * 1.2,
-        Math.random() * cyl5Height,
-        (Math.random() - 0.5) * cyl5Radius * 1.2
-    );
-    bubble.userData.speed = 0.01 + Math.random() * 0.01;
-    bubble.userData.resetY = Math.random() * 0.5;
-    bubbles5.push(bubble);
-    cylinder5Group.add(bubble);
-}
-
-cylinder5Group.position.set(room2Offset, 0, 0);
-cylinder5Group.userData.liquid = liquid5;
-cylinder5Group.userData.bubbles = bubbles5;
-cylinder5Group.userData.height = cyl5Height;
-cylinder5Group.userData.radius = cyl5Radius;
-scene.add(cylinder5Group);
-cylinders.push(cylinder5Group);
 
 // Laboratory desk (larger)
 const labDesk = new THREE.Mesh(
