@@ -75,8 +75,7 @@
             floor: loadTexture('Screenshot 2025-11-16 at 22.51.42.png'),
             door: loadTexture('Screenshot 2025-11-16 at 22.54.35.png'),
             woodenDoor: loadTexture('870c5435ceffda4aa972afb3244c2eca-removebg-preview.png'),
-            decorativeKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
-            randomKey: loadTexture('Screenshot 2025-11-16 at 23.32.05.png'),
+            randomKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
             card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
             cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png'),
             goldenKey: loadTexture('70dc331664376a64a8050baa7c7744a6-removebg-preview.png'),
@@ -133,7 +132,7 @@
         scene.add(wallWest);
         worldObjects.push(wallWest);
 
-        // East wall with doorway opening (two wall segments)
+        // East wall with doorway opening (exact size as door: 2m wide x 4m tall)
         const eastWallTop = new THREE.Mesh(
             new THREE.PlaneGeometry(roomSize, 1),
             new THREE.MeshStandardMaterial({ map: textures.wall })
@@ -144,19 +143,19 @@
         worldObjects.push(eastWallTop);
 
         const eastWallNorth = new THREE.Mesh(
-            new THREE.PlaneGeometry(5.5, wallHeight),
+            new THREE.PlaneGeometry(6.5, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -5.25);
+        eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -4.25);
         eastWallNorth.rotation.y = -Math.PI / 2;
         scene.add(eastWallNorth);
         worldObjects.push(eastWallNorth);
 
         const eastWallSouth = new THREE.Mesh(
-            new THREE.PlaneGeometry(5.5, wallHeight),
+            new THREE.PlaneGeometry(6.5, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 5.25);
+        eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 4.25);
         eastWallSouth.rotation.y = -Math.PI / 2;
         scene.add(eastWallSouth);
         worldObjects.push(eastWallSouth);
@@ -363,7 +362,7 @@
         scene.add(room2WallEast);
         worldObjects.push(room2WallEast);
 
-        // Room 2 west wall with doorway opening (matching Room 1's east wall)
+        // Room 2 west wall with doorway opening (exact match to Room 1's east wall)
         const room2WestWallTop = new THREE.Mesh(
             new THREE.PlaneGeometry(roomSize, 1),
             new THREE.MeshStandardMaterial({ map: textures.wall })
@@ -374,19 +373,19 @@
         worldObjects.push(room2WestWallTop);
 
         const room2WestWallNorth = new THREE.Mesh(
-            new THREE.PlaneGeometry(5.5, wallHeight),
+            new THREE.PlaneGeometry(6.5, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        room2WestWallNorth.position.set(room2Offset - roomSize / 2, wallHeight / 2, -5.25);
+        room2WestWallNorth.position.set(room2Offset - roomSize / 2, wallHeight / 2, -4.25);
         room2WestWallNorth.rotation.y = Math.PI / 2;
         scene.add(room2WestWallNorth);
         worldObjects.push(room2WestWallNorth);
 
         const room2WestWallSouth = new THREE.Mesh(
-            new THREE.PlaneGeometry(5.5, wallHeight),
+            new THREE.PlaneGeometry(6.5, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        room2WestWallSouth.position.set(room2Offset - roomSize / 2, wallHeight / 2, 5.25);
+        room2WestWallSouth.position.set(room2Offset - roomSize / 2, wallHeight / 2, 4.25);
         room2WestWallSouth.rotation.y = Math.PI / 2;
         scene.add(room2WestWallSouth);
         worldObjects.push(room2WestWallSouth);
