@@ -391,50 +391,72 @@ const gardenTrigger = new THREE.Box3(
     new THREE.Vector3(-roomSize / 2 - 0.5, 5, 2)
 );
 
-// Mailbox (cylinder with postbox texture)
+// Mailbox (industrial rectangular postbox)
 const mailboxGroup = new THREE.Group();
 mailboxGroup.position.set(3, 1.25, -5);
 
-// Main cylinder
-const mailboxCylinder = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.3, 2.5, 32),
+// Main rectangular body - dark industrial metal
+const mailboxBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 3.0, 0.7),
     new THREE.MeshStandardMaterial({
         map: textures.postbox,
-        metalness: 0.3,
-        roughness: 0.7,
+        metalness: 0.85,
+        roughness: 0.35,
         color: 0xff4444 // Red tint to reflect room lighting
     })
 );
-mailboxGroup.add(mailboxCylinder);
+mailboxBody.position.y = 0.25; // Center the 3m tall box
+mailboxGroup.add(mailboxBody);
 
-// Create "POSTBOX" text using canvas
-const canvas = document.createElement('canvas');
-canvas.width = 512;
-canvas.height = 128;
-const ctx = canvas.getContext('2d');
-ctx.fillStyle = '#ffffff';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#000000';
-ctx.font = 'bold 80px Arial';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText('POSTBOX', canvas.width / 2, canvas.height / 2);
-
-const textTexture = new THREE.CanvasTexture(canvas);
-const textPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5, 0.12),
-    new THREE.MeshStandardMaterial({ map: textTexture, transparent: true })
+// Realistic carved mail slot - inward opening
+const slotDepth = 0.1;
+const slotOuter = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.12, slotDepth),
+    new THREE.MeshStandardMaterial({
+        color: 0x0a0a0a,
+        metalness: 0.9,
+        roughness: 0.2
+    })
 );
-textPlane.position.set(0, 0.5, 0.31);
-mailboxGroup.add(textPlane);
+slotOuter.position.set(0, 0.3, 0.35 - slotDepth / 2);
+mailboxGroup.add(slotOuter);
 
-// Mail slot (black thin rectangle)
-const mailSlot = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.3, 0.05),
-    new THREE.MeshStandardMaterial({ color: 0x000000 })
-);
-mailSlot.position.set(0, 0.2, 0.31);
-mailboxGroup.add(mailSlot);
+// Engraved "POSTBOX" text - carved into metal surface
+const engravingGroup = new THREE.Group();
+const letters = ['P', 'O', 'S', 'T', 'B', 'O', 'X'];
+const letterSpacing = 0.08;
+const totalWidth = letters.length * letterSpacing;
+const startX = -totalWidth / 2 + letterSpacing / 2;
+
+letters.forEach((letter, i) => {
+    // Create carved letter using canvas
+    const letterCanvas = document.createElement('canvas');
+    letterCanvas.width = 64;
+    letterCanvas.height = 64;
+    const letterCtx = letterCanvas.getContext('2d');
+    letterCtx.fillStyle = '#000000';
+    letterCtx.fillRect(0, 0, 64, 64);
+    letterCtx.fillStyle = '#333333';
+    letterCtx.font = 'bold 48px Arial';
+    letterCtx.textAlign = 'center';
+    letterCtx.textBaseline = 'middle';
+    letterCtx.fillText(letter, 32, 32);
+
+    const letterTexture = new THREE.CanvasTexture(letterCanvas);
+    const letterPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.07, 0.1),
+        new THREE.MeshStandardMaterial({
+            map: letterTexture,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0x111111
+        })
+    );
+    letterPlane.position.set(startX + i * letterSpacing, 0.6, 0.31);
+    engravingGroup.add(letterPlane);
+});
+
+mailboxGroup.add(engravingGroup);
 
 scene.add(mailboxGroup);
 mailboxGroup.userData.isMailbox = true;
