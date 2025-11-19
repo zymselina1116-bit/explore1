@@ -1513,17 +1513,26 @@ function animate() {
     flashlightTarget.position.copy(camera.position).add(flashlightDirection);
 
     const speed = 0.1;
+
+    // Get camera forward direction (projected onto horizontal plane)
+    const forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+
+    // Get right direction (perpendicular to forward)
+    const right = new THREE.Vector3();
+    right.copy(forward).cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+    // Build movement vector from input
     const moveDir = new THREE.Vector3();
 
-    if (moveState.forward) moveDir.z += 1;
-    if (moveState.backward) moveDir.z -= 1;
-    if (moveState.left) moveDir.x += 1;
-    if (moveState.right) moveDir.x -= 1;
+    if (moveState.forward) moveDir.add(forward);
+    if (moveState.backward) moveDir.sub(forward);
+    if (moveState.left) moveDir.sub(right);
+    if (moveState.right) moveDir.add(right);
 
     if (moveDir.length() > 0) {
-        moveDir.normalize();
-        moveDir.applyQuaternion(camera.quaternion);
-        moveDir.y = 0;
         moveDir.normalize();
 
         const newPos = camera.position.clone().add(moveDir.multiplyScalar(speed));
