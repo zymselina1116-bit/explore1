@@ -422,6 +422,137 @@
         blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
         scene.add(blueLight4);
 
+        // LAB CYLINDERS - 2 futuristic glass tanks
+        const cylinders = [];
+
+        // Cylinder 1 - Back corner
+        const cyl1Height = 3.5;
+        const cyl1Radius = 0.6;
+        const cylinder1Group = new THREE.Group();
+
+        // Glass shell
+        const glass1 = new THREE.Mesh(
+            new THREE.CylinderGeometry(cyl1Radius, cyl1Radius, cyl1Height, 32),
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.15,
+                metalness: 0.9,
+                roughness: 0.05
+            })
+        );
+        glass1.position.y = cyl1Height / 2;
+        cylinder1Group.add(glass1);
+
+        // Liquid core
+        const liquid1 = new THREE.Mesh(
+            new THREE.CylinderGeometry(cyl1Radius * 0.85, cyl1Radius * 0.85, cyl1Height * 0.9, 32),
+            new THREE.MeshStandardMaterial({
+                emissive: 0x00ff55,
+                emissiveIntensity: 2.2,
+                color: 0x00ff55,
+                transparent: true,
+                opacity: 0.85
+            })
+        );
+        liquid1.position.y = cyl1Height / 2;
+        cylinder1Group.add(liquid1);
+
+        // Green light
+        const greenLight1 = new THREE.PointLight(0x00ff55, 1.5, 10);
+        greenLight1.position.y = cyl1Height / 2;
+        cylinder1Group.add(greenLight1);
+
+        // Bubbles for cylinder 1
+        const bubbles1 = [];
+        for (let i = 0; i < 6; i++) {
+            const bubble = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xccffcc, transparent: true, opacity: 0.5 })
+            );
+            bubble.position.set(
+                (Math.random() - 0.5) * cyl1Radius * 1.2,
+                Math.random() * cyl1Height,
+                (Math.random() - 0.5) * cyl1Radius * 1.2
+            );
+            bubble.userData.speed = 0.01 + Math.random() * 0.01;
+            bubble.userData.resetY = Math.random() * 0.5;
+            bubbles1.push(bubble);
+            cylinder1Group.add(bubble);
+        }
+
+        cylinder1Group.position.set(room2Offset + 5, 0, -5);
+        cylinder1Group.userData.liquid = liquid1;
+        cylinder1Group.userData.bubbles = bubbles1;
+        cylinder1Group.userData.height = cyl1Height;
+        cylinder1Group.userData.radius = cyl1Radius;
+        scene.add(cylinder1Group);
+        cylinders.push(cylinder1Group);
+
+        // Cylinder 2 - Front corner
+        const cyl2Height = 4;
+        const cyl2Radius = 0.7;
+        const cylinder2Group = new THREE.Group();
+
+        // Glass shell
+        const glass2 = new THREE.Mesh(
+            new THREE.CylinderGeometry(cyl2Radius, cyl2Radius, cyl2Height, 32),
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.15,
+                metalness: 0.9,
+                roughness: 0.05
+            })
+        );
+        glass2.position.y = cyl2Height / 2;
+        cylinder2Group.add(glass2);
+
+        // Liquid core
+        const liquid2 = new THREE.Mesh(
+            new THREE.CylinderGeometry(cyl2Radius * 0.85, cyl2Radius * 0.85, cyl2Height * 0.9, 32),
+            new THREE.MeshStandardMaterial({
+                emissive: 0x00ff55,
+                emissiveIntensity: 2.2,
+                color: 0x00ff55,
+                transparent: true,
+                opacity: 0.85
+            })
+        );
+        liquid2.position.y = cyl2Height / 2;
+        cylinder2Group.add(liquid2);
+
+        // Green light
+        const greenLight2 = new THREE.PointLight(0x00ff55, 1.5, 10);
+        greenLight2.position.y = cyl2Height / 2;
+        cylinder2Group.add(greenLight2);
+
+        // Bubbles for cylinder 2
+        const bubbles2 = [];
+        for (let i = 0; i < 6; i++) {
+            const bubble = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xccffcc, transparent: true, opacity: 0.5 })
+            );
+            bubble.position.set(
+                (Math.random() - 0.5) * cyl2Radius * 1.2,
+                Math.random() * cyl2Height,
+                (Math.random() - 0.5) * cyl2Radius * 1.2
+            );
+            bubble.userData.speed = 0.01 + Math.random() * 0.01;
+            bubble.userData.resetY = Math.random() * 0.5;
+            bubbles2.push(bubble);
+            cylinder2Group.add(bubble);
+        }
+
+        cylinder2Group.position.set(room2Offset + 5, 0, 5);
+        cylinder2Group.userData.liquid = liquid2;
+        cylinder2Group.userData.bubbles = bubbles2;
+        cylinder2Group.userData.height = cyl2Height;
+        cylinder2Group.userData.radius = cyl2Radius;
+        scene.add(cylinder2Group);
+        cylinders.push(cylinder2Group);
+
         // Laboratory desk (larger)
         const labDesk = new THREE.Mesh(
             new THREE.BoxGeometry(2.5, 1.2, 1.5),
@@ -709,6 +840,34 @@
                     const strobe = Math.floor(time * 0.01) % 2 === 0 ? 1 : 0.3;
                     child.intensity = child.userData.baseIntensity * strobe + flicker + flash;
                 }
+            });
+
+            // Animate cylinders
+            cylinders.forEach((cyl, idx) => {
+                const liquid = cyl.userData.liquid;
+                const bubbles = cyl.userData.bubbles;
+                const height = cyl.userData.height;
+                const radius = cyl.userData.radius;
+
+                // Swirling liquid rotation
+                liquid.rotation.y += 0.0004;
+
+                // Gentle wobble
+                const wobbleSpeed = 0.0008 + idx * 0.0002;
+                liquid.position.x = Math.sin(time * wobbleSpeed) * 0.015;
+                liquid.position.z = Math.cos(time * wobbleSpeed) * 0.015;
+
+                // Animate bubbles rising
+                bubbles.forEach(bubble => {
+                    bubble.position.y += bubble.userData.speed;
+
+                    // Reset bubble at top
+                    if (bubble.position.y > height) {
+                        bubble.position.y = bubble.userData.resetY;
+                        bubble.position.x = (Math.random() - 0.5) * radius * 1.2;
+                        bubble.position.z = (Math.random() - 0.5) * radius * 1.2;
+                    }
+                });
             });
 
             renderer.render(scene, camera);
