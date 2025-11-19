@@ -98,7 +98,7 @@ wallWest.rotation.y = Math.PI / 2;
 scene.add(wallWest);
 worldObjects.push(wallWest);
 
-// East wall with doorway opening (completely open - no wall segments in door area)
+// East wall with doorway opening (exact 3m opening matching door)
 const eastWallTop = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, 0.5),
     new THREE.MeshStandardMaterial({ map: textures.wall })
@@ -109,19 +109,19 @@ scene.add(eastWallTop);
 // NOT added to worldObjects - purely visual, no collision
 
 const eastWallNorth = new THREE.Mesh(
-    new THREE.PlaneGeometry(4, wallHeight),
+    new THREE.PlaneGeometry(6, wallHeight),
     new THREE.MeshStandardMaterial({ map: textures.wall })
 );
-eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -5.5);
+eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -4.5);
 eastWallNorth.rotation.y = -Math.PI / 2;
 scene.add(eastWallNorth);
 worldObjects.push(eastWallNorth);
 
 const eastWallSouth = new THREE.Mesh(
-    new THREE.PlaneGeometry(4, wallHeight),
+    new THREE.PlaneGeometry(6, wallHeight),
     new THREE.MeshStandardMaterial({ map: textures.wall })
 );
-eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 5.5);
+eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 4.5);
 eastWallSouth.rotation.y = -Math.PI / 2;
 scene.add(eastWallSouth);
 worldObjects.push(eastWallSouth);
