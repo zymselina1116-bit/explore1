@@ -195,7 +195,7 @@ const keyPositions = [
 ];
 keyPositions.forEach(pos => {
     const decorKey = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.12, 0.12),
+        new THREE.PlaneGeometry(0.5, 0.5),
         new THREE.MeshStandardMaterial({ map: textures.randomKey, transparent: true })
     );
     decorKey.position.set(pos.x, pos.y, -roomSize / 2 + 0.06);
@@ -205,7 +205,7 @@ keyPositions.forEach(pos => {
 
 // Collectible card on key board (NORTH wall)
 const collectibleCard = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.3, 0.4),
+    new THREE.PlaneGeometry(0.5, 0.5),
     new THREE.MeshStandardMaterial({ map: textures.card, transparent: true })
 );
 collectibleCard.position.set(-0.6, 2.3, -roomSize / 2 + 0.07);
@@ -218,7 +218,7 @@ interactiveObjects.push(collectibleCard);
 
 // Golden key on key board (collectible)
 const goldenKey = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.4, 0.3),
+    new THREE.PlaneGeometry(0.5, 0.5),
     new THREE.MeshStandardMaterial({ map: textures.goldenKey, transparent: true })
 );
 goldenKey.position.set(0.6, 2.3, -roomSize / 2 + 0.07);
