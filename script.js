@@ -1,6 +1,8 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 
+console.log('Script loaded, THREE version:', THREE.REVISION);
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -16,6 +18,13 @@ scene.background = new THREE.Color(0x000000);
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
+
+const testCube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+);
+testCube.position.set(0, 2.5, -3);
+scene.add(testCube);
 
 const textureLoader = new THREE.TextureLoader();
 const inventory = [];
@@ -33,7 +42,12 @@ const direction = new THREE.Vector3();
 const moveState = { forward: false, backward: false, left: false, right: false };
 
 function loadTexture(path) {
-    const texture = textureLoader.load(path);
+    const texture = textureLoader.load(
+        path,
+        () => console.log('Loaded:', path),
+        undefined,
+        (err) => console.error('Error loading:', path, err)
+    );
     texture.encoding = THREE.sRGBEncoding;
     return texture;
 }
@@ -739,4 +753,5 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+console.log('Starting animation loop');
 animate();
