@@ -293,12 +293,6 @@ woodenDoorCollider.userData.woodenDoorCollider = true;
 woodenDoorCollider.userData.door = woodenDoor;
 worldObjects.push(woodenDoorCollider);
 
-// Garden trigger zone (invisible, behind wooden door)
-const gardenTrigger = new THREE.Box3(
-    new THREE.Vector3(-roomSize / 2 - 5, 0, -2),
-    new THREE.Vector3(-roomSize / 2 - 3.5, 5, 2)
-);
-
 // Mailbox (cylinder with postbox texture)
 const mailboxGroup = new THREE.Group();
 mailboxGroup.position.set(3, 1.25, -5);
@@ -1115,7 +1109,10 @@ function onClick(event) {
                             worldObjects.splice(worldObjects.indexOf(collider), 1);
                             scene.remove(collider);
                         }
-                        console.log('Wooden door fully opened - you can now walk through');
+                        console.log('Wooden door fully opened - entering garden...');
+
+                        // Load garden scene immediately
+                        buildGardenScene();
                     }
                 }, 16);
             } else {
@@ -1250,14 +1247,6 @@ function animate() {
 
         if (!checkCollision(newPos)) {
             camera.position.copy(newPos);
-        }
-    }
-
-    // Check if player walked through wooden door into garden trigger zone
-    if (currentScene === 'room1' && woodenDoor.userData.closed === false) {
-        if (gardenTrigger.containsPoint(camera.position)) {
-            console.log('Entering garden...');
-            buildGardenScene();
         }
     }
 
