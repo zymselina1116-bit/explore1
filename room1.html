@@ -683,10 +683,15 @@
                 }
             }
 
-            // Pulse red lights
+            // Flicker red lights (dramatic strobing effect)
+            const time = Date.now();
             scene.children.forEach(child => {
                 if (child.userData.pulseLight) {
-                    child.intensity = child.userData.baseIntensity + Math.sin(Date.now() * 0.003) * 0.5;
+                    // Random flickering with occasional bright flashes
+                    const flicker = Math.random() * 0.3;
+                    const flash = Math.sin(time * 0.008) > 0.7 ? 3 : 0;
+                    const strobe = Math.floor(time * 0.01) % 2 === 0 ? 1 : 0.3;
+                    child.intensity = child.userData.baseIntensity * strobe + flicker + flash;
                 }
             });
 
