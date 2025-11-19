@@ -74,6 +74,7 @@
             wall: loadTexture('Screenshot 2025-11-16 at 22.53.11.png'),
             floor: loadTexture('Screenshot 2025-11-16 at 22.51.42.png'),
             door: loadTexture('Screenshot 2025-11-16 at 22.54.35.png'),
+            woodenDoor: loadTexture('870c5435ceffda4aa972afb3244c2eca-removebg-preview.png'),
             decorativeKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
             card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
             cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png')
@@ -159,40 +160,40 @@
         redLight4.userData.pulseLight = true;
         redLight4.userData.baseIntensity = 8;
 
-        // Spotlight on key board - brighter
+        // Spotlight on key board - brighter (now on EAST wall, same as exit door)
         const keyBoardSpotlight = new THREE.SpotLight(0xffaa77, 6, 15, Math.PI / 6);
-        keyBoardSpotlight.position.set(-6, 3, 0);
-        keyBoardSpotlight.target.position.set(-roomSize / 2 + 0.1, 2, 0);
+        keyBoardSpotlight.position.set(6, 3, -4);
+        keyBoardSpotlight.target.position.set(roomSize / 2 - 0.1, 2, -4);
         scene.add(keyBoardSpotlight);
         scene.add(keyBoardSpotlight.target);
 
-        // Key board on wall
+        // Key board on wall (EAST wall, same side as exit door)
         const keyBoard = new THREE.Mesh(
             new THREE.PlaneGeometry(2, 1.5),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        keyBoard.position.set(-roomSize / 2 + 0.05, 2, 0);
-        keyBoard.rotation.y = Math.PI / 2;
+        keyBoard.position.set(roomSize / 2 - 0.05, 2, -4);
+        keyBoard.rotation.y = -Math.PI / 2;
         scene.add(keyBoard);
 
-        // Decorative keys
+        // Decorative keys (on EAST wall)
         for (let i = 0; i < 5; i++) {
             const decorKey = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.15, 0.15),
                 new THREE.MeshStandardMaterial({ map: textures.decorativeKey, transparent: true })
             );
-            decorKey.position.set(-roomSize / 2 + 0.06, 2 + (i - 2) * 0.2, (i - 2) * 0.3);
-            decorKey.rotation.y = Math.PI / 2;
+            decorKey.position.set(roomSize / 2 - 0.06, 2 + (i - 2) * 0.2, -4 + (i - 2) * 0.3);
+            decorKey.rotation.y = -Math.PI / 2;
             scene.add(decorKey);
         }
 
-        // Collectible card
+        // Collectible card (on EAST wall)
         const collectibleCard = new THREE.Mesh(
             new THREE.PlaneGeometry(0.3, 0.4),
             new THREE.MeshStandardMaterial({ map: textures.card, transparent: true })
         );
-        collectibleCard.position.set(-roomSize / 2 + 0.07, 2, 0.8);
-        collectibleCard.rotation.y = Math.PI / 2;
+        collectibleCard.position.set(roomSize / 2 - 0.07, 2, -4.8);
+        collectibleCard.rotation.y = -Math.PI / 2;
         scene.add(collectibleCard);
         collectibleCard.userData.isCollectible = true;
         collectibleCard.userData.itemType = 'card';
@@ -231,6 +232,24 @@
         doorCollider.userData.doorCollider = true;
         doorCollider.userData.door = exitDoor;
         worldObjects.push(doorCollider);
+
+        // Decorative wooden door (WEST wall, non-interactive)
+        const woodenDoor = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.2, 2.4),
+            new THREE.MeshStandardMaterial({ map: textures.woodenDoor, transparent: true })
+        );
+        woodenDoor.position.set(-roomSize / 2 + 0.05, 1.2, 0);
+        woodenDoor.rotation.y = Math.PI / 2;
+        scene.add(woodenDoor);
+
+        // Wooden door collider (player cannot walk through)
+        const woodenDoorCollider = new THREE.Mesh(
+            new THREE.BoxGeometry(0.2, 2.4, 1.2),
+            new THREE.MeshBasicMaterial({ visible: false })
+        );
+        woodenDoorCollider.position.set(-roomSize / 2 + 0.1, 1.2, 0);
+        scene.add(woodenDoorCollider);
+        worldObjects.push(woodenDoorCollider);
 
         // Mailbox
         const mailbox = new THREE.Mesh(
