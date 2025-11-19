@@ -132,30 +132,30 @@
         scene.add(wallWest);
         worldObjects.push(wallWest);
 
-        // East wall with doorway opening (exact size as door: 2m wide x 4m tall)
+        // East wall with doorway opening (larger: 3m wide x 4.5m tall)
         const eastWallTop = new THREE.Mesh(
-            new THREE.PlaneGeometry(roomSize, 1),
+            new THREE.PlaneGeometry(roomSize, 0.5),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        eastWallTop.position.set(roomSize / 2, wallHeight - 0.5, 0);
+        eastWallTop.position.set(roomSize / 2, wallHeight - 0.25, 0);
         eastWallTop.rotation.y = -Math.PI / 2;
         scene.add(eastWallTop);
         worldObjects.push(eastWallTop);
 
         const eastWallNorth = new THREE.Mesh(
-            new THREE.PlaneGeometry(6.5, wallHeight),
+            new THREE.PlaneGeometry(6, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -4.25);
+        eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -4.5);
         eastWallNorth.rotation.y = -Math.PI / 2;
         scene.add(eastWallNorth);
         worldObjects.push(eastWallNorth);
 
         const eastWallSouth = new THREE.Mesh(
-            new THREE.PlaneGeometry(6.5, wallHeight),
+            new THREE.PlaneGeometry(6, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 4.25);
+        eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 4.5);
         eastWallSouth.rotation.y = -Math.PI / 2;
         scene.add(eastWallSouth);
         worldObjects.push(eastWallSouth);
@@ -263,12 +263,12 @@
         cardReader.userData.isCardReader = true;
         interactiveObjects.push(cardReader);
 
-        // Exit door
+        // Exit door (larger: 3m wide x 4.5m tall)
         const exitDoor = new THREE.Mesh(
-            new THREE.PlaneGeometry(2, 4),
+            new THREE.PlaneGeometry(3, 4.5),
             new THREE.MeshStandardMaterial({ map: textures.door })
         );
-        exitDoor.position.set(roomSize / 2 - 0.05, 2, 0);
+        exitDoor.position.set(roomSize / 2 - 0.05, 2.25, 0);
         exitDoor.rotation.y = -Math.PI / 2;
         scene.add(exitDoor);
         exitDoor.userData.isExitDoor = true;
@@ -276,21 +276,21 @@
         worldObjects.push(exitDoor);
 
         const doorCollider = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 4, 2),
+            new THREE.BoxGeometry(0.3, 4.5, 3),
             new THREE.MeshBasicMaterial({ visible: false })
         );
-        doorCollider.position.set(roomSize / 2 - 0.15, 2, 0);
+        doorCollider.position.set(roomSize / 2 - 0.15, 2.25, 0);
         scene.add(doorCollider);
         doorCollider.userData.doorCollider = true;
         doorCollider.userData.door = exitDoor;
         worldObjects.push(doorCollider);
 
-        // Wooden door (WEST wall, interactive - opens with golden key)
+        // Wooden door (WEST wall, interactive - opens with golden key, larger: 3m wide x 4.5m tall)
         const woodenDoor = new THREE.Mesh(
-            new THREE.PlaneGeometry(2, 4),
+            new THREE.PlaneGeometry(3, 4.5),
             new THREE.MeshStandardMaterial({ map: textures.woodenDoor, transparent: true })
         );
-        woodenDoor.position.set(-roomSize / 2 + 0.05, 2, 0);
+        woodenDoor.position.set(-roomSize / 2 + 0.05, 2.25, 0);
         woodenDoor.rotation.y = Math.PI / 2;
         scene.add(woodenDoor);
         woodenDoor.userData.isWoodenDoor = true;
@@ -299,10 +299,10 @@
 
         // Wooden door collider (player cannot walk through until opened)
         const woodenDoorCollider = new THREE.Mesh(
-            new THREE.BoxGeometry(0.2, 4, 2),
+            new THREE.BoxGeometry(0.2, 4.5, 3),
             new THREE.MeshBasicMaterial({ visible: false })
         );
-        woodenDoorCollider.position.set(-roomSize / 2 + 0.1, 2, 0);
+        woodenDoorCollider.position.set(-roomSize / 2 + 0.1, 2.25, 0);
         scene.add(woodenDoorCollider);
         woodenDoorCollider.userData.woodenDoorCollider = true;
         woodenDoorCollider.userData.door = woodenDoor;
@@ -362,30 +362,30 @@
         scene.add(room2WallEast);
         worldObjects.push(room2WallEast);
 
-        // Room 2 west wall with doorway opening (exact match to Room 1's east wall)
+        // Room 2 west wall with doorway opening (larger: 3m wide x 4.5m tall)
         const room2WestWallTop = new THREE.Mesh(
-            new THREE.PlaneGeometry(roomSize, 1),
+            new THREE.PlaneGeometry(roomSize, 0.5),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        room2WestWallTop.position.set(room2Offset - roomSize / 2, wallHeight - 0.5, 0);
+        room2WestWallTop.position.set(room2Offset - roomSize / 2, wallHeight - 0.25, 0);
         room2WestWallTop.rotation.y = Math.PI / 2;
         scene.add(room2WestWallTop);
         worldObjects.push(room2WestWallTop);
 
         const room2WestWallNorth = new THREE.Mesh(
-            new THREE.PlaneGeometry(6.5, wallHeight),
+            new THREE.PlaneGeometry(6, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        room2WestWallNorth.position.set(room2Offset - roomSize / 2, wallHeight / 2, -4.25);
+        room2WestWallNorth.position.set(room2Offset - roomSize / 2, wallHeight / 2, -4.5);
         room2WestWallNorth.rotation.y = Math.PI / 2;
         scene.add(room2WestWallNorth);
         worldObjects.push(room2WestWallNorth);
 
         const room2WestWallSouth = new THREE.Mesh(
-            new THREE.PlaneGeometry(6.5, wallHeight),
+            new THREE.PlaneGeometry(6, wallHeight),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        room2WestWallSouth.position.set(room2Offset - roomSize / 2, wallHeight / 2, 4.25);
+        room2WestWallSouth.position.set(room2Offset - roomSize / 2, wallHeight / 2, 4.5);
         room2WestWallSouth.rotation.y = Math.PI / 2;
         scene.add(room2WestWallSouth);
         worldObjects.push(room2WestWallSouth);
@@ -411,21 +411,21 @@
         blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
         scene.add(blueLight4);
 
-        // Laboratory desk
+        // Laboratory desk (larger)
         const labDesk = new THREE.Mesh(
-            new THREE.BoxGeometry(1.5, 0.8, 0.8),
+            new THREE.BoxGeometry(2.5, 1.2, 1.5),
             new THREE.MeshStandardMaterial({ map: textures.deskChair })
         );
-        labDesk.position.set(room2Offset - 3, 0.4, -3);
+        labDesk.position.set(room2Offset - 3, 0.6, -3);
         scene.add(labDesk);
         worldObjects.push(labDesk);
 
-        // Laboratory chair
+        // Laboratory chair (larger)
         const labChair = new THREE.Mesh(
-            new THREE.BoxGeometry(0.5, 0.9, 0.5),
+            new THREE.BoxGeometry(1, 1.5, 1),
             new THREE.MeshStandardMaterial({ map: textures.deskChair })
         );
-        labChair.position.set(room2Offset - 3, 0.45, -2);
+        labChair.position.set(room2Offset - 3, 0.75, -1.5);
         scene.add(labChair);
         worldObjects.push(labChair);
 
@@ -434,7 +434,7 @@
             new THREE.PlaneGeometry(0.4, 0.4),
             new THREE.MeshStandardMaterial({ map: textures.evidence1 })
         );
-        evidence1.position.set(room2Offset - 3, 0.85, -3);
+        evidence1.position.set(room2Offset - 3, 1.25, -3);
         evidence1.rotation.x = -Math.PI / 2;
         scene.add(evidence1);
         evidence1.userData.isCollectible = true;
