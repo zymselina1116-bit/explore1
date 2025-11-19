@@ -77,7 +77,8 @@
             woodenDoor: loadTexture('870c5435ceffda4aa972afb3244c2eca-removebg-preview.png'),
             decorativeKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
             card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
-            cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png')
+            cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png'),
+            goldenKey: loadTexture('70dc331664376a64a8050baa7c7744a6-removebg-preview.png')
         };
 
         textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
@@ -160,39 +161,52 @@
         redLight4.userData.pulseLight = true;
         redLight4.userData.baseIntensity = 8;
 
-        // Spotlight on key board - brighter (now on EAST wall, same as exit door)
+        // Spotlight on key board - brighter (now on NORTH wall)
         const keyBoardSpotlight = new THREE.SpotLight(0xffaa77, 6, 15, Math.PI / 6);
-        keyBoardSpotlight.position.set(6, 3, -4);
-        keyBoardSpotlight.target.position.set(roomSize / 2 - 0.1, 2, -4);
+        keyBoardSpotlight.position.set(0, 3, -6);
+        keyBoardSpotlight.target.position.set(0, 2, -roomSize / 2 + 0.1);
         scene.add(keyBoardSpotlight);
         scene.add(keyBoardSpotlight.target);
 
-        // Key board on wall (EAST wall, same side as exit door)
+        // Key board on wall (NORTH wall)
         const keyBoard = new THREE.Mesh(
             new THREE.PlaneGeometry(2, 1.5),
             new THREE.MeshStandardMaterial({ map: textures.wall })
         );
-        keyBoard.position.set(roomSize / 2 - 0.05, 2, -4);
-        keyBoard.rotation.y = -Math.PI / 2;
+        keyBoard.position.set(0, 2, -roomSize / 2 + 0.05);
+        keyBoard.rotation.y = 0;
         scene.add(keyBoard);
 
-        // Decorative keys (on EAST wall)
+        // Decorative keys (on NORTH wall)
         for (let i = 0; i < 5; i++) {
             const decorKey = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.15, 0.15),
                 new THREE.MeshStandardMaterial({ map: textures.decorativeKey, transparent: true })
             );
-            decorKey.position.set(roomSize / 2 - 0.06, 2 + (i - 2) * 0.2, -4 + (i - 2) * 0.3);
-            decorKey.rotation.y = -Math.PI / 2;
+            decorKey.position.set((i - 2) * 0.3, 2 + (i - 2) * 0.2, -roomSize / 2 + 0.06);
+            decorKey.rotation.y = 0;
             scene.add(decorKey);
         }
 
-        // Collectible card (on EAST wall)
+        // Golden key on key board (collectible)
+        const goldenKey = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.4, 0.3),
+            new THREE.MeshStandardMaterial({ map: textures.goldenKey, transparent: true })
+        );
+        goldenKey.position.set(0.8, 2.5, -roomSize / 2 + 0.07);
+        goldenKey.rotation.y = 0;
+        scene.add(goldenKey);
+        goldenKey.userData.isCollectible = true;
+        goldenKey.userData.itemType = 'goldenKey';
+        goldenKey.userData.texture = textures.goldenKey;
+        interactiveObjects.push(goldenKey);
+
+        // Collectible card (on EAST wall, near exit door)
         const collectibleCard = new THREE.Mesh(
             new THREE.PlaneGeometry(0.3, 0.4),
             new THREE.MeshStandardMaterial({ map: textures.card, transparent: true })
         );
-        collectibleCard.position.set(roomSize / 2 - 0.07, 2, -4.8);
+        collectibleCard.position.set(roomSize / 2 - 0.07, 2, 2.5);
         collectibleCard.rotation.y = -Math.PI / 2;
         scene.add(collectibleCard);
         collectibleCard.userData.isCollectible = true;
@@ -233,22 +247,27 @@
         doorCollider.userData.door = exitDoor;
         worldObjects.push(doorCollider);
 
-        // Decorative wooden door (WEST wall, non-interactive)
+        // Wooden door (WEST wall, interactive - opens with golden key)
         const woodenDoor = new THREE.Mesh(
-            new THREE.PlaneGeometry(1.2, 2.4),
+            new THREE.PlaneGeometry(2, 4),
             new THREE.MeshStandardMaterial({ map: textures.woodenDoor, transparent: true })
         );
-        woodenDoor.position.set(-roomSize / 2 + 0.05, 1.2, 0);
+        woodenDoor.position.set(-roomSize / 2 + 0.05, 2, 0);
         woodenDoor.rotation.y = Math.PI / 2;
         scene.add(woodenDoor);
+        woodenDoor.userData.isWoodenDoor = true;
+        woodenDoor.userData.closed = true;
+        interactiveObjects.push(woodenDoor);
 
-        // Wooden door collider (player cannot walk through)
+        // Wooden door collider (player cannot walk through until opened)
         const woodenDoorCollider = new THREE.Mesh(
-            new THREE.BoxGeometry(0.2, 2.4, 1.2),
+            new THREE.BoxGeometry(0.2, 4, 2),
             new THREE.MeshBasicMaterial({ visible: false })
         );
-        woodenDoorCollider.position.set(-roomSize / 2 + 0.1, 1.2, 0);
+        woodenDoorCollider.position.set(-roomSize / 2 + 0.1, 2, 0);
         scene.add(woodenDoorCollider);
+        woodenDoorCollider.userData.woodenDoorCollider = true;
+        woodenDoorCollider.userData.door = woodenDoor;
         worldObjects.push(woodenDoorCollider);
 
         // Mailbox
@@ -279,8 +298,20 @@
                 const obj = intersects[0].object;
 
                 if (obj.userData.isCollectible && !obj.userData.collected) {
+                    // Collect item with lift animation
                     obj.userData.collected = true;
-                    obj.visible = false;
+
+                    const startY = obj.position.y;
+                    let liftProgress = 0;
+                    const liftAnim = setInterval(() => {
+                        liftProgress += 0.05;
+                        obj.position.y = startY + Math.sin(liftProgress * Math.PI) * 0.3;
+
+                        if (liftProgress >= 1) {
+                            clearInterval(liftAnim);
+                            obj.visible = false;
+                        }
+                    }, 16);
 
                     inventory.push({
                         type: obj.userData.itemType,
@@ -295,7 +326,7 @@
                         const door = scene.children.find(child => child.userData.isExitDoor);
                         if (door && door.userData.closed) {
                             door.userData.closed = false;
-                            console.log('Door opening');
+                            console.log('Exit door opening');
                             const slideAnim = setInterval(() => {
                                 door.position.z += 0.1;
                                 if (door.position.z > 5) {
@@ -309,7 +340,34 @@
                             }, 16);
                         }
                     } else {
-                        console.log('Need card to open door');
+                        console.log('Need card to open exit door');
+                    }
+                } else if (obj.userData.isWoodenDoor && obj.userData.closed) {
+                    const hasGoldenKey = inventory.some(item => item.type === 'goldenKey');
+                    if (hasGoldenKey) {
+                        obj.userData.closed = false;
+                        console.log('Wooden door opening');
+
+                        // Rotate door open smoothly around left hinge
+                        const targetRotation = obj.rotation.y + Math.PI / 2;
+                        const openAnim = setInterval(() => {
+                            obj.rotation.y += 0.05;
+
+                            if (obj.rotation.y >= targetRotation) {
+                                clearInterval(openAnim);
+                                obj.rotation.y = targetRotation;
+
+                                // Remove collider so player can walk through
+                                const collider = worldObjects.find(w => w.userData.woodenDoorCollider && w.userData.door === obj);
+                                if (collider) {
+                                    worldObjects.splice(worldObjects.indexOf(collider), 1);
+                                    scene.remove(collider);
+                                }
+                                console.log('Wooden door fully opened');
+                            }
+                        }, 16);
+                    } else {
+                        console.log('Need golden key to open wooden door');
                     }
                 }
             }
@@ -395,6 +453,9 @@
 
             for (const obj of worldObjects) {
                 if (obj.userData.doorCollider && obj.userData.door && !obj.userData.door.userData.closed) {
+                    continue;
+                }
+                if (obj.userData.woodenDoorCollider && obj.userData.door && !obj.userData.door.userData.closed) {
                     continue;
                 }
 
