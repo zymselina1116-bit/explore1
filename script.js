@@ -21,7 +21,11 @@ const TEXTURES = {
     mapItem: './Screenshot 2025-11-17 at 14.18.31.png',
     furniture: './Screenshot 2025-11-17 at 14.38.31.png',
     keyBoard2: './Screenshot 2025-11-17 at 14.39.55.png',
-    drawer: './Screenshot 2025-11-17 at 22.38.36.png'
+    drawer: './Screenshot 2025-11-17 at 22.38.36.png',
+    // Garden textures
+    gardenSoil: './Screenshot 2025-11-18 at 21.19.28.png',
+    footprintItem: './Screenshot_2025-11-18_at_19.23.01-removebg-preview.png',
+    footprintPhoto: './Screenshot 2025-11-18 at 19.29.33.png'
 };
 
 // ====================================================================
@@ -38,6 +42,10 @@ const gameState = {
     hasGoldenKey: false,
     woodenDoorUnlocked: false,
     deskDrawerOpen: false,
+    // Garden state
+    enteredGarden: false,
+    hasBone: false,
+    hasFootprintPhoto: false,
 };
 
 const scenes = {
@@ -87,6 +95,9 @@ const DOOR_ANIMATION_SPEED = 8.0; // Faster animation
 
 // Alarm lights
 let alarmLights = [];
+
+// Garden objects
+let footprintGlowMaterial = null; // For glowing blue footprint
 
 // Texture loader
 const textureLoader = new THREE.TextureLoader();
@@ -163,11 +174,12 @@ async function init() {
     // Event listeners
     setupEventListeners();
 
-    // Build both scenes (connected)
+    // Build all three scenes (connected in same world space)
     console.log('Building scenes...');
     await buildIndustrialHallScene();
     await buildOfficeFloorScene();
-    console.log('Both scenes built successfully');
+    await buildGardenScene(); // Garden exists behind wooden door from start
+    console.log('All three scenes built successfully');
 
     // Debug: Print all meshes in the scene
     console.log('\n========== SCENE MESH DEBUG ==========');
@@ -1165,6 +1177,289 @@ async function buildOfficeFloorScene() {
 }
 
 // ====================================================================
+// BUILD GARDEN SCENE
+// ====================================================================
+async function buildGardenScene() {
+    console.log('Building Garden scene...');
+
+    // Load textures
+    const soilTexture = await loadTexture(TEXTURES.gardenSoil, 8, 8);
+    const footprintTexture = await loadTexture(TEXTURES.footprintItem, 1, 1);
+    const footprintPhotoTexture = await loadTexture(TEXTURES.footprintPhoto, 1, 1);
+    console.log('Garden textures loaded');
+
+    // Garden dimensions
+    const gardenSize = 30;
+    const halfGarden = gardenSize / 2;
+    const hedgeHeight = 4.0;
+
+    // Garden position - directly behind the wooden door
+    // Wooden door is at z = -12.5, garden starts at z = -12.5 - halfGarden
+    const gardenOffsetZ = -12.5 - halfGarden;
+
+    // Ground
+    const groundGeometry = new THREE.PlaneGeometry(gardenSize, gardenSize);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+        map: soilTexture,
+        color: 0xffffff,
+        roughness: 0.9,
+        metalness: 0.1,
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.name = 'Garden_Ground';
+    ground.position.set(0, 0, gardenOffsetZ);
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+
+    // Lighting - dreamy, magical atmosphere
+    const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x88ff88, 1.2);
+    scene.add(hemisphereLight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffe0, 0.8);
+    scene.add(ambientLight);
+
+    const mainLight = new THREE.PointLight(0xffffaa, 2.0, 50);
+    mainLight.position.set(0, 10, gardenOffsetZ);
+    scene.add(mainLight);
+
+    // Hedge walls - natural boundaries
+    const hedgeMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2d5016,
+        roughness: 0.9,
+        metalness: 0.0,
+    });
+
+    // Back hedge wall
+    for (let i = -3; i <= 3; i++) {
+        const hedge = new THREE.Mesh(
+            new THREE.BoxGeometry(4.5, hedgeHeight, 1.2),
+            hedgeMaterial
+        );
+        hedge.name = 'Hedge_Back';
+        const xOffset = i * 4.2;
+        hedge.position.set(xOffset, hedgeHeight / 2, gardenOffsetZ - halfGarden);
+        scene.add(hedge);
+    }
+
+    // Left hedge wall
+    for (let i = -3; i <= 3; i++) {
+        const hedge = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, hedgeHeight, 4.5),
+            hedgeMaterial
+        );
+        hedge.name = 'Hedge_Left';
+        const zPos = gardenOffsetZ + i * 4.2;
+        hedge.position.set(-halfGarden, hedgeHeight / 2, zPos);
+        scene.add(hedge);
+    }
+
+    // Right hedge wall
+    for (let i = -3; i <= 3; i++) {
+        const hedge = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, hedgeHeight, 4.5),
+            hedgeMaterial
+        );
+        hedge.name = 'Hedge_Right';
+        const zPos = gardenOffsetZ + i * 4.2;
+        hedge.position.set(halfGarden, hedgeHeight / 2, zPos);
+        scene.add(hedge);
+    }
+
+    // Front hedge wall (with gap for entrance)
+    for (let i = -3; i <= 3; i++) {
+        if (i >= -1 && i <= 1) continue; // Gap for doorway
+        const hedge = new THREE.Mesh(
+            new THREE.BoxGeometry(4.5, hedgeHeight, 1.2),
+            hedgeMaterial
+        );
+        hedge.name = 'Hedge_Front';
+        const xOffset = i * 4.2;
+        hedge.position.set(xOffset, hedgeHeight / 2, gardenOffsetZ + halfGarden);
+        scene.add(hedge);
+    }
+
+    // Flowers - glowing bushes
+    const flowerPositions = [
+        [-8, gardenOffsetZ - 8], [-5, gardenOffsetZ - 10], [3, gardenOffsetZ - 9],
+        [7, gardenOffsetZ - 6], [-10, gardenOffsetZ - 3], [9, gardenOffsetZ - 2],
+        [-7, gardenOffsetZ + 4], [-3, gardenOffsetZ + 6], [5, gardenOffsetZ + 8],
+        [10, gardenOffsetZ + 10], [-9, gardenOffsetZ + 9], [2, gardenOffsetZ - 4]
+    ];
+
+    flowerPositions.forEach((pos, idx) => {
+        const flowerHeight = 0.4 + Math.random() * 0.4;
+        const flowerBush = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3 + Math.random() * 0.2, 8, 8),
+            new THREE.MeshStandardMaterial({
+                color: Math.random() > 0.5 ? 0xff6699 : 0xffaa44,
+                emissive: Math.random() > 0.5 ? 0xff3366 : 0xff8800,
+                emissiveIntensity: 0.4,
+                roughness: 0.7,
+            })
+        );
+        flowerBush.name = `Flower_${idx}`;
+        flowerBush.position.set(pos[0], flowerHeight, pos[1]);
+        scene.add(flowerBush);
+
+        const flowerGlow = new THREE.PointLight(
+            Math.random() > 0.5 ? 0xff6699 : 0xffaa44,
+            0.5,
+            3
+        );
+        flowerGlow.position.set(pos[0], flowerHeight + 0.2, pos[1]);
+        scene.add(flowerGlow);
+    });
+
+    // Fountain
+    const fountainMaterial = new THREE.MeshStandardMaterial({
+        color: 0xaaddff,
+        metalness: 0.3,
+        roughness: 0.4,
+        emissive: 0x4488ff,
+        emissiveIntensity: 0.3,
+    });
+
+    const fountainBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2.5, 0.5, 16),
+        fountainMaterial
+    );
+    fountainBase.position.set(0, 0.25, gardenOffsetZ);
+    scene.add(fountainBase);
+
+    const fountainBowl = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.8, 1.2, 16),
+        fountainMaterial
+    );
+    fountainBowl.position.set(0, 1.1, gardenOffsetZ);
+    scene.add(fountainBowl);
+
+    const fountainTop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 16, 16),
+        fountainMaterial
+    );
+    fountainTop.position.set(0, 2.0, gardenOffsetZ);
+    scene.add(fountainTop);
+
+    const fountainLight = new THREE.PointLight(0x88ddff, 1.5, 8);
+    fountainLight.position.set(0, 2, gardenOffsetZ);
+    scene.add(fountainLight);
+
+    // BONE collectible
+    const boneMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf0e6d2,
+        roughness: 0.6,
+        metalness: 0.1,
+    });
+
+    const boneGroup = new THREE.Group();
+    boneGroup.name = 'Bone';
+
+    const boneEnd1 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), boneMaterial);
+    boneEnd1.position.set(-0.25, 0, 0);
+    boneGroup.add(boneEnd1);
+
+    const boneMiddle = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8), boneMaterial);
+    boneMiddle.rotation.z = Math.PI / 2;
+    boneGroup.add(boneMiddle);
+
+    const boneEnd2 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), boneMaterial);
+    boneEnd2.position.set(0.25, 0, 0);
+    boneGroup.add(boneEnd2);
+
+    boneGroup.position.set(-6, 0.3, gardenOffsetZ + 8);
+    scene.add(boneGroup);
+
+    // Bone interactive - adds icon to backpack (no text)
+    const boneInteractive = {
+        mesh: boneGroup,
+        type: 'bone',
+        id: 'garden_bone',
+        hintText: 'Click to collect bone',
+        onClick: () => {
+            if (gameState.hasBone) return; // Prevent duplicate collection
+            console.log('Bone collected!');
+            gameState.hasBone = true;
+
+            // Remove bone mesh
+            scene.remove(boneGroup);
+            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'garden_bone');
+
+            // Add icon to backpack (no text)
+            addEvidenceToBackpack('', TEXTURES.key); // Empty string for no text
+        }
+    };
+    interactiveObjects.push(boneInteractive);
+
+    // FOOTPRINT with blue glow
+    const footprintMaterial = new THREE.MeshStandardMaterial({
+        map: footprintTexture,
+        transparent: true,
+        emissive: 0x4488ff, // Blue glow
+        emissiveIntensity: 1.2,
+    });
+
+    const footprintMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.5, 1.5),
+        footprintMaterial
+    );
+    footprintMesh.name = 'Footprint';
+    footprintMesh.position.set(8, 0.02, gardenOffsetZ - 5);
+    footprintMesh.rotation.x = -Math.PI / 2;
+    scene.add(footprintMesh);
+
+    // Store material for glow animation
+    footprintGlowMaterial = footprintMaterial;
+
+    // Footprint interactive - shows photo then adds icon (no text)
+    const footprintInteractive = {
+        mesh: footprintMesh,
+        type: 'footprint',
+        id: 'garden_footprint',
+        hintText: 'Click to examine footprint',
+        onClick: () => {
+            if (gameState.hasFootprintPhoto) return; // Prevent duplicate collection
+            console.log('Footprint clicked - spawning photo!');
+            gameState.hasFootprintPhoto = true;
+
+            // Remove footprint mesh
+            scene.remove(footprintMesh);
+            interactiveObjects = interactiveObjects.filter(obj => obj.id !== 'garden_footprint');
+
+            // Spawn floating photo
+            const photoMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(2, 2),
+                new THREE.MeshStandardMaterial({
+                    map: footprintPhotoTexture,
+                    transparent: true,
+                })
+            );
+            photoMesh.name = 'FootprintPhoto';
+            photoMesh.position.set(8, 1.5, gardenOffsetZ - 5);
+            scene.add(photoMesh);
+
+            // Float and fade animation (0.4 seconds)
+            let floatProgress = 0;
+            const floatInterval = setInterval(() => {
+                floatProgress += 0.05;
+                photoMesh.position.y += 0.05;
+                photoMesh.material.opacity = 1 - floatProgress;
+
+                if (floatProgress >= 1) {
+                    clearInterval(floatInterval);
+                    scene.remove(photoMesh);
+
+                    // Add icon to backpack AFTER photo fades (no text)
+                    addEvidenceToBackpack('', TEXTURES.footprintPhoto); // Empty string for no text
+                }
+            }, 20);
+        }
+    };
+    interactiveObjects.push(footprintInteractive);
+
+    console.log('Garden scene built successfully');
+}
+
+// ====================================================================
 // SCENE TRANSITION
 // ====================================================================
 function cleanupScene1() {
@@ -1245,22 +1540,32 @@ function addEvidenceToBackpack(evidenceName, evidenceTexture) {
     const backpackContents = document.getElementById('backpack-contents');
     if (!backpackContents) return;
 
-    // Create evidence item element
+    // Create evidence item container (icon only, no text)
     const evidenceItem = document.createElement('div');
     evidenceItem.style.cssText = `
         background: rgba(255, 170, 0, 0.2);
         border: 2px solid #ffaa00;
         border-radius: 8px;
-        padding: 10px;
-        color: #ffaa00;
-        font-family: monospace;
-        font-size: 14px;
-        text-align: center;
+        padding: 5px;
         cursor: pointer;
         transition: background 0.3s;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
     `;
-    evidenceItem.textContent = evidenceName;
-    evidenceItem.setAttribute('data-texture', evidenceTexture);
+
+    // Create image icon (no text)
+    const iconImg = document.createElement('img');
+    iconImg.src = evidenceTexture;
+    iconImg.style.cssText = `
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    `;
+    evidenceItem.appendChild(iconImg);
 
     // Hover effects
     evidenceItem.addEventListener('mouseenter', () => {
@@ -1339,24 +1644,47 @@ function update(delta) {
     camera.position.x += moveX * delta;
     camera.position.z += moveZ * delta;
 
-    // Collision detection - both rooms connected
+    // Collision detection - all three scenes connected
     let hitWall = false;
     let doorBlocked = false;
 
     // Scene 1 boundaries (z: -12.5 to 12.5, x: -12.5 to 12.5)
-    // Scene 2 boundaries (z: 12.5 to 37.5, x: -12.5 to 12.5) - Same size as Scene 1
+    // Scene 2 boundaries (z: 12.5 to 37.5, x: -12.5 to 12.5)
+    // Garden boundaries (z: -27.5 to -12.5, x: -15 to 15)
 
-    const inScene1 = camera.position.z < 12.5;
+    const inScene1 = camera.position.z >= -12.5 && camera.position.z < 12.5;
     const inScene2 = camera.position.z >= 12.5;
+    const enteringGarden = camera.position.z < -12.5;
 
     if (inScene1) {
         // Scene 1 collision
-        hitWall = camera.position.x < -11 || camera.position.x > 11 || camera.position.z < -11;
+        const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
 
-        // Check if trying to go through Scene 1 door
+        // Check back wall (wooden door to garden)
+        if (camera.position.z < -11) {
+            if (gameState.woodenDoorUnlocked && inWoodenDoorArea) {
+                // Allow passing through to garden
+                hitWall = false;
+            } else {
+                hitWall = true;
+            }
+        } else {
+            // Normal side walls
+            hitWall = camera.position.x < -11 || camera.position.x > 11;
+        }
+
+        // Check if trying to go through Scene 1 main door (to Scene 2)
         const atDoorWall = camera.position.z > 12 && camera.position.z < 13;
-        const inDoorArea = camera.position.x > -2 && camera.position.x < 2;
-        doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inDoorArea);
+        const inMainDoorArea = camera.position.x > -2 && camera.position.x < 2;
+        doorBlocked = atDoorWall && (!gameState.doorUnlocked || !inMainDoorArea);
+    } else if (enteringGarden && !gameState.enteredGarden) {
+        // Trigger garden entry
+        const inWoodenDoorArea = camera.position.x > -2 && camera.position.x < 2;
+        if (gameState.woodenDoorUnlocked && inWoodenDoorArea) {
+            gameState.enteredGarden = true;
+            gameState.currentScene = 'garden';
+            console.log('Entered garden!');
+        }
     } else if (inScene2) {
         // Scene 2 collision (same size room as Scene 1: 25x25)
         const scene2End = 12.5 + 25; // 37.5
@@ -1371,6 +1699,35 @@ function update(delta) {
         // Collision with desks and furniture
         const furnitureCollision = checkFurnitureCollision(camera.position);
         if (furnitureCollision) {
+            camera.position.copy(prevPosition);
+            return;
+        }
+    } else if (gameState.currentScene === 'garden') {
+        // Garden collision (30x30, centered at z = -27.5)
+        const gardenOffsetZ = -12.5 - 15; // -27.5
+        const gardenHalfSize = 15;
+
+        // Hedge boundaries
+        const minX = -gardenHalfSize + 1;
+        const maxX = gardenHalfSize - 1;
+        const minZ = gardenOffsetZ - gardenHalfSize + 1;
+        const maxZ = gardenOffsetZ + gardenHalfSize - 1;
+
+        if (camera.position.x < minX || camera.position.x > maxX ||
+            camera.position.z < minZ || camera.position.z > maxZ) {
+            hitWall = true;
+        }
+
+        // Fountain collision (circular)
+        const fountainX = 0;
+        const fountainZ = gardenOffsetZ;
+        const fountainRadius = 2.8;
+        const distToFountain = Math.sqrt(
+            Math.pow(camera.position.x - fountainX, 2) +
+            Math.pow(camera.position.z - fountainZ, 2)
+        );
+
+        if (distToFountain < fountainRadius) {
             camera.position.copy(prevPosition);
             return;
         }
@@ -1422,6 +1779,12 @@ function update(delta) {
     if (window.creatureGlow && !gameState.evidenceCollected.has('evidence_creature')) {
         const flicker1 = Math.sin(time * 3 + 0.5) * 0.2 + 0.6;
         window.creatureGlow.intensity = flicker1;
+    }
+
+    // Garden footprint blue glow animation
+    if (footprintGlowMaterial && !gameState.hasFootprintPhoto) {
+        const glowIntensity = 1.0 + Math.sin(time * 2) * 0.4;
+        footprintGlowMaterial.emissiveIntensity = glowIntensity;
     }
 }
 
