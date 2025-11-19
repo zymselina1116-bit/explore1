@@ -1238,19 +1238,32 @@ function buildGardenInterior() {
     scene.add(fountainGroup);
     gardenObjects.push(fountainGroup);
 
-    // BONE collectible (half-hidden among bushes)
+    // BONE collectible (glowing, near bushes)
     const bone = new THREE.Mesh(
         new THREE.BoxGeometry(0.15, 0.05, 0.4),
-        new THREE.MeshStandardMaterial({ color: 0xf5f5dc })
+        new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0x88ff88,
+            emissiveIntensity: 1.6,
+            transparent: true,
+            opacity: 1
+        })
     );
-    bone.position.set(gardenOffsetX - 4, 0.5, -6);
+    bone.position.set(gardenOffsetX - 4, 0.25, -6);
     bone.rotation.y = Math.random() * Math.PI;
     scene.add(bone);
     bone.userData.isCollectible = true;
     bone.userData.itemType = 'bone';
     bone.userData.texture = textures.evidence1;
+    bone.userData.isBone = true; // Flag for pulsing animation
     interactiveObjects.push(bone);
     gardenObjects.push(bone);
+
+    // Bone glow light
+    const boneLight = new THREE.PointLight(0xaaffaa, 0.5, 4);
+    boneLight.position.copy(bone.position);
+    scene.add(boneLight);
+    bone.userData.glowLight = boneLight;
 
     // FOOTPRINT collectible (glowing, on ground)
     const footprintMesh = new THREE.Mesh(
@@ -1449,6 +1462,28 @@ function onMouseMove(event) {
         pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
 
         previousMousePosition = { x: event.clientX, y: event.clientY };
+    } else {
+        // Hover detection for bone evidence
+        const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+        const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
+        const intersects = raycaster.intersectObjects(interactiveObjects);
+
+        // Reset all bone emissive intensities
+        gardenObjects.forEach(obj => {
+            if (obj.userData.isBone && !obj.userData.collected) {
+                obj.material.emissiveIntensity = 1.4 + Math.sin(Date.now() * 0.002) * 0.4;
+            }
+        });
+
+        // Brighten bone on hover
+        if (intersects.length > 0) {
+            const obj = intersects[0].object;
+            if (obj.userData.isBone && !obj.userData.collected) {
+                obj.material.emissiveIntensity = 2.0;
+            }
+        }
     }
 }
 
@@ -1609,6 +1644,11 @@ function animate() {
             if (waterBasin) {
                 waterBasin.position.y = 0.55 + Math.sin(time * 0.002) * 0.02;
             }
+        }
+
+        // Bone pulsing glow animation
+        if (obj.userData.isBone && !obj.userData.collected) {
+            obj.material.emissiveIntensity = 1.4 + Math.sin(time * 0.002) * 0.4;
         }
     });
 
