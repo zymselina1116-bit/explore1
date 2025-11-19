@@ -25,7 +25,9 @@ const TEXTURES = {
     // Garden textures
     gardenSoil: './Screenshot 2025-11-18 at 21.19.28.png',
     footprintItem: './Screenshot_2025-11-18_at_19.23.01-removebg-preview.png',
-    footprintPhoto: './Screenshot 2025-11-18 at 19.29.33.png'
+    footprintPhoto: './Screenshot 2025-11-18 at 19.29.33.png',
+    // Letter texture
+    letterFront: 'https://raw.githubusercontent.com/zymselina1116-bit/explore1/2d4f090c7a358e3602028144dd33058f7eb89e61/ChatGPT%20Image%202025%E5%B9%B411%E6%9C%8819%E6%97%A5%2003_05_27.png'
 };
 
 // ====================================================================
@@ -46,6 +48,9 @@ const gameState = {
     enteredGarden: false,
     hasBone: false,
     hasFootprintPhoto: false,
+    // Mailbox state
+    evidenceSubmitted: false,
+    letterSpawned: false,
 };
 
 const scenes = {
@@ -394,6 +399,159 @@ function showMessage(text) {
             messageDiv.style.display = 'none';
         }, 2000);
     }
+}
+
+// ====================================================================
+// MAILBOX LETTER SYSTEM
+// ====================================================================
+async function animateMailboxAndSpawnLetter() {
+    const mailbox = window.mailboxBody;
+    const light = window.mailboxLight;
+
+    if (!mailbox || !light) return;
+
+    const originalPos = mailbox.position.clone();
+
+    // Shake animation for 0.4s
+    let shakeTime = 0;
+    const shakeInterval = setInterval(() => {
+        shakeTime += 16;
+        const shake = Math.sin(shakeTime * 0.5) * 0.05;
+        mailbox.position.x = originalPos.x + shake;
+        mailbox.position.y = originalPos.y + shake * 0.5;
+
+        if (shakeTime >= 400) {
+            mailbox.position.copy(originalPos);
+            clearInterval(shakeInterval);
+
+            // Flash light white once
+            light.intensity = 5.0;
+            light.color.setHex(0xffffff);
+            setTimeout(() => {
+                light.intensity = 0.5;
+            }, 100);
+
+            // Spawn letter after animation
+            setTimeout(() => spawnLetter(), 200);
+        }
+    }, 16);
+}
+
+async function spawnLetter() {
+    if (gameState.letterSpawned) return;
+    gameState.letterSpawned = true;
+
+    // Load letter texture
+    const letterTexture = await loadTexture(TEXTURES.letterFront, 1, 1);
+
+    // Create letter mesh
+    const letterGeometry = new THREE.PlaneGeometry(0.6, 0.4);
+    const letterMaterial = new THREE.MeshStandardMaterial({
+        map: letterTexture,
+        side: THREE.DoubleSide,
+    });
+
+    const letter = new THREE.Mesh(letterGeometry, letterMaterial);
+    letter.name = 'Letter';
+
+    // Position below mailbox slot (same X, Z, Y -= 0.6)
+    const mailbox = window.mailboxBody;
+    letter.position.set(mailbox.position.x, mailbox.position.y - 0.6, mailbox.position.z + 0.2);
+
+    // Rotate to face player and add slight tilt
+    letter.rotation.y = Math.PI;
+    letter.rotation.x = Math.PI * 0.1;
+    scene.add(letter);
+
+    // Warm spotlight for 1.5s
+    const spotlight = new THREE.SpotLight(0xffd699, 3, 5, Math.PI / 6, 0.5);
+    spotlight.position.set(mailbox.position.x, mailbox.position.y + 2, mailbox.position.z);
+    spotlight.target = letter;
+    scene.add(spotlight);
+    scene.add(spotlight.target);
+
+    setTimeout(() => scene.remove(spotlight), 1500);
+
+    // Bounce animation
+    const startY = letter.position.y;
+    const bounceHeight = 0.15;
+    let bounceTime = 0;
+    const bounceInterval = setInterval(() => {
+        bounceTime += 16;
+        const progress = bounceTime / 300;
+        const bounce = Math.sin(progress * Math.PI) * bounceHeight;
+        letter.position.y = startY + bounce;
+
+        if (bounceTime >= 300) {
+            letter.position.y = startY;
+            clearInterval(bounceInterval);
+        }
+    }, 16);
+
+    // Make letter interactive
+    const letterInteractive = {
+        mesh: letter,
+        type: 'letter',
+        id: 'final_letter',
+        hintText: 'Click to read letter',
+        onClick: () => {
+            openLetterView();
+        }
+    };
+    interactiveObjects.push(letterInteractive);
+}
+
+function openLetterView() {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+
+    // Create letter image
+    const letterImg = document.createElement('img');
+    letterImg.src = TEXTURES.letterFront;
+    letterImg.style.cssText = `
+        max-width: 80%;
+        max-height: 80%;
+        object-fit: contain;
+        cursor: pointer;
+        animation: letterZoom 0.3s ease-out;
+    `;
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes letterZoom {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    overlay.appendChild(letterImg);
+    document.body.appendChild(overlay);
+
+    // Close on click
+    overlay.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        document.head.removeChild(style);
+    });
 }
 
 // ====================================================================
@@ -822,6 +980,96 @@ async function buildIndustrialHallScene() {
         }
     };
     interactiveObjects.push(woodenDoorInteractive);
+
+    // ====================================================================
+    // MAILBOX - positioned next to keyboard on back wall
+    // ====================================================================
+    const mailboxBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 1.2, 0.4),
+        new THREE.MeshStandardMaterial({
+            color: 0x2a2a2a,
+            metalness: 0.7,
+            roughness: 0.3,
+        })
+    );
+    mailboxBody.position.set(-5, 1.5, halfRoom - 0.75);
+    scene.add(mailboxBody);
+    window.mailboxBody = mailboxBody;
+
+    // Mailbox slot (darker rectangle on front face)
+    const mailboxSlot = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.6, 0.15),
+        new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            metalness: 0.5,
+            roughness: 0.4,
+        })
+    );
+    mailboxSlot.position.set(-5, 1.7, halfRoom - 0.55);
+    mailboxSlot.rotation.y = Math.PI;
+    scene.add(mailboxSlot);
+
+    // Mailbox indicator light (small sphere, initially dim)
+    const mailboxLight = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08, 16, 16),
+        new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 0.5,
+        })
+    );
+    mailboxLight.position.set(-5, 2.2, halfRoom - 0.55);
+    scene.add(mailboxLight);
+    window.mailboxLight = mailboxLight;
+
+    // Mailbox interactive - checks for all 5 evidence items
+    const mailboxInteractive = {
+        mesh: mailboxBody,
+        type: 'mailbox',
+        id: 'mailbox_delivery',
+        hintText: 'Click to submit evidence',
+        onClick: () => {
+            if (gameState.evidenceSubmitted) {
+                showMessage('Evidence already submitted');
+                return;
+            }
+
+            // Check if player has all 5 evidence items
+            const hasBone = gameState.evidenceCollected.has('Bone');
+            const hasFootprintPhoto = gameState.evidenceCollected.has('Footprint Photo');
+            const room2EvidenceCount = Array.from(gameState.evidenceCollected).filter(item =>
+                item !== 'Bone' && item !== 'Footprint Photo'
+            ).length;
+
+            console.log('Mailbox clicked - Evidence check:', {
+                hasBone,
+                hasFootprintPhoto,
+                room2EvidenceCount,
+                total: gameState.evidenceCollected.size,
+                evidenceCollected: Array.from(gameState.evidenceCollected)
+            });
+
+            if (!hasBone || !hasFootprintPhoto || room2EvidenceCount < 3) {
+                showMessage('Need all evidence: 3 from Office + Bone + Footprint Photo');
+                return;
+            }
+
+            // All evidence collected - submit and trigger letter spawn
+            gameState.evidenceSubmitted = true;
+            showMessage('Evidence submitted - Check the mailbox!');
+
+            // Clear backpack UI
+            const backpackContents = document.getElementById('backpack-contents');
+            if (backpackContents) {
+                backpackContents.innerHTML = '';
+            }
+            updateProgressIndicator();
+
+            // Trigger mailbox animation and letter spawn
+            setTimeout(() => animateMailboxAndSpawnLetter(), 500);
+        }
+    };
+    interactiveObjects.push(mailboxInteractive);
 
     console.log('Industrial Hall scene built');
 }
