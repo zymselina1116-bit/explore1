@@ -1,5 +1,4 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 
 console.log('Script loaded, THREE version:', THREE.REVISION);
 
@@ -196,7 +195,6 @@ function createRoom1() {
     scene.add(exitDoor);
     exitDoor.userData.isExitDoor = true;
     exitDoor.userData.closed = true;
-    worldObjects.push(exitDoor);
 
     const doorCollider = new THREE.Mesh(
         new THREE.BoxGeometry(0.3, 4, 2),
