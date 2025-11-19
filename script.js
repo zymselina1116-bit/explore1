@@ -6,10 +6,12 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 document.body.appendChild(renderer.domElement);
+
+scene.background = new THREE.Color(0x000000);
 
 camera.position.set(0, 1.7, 0);
 
@@ -61,8 +63,17 @@ const cardTexture = textureLoader.load('https://raw.githubusercontent.com/zymsel
 const cardReaderTexture = textureLoader.load('https://raw.githubusercontent.com/zymselina1116-bit/explore1/ab2a7a7ae2c696ba19c868a450f29b93a7cf741a/64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png');
 
 wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+wallTexture.colorSpace = THREE.SRGBColorSpace;
 floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
 floorTexture.repeat.set(2, 2);
+floorTexture.colorSpace = THREE.SRGBColorSpace;
+exitSignTexture.colorSpace = THREE.SRGBColorSpace;
+metalDoorTexture.colorSpace = THREE.SRGBColorSpace;
+woodenDoorTexture.colorSpace = THREE.SRGBColorSpace;
+keyBoardTexture.colorSpace = THREE.SRGBColorSpace;
+keysTexture.colorSpace = THREE.SRGBColorSpace;
+cardTexture.colorSpace = THREE.SRGBColorSpace;
+cardReaderTexture.colorSpace = THREE.SRGBColorSpace;
 
 const roomWidth = 8;
 const roomHeight = 4;
