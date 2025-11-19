@@ -145,34 +145,34 @@ eastWallSouth.rotation.y = -Math.PI / 2;
 scene.add(eastWallSouth);
 worldObjects.push(eastWallSouth);
 
-// Ambient light for base brightness
-const ambientLight = new THREE.AmbientLight(0xff3333, 0.8);
+// Ambient light for base brightness (DARKER)
+const ambientLight = new THREE.AmbientLight(0xff3333, 0.3);
 scene.add(ambientLight);
 
-// Red pulsing lights - much brighter
-const redLight1 = new THREE.PointLight(0xff0000, 8, 30);
+// Red pulsing lights (DARKER)
+const redLight1 = new THREE.PointLight(0xff0000, 3, 30);
 redLight1.position.set(-3, wallHeight - 0.5, -3);
 scene.add(redLight1);
 redLight1.userData.pulseLight = true;
-redLight1.userData.baseIntensity = 8;
+redLight1.userData.baseIntensity = 3;
 
-const redLight2 = new THREE.PointLight(0xff0000, 8, 30);
+const redLight2 = new THREE.PointLight(0xff0000, 3, 30);
 redLight2.position.set(3, wallHeight - 0.5, 3);
 scene.add(redLight2);
 redLight2.userData.pulseLight = true;
-redLight2.userData.baseIntensity = 8;
+redLight2.userData.baseIntensity = 3;
 
-const redLight3 = new THREE.PointLight(0xff0000, 8, 30);
+const redLight3 = new THREE.PointLight(0xff0000, 3, 30);
 redLight3.position.set(-3, wallHeight - 0.5, 3);
 scene.add(redLight3);
 redLight3.userData.pulseLight = true;
-redLight3.userData.baseIntensity = 8;
+redLight3.userData.baseIntensity = 3;
 
-const redLight4 = new THREE.PointLight(0xff0000, 8, 30);
+const redLight4 = new THREE.PointLight(0xff0000, 3, 30);
 redLight4.position.set(3, wallHeight - 0.5, -3);
 scene.add(redLight4);
 redLight4.userData.pulseLight = true;
-redLight4.userData.baseIntensity = 8;
+redLight4.userData.baseIntensity = 3;
 
 // Spotlight on key board - brighter (now on NORTH wall)
 const keyBoardSpotlight = new THREE.SpotLight(0xffaa77, 6, 15, Math.PI / 6);
