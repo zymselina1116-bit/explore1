@@ -98,7 +98,10 @@ const wallHeight = 5;
 
 const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
-    new THREE.MeshStandardMaterial({ map: textures.floor })
+    new THREE.MeshStandardMaterial({
+        map: textures.floor,
+        color: 0xff4444 // Red tint
+    })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = 0;
@@ -107,7 +110,10 @@ worldObjects.push(floor);
 
 const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 ceiling.rotation.x = Math.PI / 2;
 ceiling.position.y = wallHeight;
@@ -115,12 +121,18 @@ scene.add(ceiling);
 
 const wallGeometry = new THREE.PlaneGeometry(roomSize, wallHeight);
 
-const wallNorth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+const wallNorth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({
+    map: textures.wall,
+    color: 0xff3333 // Deep red tint
+}));
 wallNorth.position.set(0, wallHeight / 2, -roomSize / 2);
 scene.add(wallNorth);
 worldObjects.push(wallNorth);
 
-const wallSouth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+const wallSouth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({
+    map: textures.wall,
+    color: 0xff3333 // Deep red tint
+}));
 wallSouth.position.set(0, wallHeight / 2, roomSize / 2);
 wallSouth.rotation.y = Math.PI;
 scene.add(wallSouth);
@@ -129,7 +141,10 @@ worldObjects.push(wallSouth);
 // West wall with doorway opening for wooden door (3m opening)
 const westWallTop = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, 0.5),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 westWallTop.position.set(-roomSize / 2, wallHeight - 0.25, 0);
 westWallTop.rotation.y = Math.PI / 2;
@@ -138,7 +153,10 @@ scene.add(westWallTop);
 
 const westWallNorth = new THREE.Mesh(
     new THREE.PlaneGeometry(6, wallHeight),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 westWallNorth.position.set(-roomSize / 2, wallHeight / 2, -4.5);
 westWallNorth.rotation.y = Math.PI / 2;
@@ -147,7 +165,10 @@ worldObjects.push(westWallNorth);
 
 const westWallSouth = new THREE.Mesh(
     new THREE.PlaneGeometry(6, wallHeight),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 westWallSouth.position.set(-roomSize / 2, wallHeight / 2, 4.5);
 westWallSouth.rotation.y = Math.PI / 2;
@@ -157,7 +178,10 @@ worldObjects.push(westWallSouth);
 // East wall with doorway opening (exact 3m opening matching door)
 const eastWallTop = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, 0.5),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 eastWallTop.position.set(roomSize / 2, wallHeight - 0.25, 0);
 eastWallTop.rotation.y = -Math.PI / 2;
@@ -166,7 +190,10 @@ scene.add(eastWallTop);
 
 const eastWallNorth = new THREE.Mesh(
     new THREE.PlaneGeometry(6, wallHeight),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 eastWallNorth.position.set(roomSize / 2, wallHeight / 2, -4.5);
 eastWallNorth.rotation.y = -Math.PI / 2;
@@ -175,69 +202,72 @@ worldObjects.push(eastWallNorth);
 
 const eastWallSouth = new THREE.Mesh(
     new THREE.PlaneGeometry(6, wallHeight),
-    new THREE.MeshStandardMaterial({ map: textures.wall })
+    new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Deep red tint
+    })
 );
 eastWallSouth.position.set(roomSize / 2, wallHeight / 2, 4.5);
 eastWallSouth.rotation.y = -Math.PI / 2;
 scene.add(eastWallSouth);
 worldObjects.push(eastWallSouth);
 
-// Ambient light for base brightness (MORE RED)
-const ambientLight = new THREE.AmbientLight(0xff3333, 0.5);
+// Ambient light for base brightness (DOMINANT RED)
+const ambientLight = new THREE.AmbientLight(0xff2222, 0.8);
 scene.add(ambientLight);
 
-// Red pulsing lights (MORE AND BRIGHTER)
-const redLight1 = new THREE.PointLight(0xff0000, 5, 30);
+// Red pulsing lights (VERY BRIGHT - PRIMARY ILLUMINATION)
+const redLight1 = new THREE.PointLight(0xff0000, 8, 35);
 redLight1.position.set(-3, wallHeight - 0.5, -3);
 scene.add(redLight1);
 redLight1.userData.pulseLight = true;
-redLight1.userData.baseIntensity = 5;
+redLight1.userData.baseIntensity = 8;
 
-const redLight2 = new THREE.PointLight(0xff0000, 5, 30);
+const redLight2 = new THREE.PointLight(0xff0000, 8, 35);
 redLight2.position.set(3, wallHeight - 0.5, 3);
 scene.add(redLight2);
 redLight2.userData.pulseLight = true;
-redLight2.userData.baseIntensity = 5;
+redLight2.userData.baseIntensity = 8;
 
-const redLight3 = new THREE.PointLight(0xff0000, 5, 30);
+const redLight3 = new THREE.PointLight(0xff0000, 8, 35);
 redLight3.position.set(-3, wallHeight - 0.5, 3);
 scene.add(redLight3);
 redLight3.userData.pulseLight = true;
-redLight3.userData.baseIntensity = 5;
+redLight3.userData.baseIntensity = 8;
 
-const redLight4 = new THREE.PointLight(0xff0000, 5, 30);
+const redLight4 = new THREE.PointLight(0xff0000, 8, 35);
 redLight4.position.set(3, wallHeight - 0.5, -3);
 scene.add(redLight4);
 redLight4.userData.pulseLight = true;
-redLight4.userData.baseIntensity = 5;
+redLight4.userData.baseIntensity = 8;
 
 // Additional red lights at mid-wall positions
-const redLight5 = new THREE.PointLight(0xff0000, 4, 25);
+const redLight5 = new THREE.PointLight(0xff0000, 6, 30);
 redLight5.position.set(0, wallHeight - 0.5, -6);
 scene.add(redLight5);
 redLight5.userData.pulseLight = true;
-redLight5.userData.baseIntensity = 4;
+redLight5.userData.baseIntensity = 6;
 
-const redLight6 = new THREE.PointLight(0xff0000, 4, 25);
+const redLight6 = new THREE.PointLight(0xff0000, 6, 30);
 redLight6.position.set(0, wallHeight - 0.5, 6);
 scene.add(redLight6);
 redLight6.userData.pulseLight = true;
-redLight6.userData.baseIntensity = 4;
+redLight6.userData.baseIntensity = 6;
 
-const redLight7 = new THREE.PointLight(0xff0000, 4, 25);
+const redLight7 = new THREE.PointLight(0xff0000, 6, 30);
 redLight7.position.set(-6, wallHeight - 0.5, 0);
 scene.add(redLight7);
 redLight7.userData.pulseLight = true;
-redLight7.userData.baseIntensity = 4;
+redLight7.userData.baseIntensity = 6;
 
-const redLight8 = new THREE.PointLight(0xff0000, 4, 25);
+const redLight8 = new THREE.PointLight(0xff0000, 6, 30);
 redLight8.position.set(6, wallHeight - 0.5, 0);
 scene.add(redLight8);
 redLight8.userData.pulseLight = true;
-redLight8.userData.baseIntensity = 4;
+redLight8.userData.baseIntensity = 6;
 
-// Spotlight on key board - brighter (now on NORTH wall)
-const keyBoardSpotlight = new THREE.SpotLight(0xffaa77, 6, 15, Math.PI / 6);
+// Spotlight on key board - RED-TINTED (now on NORTH wall)
+const keyBoardSpotlight = new THREE.SpotLight(0xff6644, 6, 15, Math.PI / 6);
 keyBoardSpotlight.position.set(0, 3, -6);
 keyBoardSpotlight.target.position.set(0, 2, -roomSize / 2 + 0.1);
 scene.add(keyBoardSpotlight);
@@ -371,7 +401,8 @@ const mailboxCylinder = new THREE.Mesh(
     new THREE.MeshStandardMaterial({
         map: textures.postbox,
         metalness: 0.3,
-        roughness: 0.7
+        roughness: 0.7,
+        color: 0xff4444 // Red tint to reflect room lighting
     })
 );
 mailboxGroup.add(mailboxCylinder);
@@ -502,11 +533,11 @@ const blueLight4 = new THREE.PointLight(0x4488ff, 3, 20);
 blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
 scene.add(blueLight4);
 
-// LAB CYLINDERS - 4 futuristic glass tanks with varying sizes
+// LAB CYLINDERS - 4 futuristic glass tanks reaching ceiling
 const cylinders = [];
 
-// Cylinder 1 - Tall, thin
-const cyl1Height = 4.5;
+// Cylinder 1 - Full height, thin
+const cyl1Height = wallHeight; // Reaches ceiling
 const cyl1Radius = 0.4;
 const cylinder1Group = new THREE.Group();
 
@@ -569,8 +600,8 @@ cylinder1Group.userData.radius = cyl1Radius;
 scene.add(cylinder1Group);
 cylinders.push(cylinder1Group);
 
-// Cylinder 2 - Shorter, very thick
-const cyl2Height = 3.5;
+// Cylinder 2 - Full height, very thick
+const cyl2Height = wallHeight; // Reaches ceiling
 const cyl2Radius = 1.0;
 const cylinder2Group = new THREE.Group();
 
@@ -633,8 +664,8 @@ cylinder2Group.userData.radius = cyl2Radius;
 scene.add(cylinder2Group);
 cylinders.push(cylinder2Group);
 
-// Cylinder 3 - Medium height, medium thickness
-const cyl3Height = 4.0;
+// Cylinder 3 - Full height, medium thickness
+const cyl3Height = wallHeight; // Reaches ceiling
 const cyl3Radius = 0.6;
 const cylinder3Group = new THREE.Group();
 
@@ -693,8 +724,8 @@ cylinder3Group.userData.radius = cyl3Radius;
 scene.add(cylinder3Group);
 cylinders.push(cylinder3Group);
 
-// Cylinder 4 - Tall and wide (largest)
-const cyl4Height = 4.8;
+// Cylinder 4 - Full height, wide (largest)
+const cyl4Height = wallHeight; // Reaches ceiling
 const cyl4Radius = 0.85;
 const cylinder4Group = new THREE.Group();
 
@@ -1202,12 +1233,17 @@ function buildGardenInterior() {
     scene.add(eastBoundarySouth);
     worldObjects.push(eastBoundarySouth);
 
-    // 3D Flower bushes
+    // 3D Flower bushes (expanded with more positions)
     const bushPositions = [
         { x: -4, z: -6 }, { x: -2, z: -8 }, { x: 4, z: -7 },
         { x: 6, z: -4 }, { x: -5, z: 5 }, { x: -2, z: 7 },
         { x: 3, z: 6 }, { x: 5, z: 8 }, { x: -7, z: -2 },
-        { x: 7, z: 2 }, { x: -4, z: 0 }, { x: 4, z: -2 }
+        { x: 7, z: 2 }, { x: -4, z: 0 }, { x: 4, z: -2 },
+        // Additional bushes
+        { x: -8, z: -6 }, { x: -6, z: -8 }, { x: 8, z: -6 },
+        { x: 8, z: 6 }, { x: -8, z: 6 }, { x: -1, z: -4 },
+        { x: 1, z: -6 }, { x: -3, z: 3 }, { x: 6, z: 0 },
+        { x: -6, z: 2 }, { x: 2, z: -3 }, { x: 0, z: 5 }
     ];
 
     bushPositions.forEach(pos => {
@@ -1265,6 +1301,49 @@ function buildGardenInterior() {
         bushGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
         scene.add(bushGroup);
         gardenObjects.push(bushGroup);
+    });
+
+    // Separate standalone flowers scattered throughout garden
+    const flowerPositions = [
+        { x: -3, z: -3 }, { x: 2, z: -5 }, { x: -1, z: -7 },
+        { x: 5, z: -5 }, { x: -7, z: 0 }, { x: 3, z: 1 },
+        { x: -5, z: 3 }, { x: 1, z: 4 }, { x: 7, z: 5 },
+        { x: -2, z: 6 }, { x: 4, z: 7 }, { x: -6, z: -4 },
+        { x: 6, z: -2 }, { x: -4, z: 2 }, { x: 2, z: 3 },
+        { x: 0, z: -2 }, { x: -1, z: 1 }, { x: 3, z: -4 }
+    ];
+
+    flowerPositions.forEach(pos => {
+        const flowerGroup = new THREE.Group();
+
+        // Create small flower cluster with crossed planes
+        const numPlanes = 4 + Math.floor(Math.random() * 4);
+        const flowerHeight = 0.4 + Math.random() * 0.3;
+        const flowerWidth = 0.3 + Math.random() * 0.2;
+
+        const flowerMaterial = new THREE.MeshStandardMaterial({
+            map: textures.flowerTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            side: THREE.DoubleSide,
+            emissive: [0xff69b4, 0xffff00, 0xff6347, 0x9370db, 0xffa500][Math.floor(Math.random() * 5)],
+            emissiveIntensity: 0.4
+        });
+
+        for (let i = 0; i < numPlanes; i++) {
+            const angle = (Math.PI / numPlanes) * i;
+            const flowerPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(flowerWidth, flowerHeight),
+                flowerMaterial
+            );
+            flowerPlane.position.y = flowerHeight / 2;
+            flowerPlane.rotation.y = angle;
+            flowerGroup.add(flowerPlane);
+        }
+
+        flowerGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(flowerGroup);
+        gardenObjects.push(flowerGroup);
     });
 
     // Center fountain with glowing water
@@ -1956,9 +2035,9 @@ function animate() {
     flashlightDirection.applyQuaternion(camera.quaternion);
     flashlightTarget.position.copy(camera.position).add(flashlightDirection);
 
-    // Reduced movement speed in garden (0.7x)
+    // Reduced movement speed in garden (60% slower than normal)
     const baseSpeed = 0.1;
-    const speed = currentScene === 'garden' ? baseSpeed * 0.7 : baseSpeed;
+    const speed = currentScene === 'garden' ? baseSpeed * 0.4 : baseSpeed;
 
     // Get camera forward direction (projected onto horizontal plane)
     const forward = new THREE.Vector3();
