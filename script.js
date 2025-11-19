@@ -67,7 +67,7 @@ const textures = {
     gardenSoil: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/99e4555667f6736bd1a77eb5143396c6213feb6d/ca51356d700791cda042c52ae96bcca0.jpg'),
     footprint: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/63b9e9a95c7e705c36df5553b89bb4bd083e5ea9/Screenshot_2025-11-18_at_19.23.01-removebg-preview.png'),
     footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png'),
-    postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/7acf9ef3117d8abc7730149321b3794b6b01ecd4/Screenshot%202025-11-18%20at%2020.18.59.png')
+    postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/ae63f4db9569661b659392ad957551949a022eea/Screenshot%202025-11-18%20at%2020.37.54.png')
 };
 
 textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
