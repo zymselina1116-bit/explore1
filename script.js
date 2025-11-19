@@ -241,61 +241,61 @@ scene.add(eastWallSouth);
 worldObjects.push(eastWallSouth);
 
 // Ambient light for base brightness (DOMINANT RED)
-const ambientLight = new THREE.AmbientLight(0xff2222, 0.8);
+const ambientLight = new THREE.AmbientLight(0xff2222, 0.3);
 scene.add(ambientLight);
 
-// Red pulsing lights (VERY BRIGHT - PRIMARY ILLUMINATION)
-const redLight1 = new THREE.PointLight(0xff0000, 8, 35);
+// Red pulsing lights (DARKER - reduced illumination)
+const redLight1 = new THREE.PointLight(0xff0000, 3, 25);
 redLight1.position.set(-3, wallHeight - 0.5, -3);
 scene.add(redLight1);
 redLight1.userData.pulseLight = true;
-redLight1.userData.baseIntensity = 8;
+redLight1.userData.baseIntensity = 3;
 
-const redLight2 = new THREE.PointLight(0xff0000, 8, 35);
+const redLight2 = new THREE.PointLight(0xff0000, 3, 25);
 redLight2.position.set(3, wallHeight - 0.5, 3);
 scene.add(redLight2);
 redLight2.userData.pulseLight = true;
-redLight2.userData.baseIntensity = 8;
+redLight2.userData.baseIntensity = 3;
 
-const redLight3 = new THREE.PointLight(0xff0000, 8, 35);
+const redLight3 = new THREE.PointLight(0xff0000, 3, 25);
 redLight3.position.set(-3, wallHeight - 0.5, 3);
 scene.add(redLight3);
 redLight3.userData.pulseLight = true;
-redLight3.userData.baseIntensity = 8;
+redLight3.userData.baseIntensity = 3;
 
-const redLight4 = new THREE.PointLight(0xff0000, 8, 35);
+const redLight4 = new THREE.PointLight(0xff0000, 3, 25);
 redLight4.position.set(3, wallHeight - 0.5, -3);
 scene.add(redLight4);
 redLight4.userData.pulseLight = true;
-redLight4.userData.baseIntensity = 8;
+redLight4.userData.baseIntensity = 3;
 
 // Additional red lights at mid-wall positions
-const redLight5 = new THREE.PointLight(0xff0000, 6, 30);
+const redLight5 = new THREE.PointLight(0xff0000, 2, 20);
 redLight5.position.set(0, wallHeight - 0.5, -6);
 scene.add(redLight5);
 redLight5.userData.pulseLight = true;
-redLight5.userData.baseIntensity = 6;
+redLight5.userData.baseIntensity = 2;
 
-const redLight6 = new THREE.PointLight(0xff0000, 6, 30);
+const redLight6 = new THREE.PointLight(0xff0000, 2, 20);
 redLight6.position.set(0, wallHeight - 0.5, 6);
 scene.add(redLight6);
 redLight6.userData.pulseLight = true;
-redLight6.userData.baseIntensity = 6;
+redLight6.userData.baseIntensity = 2;
 
-const redLight7 = new THREE.PointLight(0xff0000, 6, 30);
+const redLight7 = new THREE.PointLight(0xff0000, 2, 20);
 redLight7.position.set(-6, wallHeight - 0.5, 0);
 scene.add(redLight7);
 redLight7.userData.pulseLight = true;
-redLight7.userData.baseIntensity = 6;
+redLight7.userData.baseIntensity = 2;
 
-const redLight8 = new THREE.PointLight(0xff0000, 6, 30);
+const redLight8 = new THREE.PointLight(0xff0000, 2, 20);
 redLight8.position.set(6, wallHeight - 0.5, 0);
 scene.add(redLight8);
 redLight8.userData.pulseLight = true;
-redLight8.userData.baseIntensity = 6;
+redLight8.userData.baseIntensity = 2;
 
 // Spotlight on key board - RED-TINTED (now on NORTH wall)
-const keyBoardSpotlight = new THREE.SpotLight(0xff6644, 6, 15, Math.PI / 6);
+const keyBoardSpotlight = new THREE.SpotLight(0xff6644, 2, 12, Math.PI / 6);
 keyBoardSpotlight.position.set(0, 3, -6);
 keyBoardSpotlight.target.position.set(0, 2, -roomSize / 2 + 0.1);
 scene.add(keyBoardSpotlight);
@@ -2369,7 +2369,7 @@ function animate() {
 
     // Movement speed (slower in Garden conservatory for dreamy atmosphere)
     const baseSpeed = 0.1;
-    const speed = currentScene === 'garden' ? baseSpeed * 0.7 : baseSpeed; // 70% normal speed in Garden
+    const speed = currentScene === 'garden' ? baseSpeed * 0.3 : baseSpeed; // 30% normal speed in Garden (much slower)
 
     // Get camera forward direction (projected onto horizontal plane)
     const forward = new THREE.Vector3();
