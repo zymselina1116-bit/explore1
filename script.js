@@ -66,7 +66,8 @@ const textures = {
     evidence3: loadTexture('Screenshot 2025-11-17 at 14.18.31.png'),
     gardenSoil: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/99e4555667f6736bd1a77eb5143396c6213feb6d/ca51356d700791cda042c52ae96bcca0.jpg'),
     footprint: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/63b9e9a95c7e705c36df5553b89bb4bd083e5ea9/Screenshot_2025-11-18_at_19.23.01-removebg-preview.png'),
-    footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png')
+    footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png'),
+    postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/7acf9ef3117d8abc7730149321b3794b6b01ecd4/Screenshot%202025-11-18%20at%2020.18.59.png')
 };
 
 textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
@@ -298,16 +299,54 @@ const gardenTrigger = new THREE.Box3(
     new THREE.Vector3(-roomSize / 2 - 1.5, 5, 2)
 );
 
-// Mailbox
-const mailbox = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.8, 0.4),
-    new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.3 })
+// Mailbox (cylinder with postbox texture)
+const mailboxGroup = new THREE.Group();
+mailboxGroup.position.set(3, 1.25, -5);
+
+// Main cylinder
+const mailboxCylinder = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.3, 2.5, 32),
+    new THREE.MeshStandardMaterial({
+        map: textures.postbox,
+        metalness: 0.3,
+        roughness: 0.7
+    })
 );
-mailbox.position.set(3, 0.4, -5);
-scene.add(mailbox);
-mailbox.userData.isMailbox = true;
-interactiveObjects.push(mailbox);
-worldObjects.push(mailbox);
+mailboxGroup.add(mailboxCylinder);
+
+// Create "POSTBOX" text using canvas
+const canvas = document.createElement('canvas');
+canvas.width = 512;
+canvas.height = 128;
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#000000';
+ctx.font = 'bold 80px Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('POSTBOX', canvas.width / 2, canvas.height / 2);
+
+const textTexture = new THREE.CanvasTexture(canvas);
+const textPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.12),
+    new THREE.MeshStandardMaterial({ map: textTexture, transparent: true })
+);
+textPlane.position.set(0, 0.5, 0.31);
+mailboxGroup.add(textPlane);
+
+// Mail slot (black thin rectangle)
+const mailSlot = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.3, 0.05),
+    new THREE.MeshStandardMaterial({ color: 0x000000 })
+);
+mailSlot.position.set(0, 0.2, 0.31);
+mailboxGroup.add(mailSlot);
+
+scene.add(mailboxGroup);
+mailboxGroup.userData.isMailbox = true;
+interactiveObjects.push(mailboxGroup);
+worldObjects.push(mailboxGroup);
 
 // ===== ROOM 2 =====
 const room2Offset = 15; // Connected to Room 1's east wall
