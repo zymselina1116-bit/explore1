@@ -61,7 +61,7 @@ const textures = {
     wall: loadTexture('Screenshot 2025-11-16 at 22.53.11.png'),
     floor: loadTexture('Screenshot 2025-11-16 at 22.51.42.png'),
     door: loadTexture('Screenshot 2025-11-16 at 22.54.35.png'),
-    woodenDoor: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/c6486d63247f21f2a655b63055409fabe2dd0fe0/Screenshot%202025-11-19%20at%2002.44.50.png'),
+    woodenDoor: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/b1864e636100f24708d2adb512288e66ceda8bbd/Screenshot%202025-11-19%20at%2002.51.01.png'),
     randomKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
     card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
     cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png'),
