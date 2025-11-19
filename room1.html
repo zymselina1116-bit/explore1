@@ -273,7 +273,7 @@
         scene.add(exitDoor);
         exitDoor.userData.isExitDoor = true;
         exitDoor.userData.closed = true;
-        worldObjects.push(exitDoor);
+        // Door visual is NOT in worldObjects - only collider blocks movement
 
         const doorCollider = new THREE.Mesh(
             new THREE.BoxGeometry(0.3, 4.5, 3),
