@@ -1451,114 +1451,96 @@ function buildGardenInterior() {
     scene.add(eastBoundarySouth);
     worldObjects.push(eastBoundarySouth);
 
-    // Spherical trimmed hedges (rounded, soft appearance)
-    const hedgePositions = [
-        { x: -6, z: -7, radius: 0.9 }, { x: 6, z: -7, radius: 0.8 },
-        { x: -7, z: 0, radius: 1.0 }, { x: 7, z: 0, radius: 0.85 },
-        { x: -6, z: 7, radius: 0.9 }, { x: 6, z: 7, radius: 0.95 }
+    // Realistic rounded bushes using cross-plane geometry with texture
+    // Positioned 2.5m+ from fountain, avoiding bone (-4, -6) and footprint (3, -4)
+    const bushPositions = [
+        { x: -6, z: -7 }, { x: 6, z: -7 }, { x: -7, z: -3 },
+        { x: 7, z: -3 }, { x: -6, z: 7 }, { x: 6, z: 7 },
+        { x: -8, z: -5 }, { x: 8, z: -5 }, { x: -7, z: 5 },
+        { x: 7, z: 5 }, { x: -5, z: -8 }, { x: 5, z: -8 },
+        { x: -5, z: 8 }, { x: 5, z: 8 }
     ];
 
-    hedgePositions.forEach(pos => {
-        const hedgeGroup = new THREE.Group();
+    bushPositions.forEach(pos => {
+        const bushGroup = new THREE.Group();
 
-        // Create sphere using icosahedron for smooth rounded appearance
-        const hedgeSphere = new THREE.Mesh(
-            new THREE.IcosahedronGeometry(pos.radius, 3),
-            new THREE.MeshStandardMaterial({
-                color: 0x6b8e5a,
-                roughness: 0.9,
-                flatShading: false
-            })
-        );
-        hedgeSphere.position.y = pos.radius * 0.9;
-        hedgeGroup.add(hedgeSphere);
+        // Randomize bush size and appearance
+        const bushHeight = 0.7 + Math.random() * 0.7; // 0.7 - 1.4
+        const bushRadius = 0.4 + Math.random() * 0.4; // 0.4 - 0.8
+        const numPlanes = 6 + Math.floor(Math.random() * 3); // 6-8 planes
+        const scaleNoise = 0.9 + Math.random() * 0.2; // 0.9 - 1.1
 
-        hedgeGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
-        scene.add(hedgeGroup);
-        gardenObjects.push(hedgeGroup);
-    });
+        // Color variation (±10% hue and brightness)
+        const hueShift = (Math.random() - 0.5) * 0.2; // ±10%
+        const brightnessShift = 0.9 + Math.random() * 0.2; // 90%-110%
+        const baseColor = new THREE.Color(0x6b8e5a);
+        baseColor.offsetHSL(hueShift, 0, (brightnessShift - 1) * 0.1);
 
-    // Low rounded shrubs (smaller, softer)
-    const shrubPositions = [
-        { x: -4, z: -5 }, { x: -2, z: -7 }, { x: 2, z: -6 },
-        { x: 4, z: -4 }, { x: -5, z: 4 }, { x: -2, z: 6 },
-        { x: 2, z: 5 }, { x: 5, z: 7 }, { x: -7, z: -2 },
-        { x: 7, z: 2 }, { x: -3, z: 0 }, { x: 3, z: -2 }
-    ];
+        // Bush material with texture
+        const bushMaterial = new THREE.MeshStandardMaterial({
+            map: textures.bushTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            side: THREE.DoubleSide,
+            color: baseColor,
+            roughness: 0.8
+        });
 
-    shrubPositions.forEach(pos => {
-        const shrubGroup = new THREE.Group();
-
-        // Multiple small spheres clustered for natural shrub look
-        const numSpheres = 3 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < numSpheres; i++) {
-            const radius = 0.3 + Math.random() * 0.2;
-            const sphere = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(radius, 2),
-                new THREE.MeshStandardMaterial({
-                    color: 0x7a9e65,
-                    roughness: 0.85
-                })
+        // Create cross-plane geometry
+        for (let i = 0; i < numPlanes; i++) {
+            const angle = (Math.PI / numPlanes) * i;
+            const plane = new THREE.Mesh(
+                new THREE.PlaneGeometry(bushRadius * 2 * scaleNoise, bushHeight * scaleNoise),
+                bushMaterial
             );
-            sphere.position.set(
-                (Math.random() - 0.5) * 0.4,
-                radius * 0.8,
-                (Math.random() - 0.5) * 0.4
-            );
-            shrubGroup.add(sphere);
+            plane.position.y = bushHeight / 2;
+            plane.rotation.y = angle;
+            bushGroup.add(plane);
         }
 
-        shrubGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
-        scene.add(shrubGroup);
-        gardenObjects.push(shrubGroup);
-    });
+        bushGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        bushGroup.userData.isBush = true;
+        bushGroup.userData.windOffset = Math.random() * Math.PI * 2;
+        bushGroup.userData.windSpeed = 0.15 + Math.random() * 0.05; // 0.15-0.2
+        scene.add(bushGroup);
+        gardenObjects.push(bushGroup);
 
-    // Flower patches near fountain (soft lavender, cream, peach colors)
-    const flowerPatchPositions = [
-        { x: -3, z: -2.5, color: 0xd8b4e2 }, // Soft lavender
-        { x: 3, z: -2.5, color: 0xfff5e1 }, // Cream
-        { x: -3, z: 2.5, color: 0xffdab9 }, // Peach
-        { x: 3, z: 2.5, color: 0xe6d0ff }, // Light lavender
-        { x: 0, z: -3.5, color: 0xffe5cc }, // Light peach
-        { x: 0, z: 3.5, color: 0xf5f5dc } // Beige cream
-    ];
+        // Add flower cluster at bush base
+        const flowerClusterGroup = new THREE.Group();
+        const numFlowers = 3 + Math.floor(Math.random() * 4); // 3-6 flowers per bush
 
-    flowerPatchPositions.forEach(pos => {
-        const patchGroup = new THREE.Group();
+        for (let f = 0; f < numFlowers; f++) {
+            const flowerSize = 0.12 + Math.random() * 0.08;
 
-        // Create flower patch with multiple small flowers
-        const numFlowers = 8 + Math.floor(Math.random() * 6);
-        for (let i = 0; i < numFlowers; i++) {
-            const flowerSize = 0.15 + Math.random() * 0.1;
+            // Slight HSL random shift for color variation
+            const flowerHue = Math.random(); // Random hue
+            const flowerColor = new THREE.Color().setHSL(flowerHue, 0.7, 0.7);
+
             const flower = new THREE.Mesh(
-                new THREE.CircleGeometry(flowerSize, 6),
+                new THREE.PlaneGeometry(flowerSize, flowerSize),
                 new THREE.MeshStandardMaterial({
-                    color: pos.color,
-                    emissive: pos.color,
-                    emissiveIntensity: 0.3,
-                    side: THREE.DoubleSide
+                    map: textures.flowerTexture,
+                    transparent: true,
+                    alphaTest: 0.5,
+                    side: THREE.DoubleSide,
+                    color: flowerColor,
+                    emissive: flowerColor,
+                    emissiveIntensity: 0.3
                 })
             );
             flower.position.set(
-                (Math.random() - 0.5) * 0.8,
+                (Math.random() - 0.5) * bushRadius * 1.5,
                 0.05,
-                (Math.random() - 0.5) * 0.8
+                (Math.random() - 0.5) * bushRadius * 1.5
             );
-            flower.rotation.x = -Math.PI / 2 + (Math.random() - 0.5) * 0.3;
-            patchGroup.add(flower);
-
-            // Add small stem (tiny cylinder)
-            const stem = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.02, 0.02, 0.15, 4),
-                new THREE.MeshStandardMaterial({ color: 0x4a7c3a })
-            );
-            stem.position.set(flower.position.x, 0.075, flower.position.z);
-            patchGroup.add(stem);
+            flower.rotation.x = -Math.PI / 2;
+            flower.rotation.z = Math.random() * Math.PI * 2;
+            flowerClusterGroup.add(flower);
         }
 
-        patchGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
-        scene.add(patchGroup);
-        gardenObjects.push(patchGroup);
+        flowerClusterGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(flowerClusterGroup);
+        gardenObjects.push(flowerClusterGroup);
     });
 
     // Tall thin trees with soft leaves (NOT cubes!)
@@ -2494,6 +2476,13 @@ function animate() {
             if (Math.abs(obj.position.x - gardenOffsetX) > 10) {
                 obj.position.x = gardenOffsetX + (Math.random() - 0.5) * 20;
             }
+        }
+
+        // Bush wind sway animation (gentle rotation oscillation)
+        if (obj.userData.isBush) {
+            const windIntensity = 0.15 + Math.sin(time * obj.userData.windSpeed + obj.userData.windOffset) * 0.05;
+            obj.rotation.y = Math.sin(time * 0.0008 + obj.userData.windOffset) * windIntensity;
+            obj.rotation.x = Math.sin(time * 0.0006 + obj.userData.windOffset) * (windIntensity * 0.5);
         }
 
         // Bone pulsing glow animation
