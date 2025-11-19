@@ -320,48 +320,32 @@
         woodenDoorCollider.userData.door = woodenDoor;
         worldObjects.push(woodenDoorCollider);
 
-        // Mailbox (cylinder with postbox texture)
+        // Mailbox (rectangular wall-mounted)
         const mailboxGroup = new THREE.Group();
-        mailboxGroup.position.set(3, 1.25, -5);
+        mailboxGroup.position.set(3, 1.40, -7.42); // Wall-mounted on north wall, flush
 
-        // Main cylinder
-        const mailboxCylinder = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.3, 0.3, 2.5, 32),
+        // Main rectangular box
+        const mailboxBox = new THREE.Mesh(
+            new THREE.BoxGeometry(0.65, 0.40, 0.16),
             new THREE.MeshStandardMaterial({
                 map: textures.postbox,
-                metalness: 0.3,
-                roughness: 0.7
+                color: 0x555555,
+                metalness: 0.85,
+                roughness: 0.35
             })
         );
-        mailboxGroup.add(mailboxCylinder);
+        mailboxGroup.add(mailboxBox);
 
-        // Create "POSTBOX" text using canvas
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 128;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 80px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('POSTBOX', canvas.width / 2, canvas.height / 2);
-
-        const textTexture = new THREE.CanvasTexture(canvas);
-        const textPlane = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.5, 0.12),
-            new THREE.MeshStandardMaterial({ map: textTexture, transparent: true })
-        );
-        textPlane.position.set(0, 0.5, 0.31);
-        mailboxGroup.add(textPlane);
-
-        // Mail slot (black thin rectangle)
+        // Mail slot (black thin rectangle with emissive glow, slightly recessed)
         const mailSlot = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.3, 0.05),
-            new THREE.MeshStandardMaterial({ color: 0x000000 })
+            new THREE.BoxGeometry(0.45, 0.03, 0.02),
+            new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0x111111,
+                emissiveIntensity: 0.35
+            })
         );
-        mailSlot.position.set(0, 0.2, 0.31);
+        mailSlot.position.set(0, 0, 0.09); // Positioned on front face
         mailboxGroup.add(mailSlot);
 
         scene.add(mailboxGroup);
