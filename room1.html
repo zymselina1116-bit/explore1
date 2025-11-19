@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room 1 - Exploration Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; font-family: Arial, sans-serif; }
+        #backpack {
+            position: fixed; top: 20px; right: 20px; width: 60px; height: 60px;
+            background: rgba(0, 0, 0, 0.7); border: 3px solid #fff; border-radius: 10px;
+            cursor: pointer; z-index: 1000;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M17 6h-2V3c0-.55-.45-1-1-1h-4c-.55 0-1 .45-1 1v3H7c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2 0 .55.45 1 1 1h8c.55 0 1-.45 1-1 1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM9.5 18H8V9h1.5v9zm3.25 0h-1.5V9h1.5v9zm3.25 0H14V9h1.5v9zm.5-12h-9V3.5h9V6z"/></svg>');
+            background-size: 70%; background-repeat: no-repeat; background-position: center;
+        }
+        #inventory-panel {
+            position: fixed; top: 100px; right: 20px; width: 300px; min-height: 100px;
+            max-height: 500px; background: rgba(0, 0, 0, 0.9); border: 3px solid #fff;
+            border-radius: 10px; display: none; padding: 20px; overflow-y: auto; z-index: 999;
+        }
+        #inventory-panel.open { display: block; }
+        .inventory-item {
+            width: 80px; height: 80px; margin: 10px; display: inline-block;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            cursor: pointer; border: 2px solid #fff; border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="backpack"></div>
+    <div id="inventory-panel"></div>
+
+    <script type="module">
+        import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+
+        console.log('Room 1 loaded, THREE version:', THREE.REVISION);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.set(0, 2.5, 0);
+        scene.background = new THREE.Color(0x000000);
+
+        const textureLoader = new THREE.TextureLoader();
+        const inventory = [];
+        const interactiveObjects = [];
+        const worldObjects = [];
+
+        let isMouseDown = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let yaw = 0;
+        let pitch = 0;
+        const moveState = { forward: false, backward: false, left: false, right: false };
+
+        function loadTexture(path) {
+            const texture = textureLoader.load(
+                path,
+                () => console.log('Loaded:', path),
+                undefined,
+                (err) => console.error('Error loading:', path, err)
+            );
+            texture.encoding = THREE.sRGBEncoding;
+            return texture;
+        }
+
+        const textures = {
+            wall: loadTexture('Screenshot 2025-11-16 at 22.53.11.png'),
+            floor: loadTexture('Screenshot 2025-11-16 at 22.51.42.png'),
+            door: loadTexture('Screenshot 2025-11-16 at 22.54.35.png'),
+            decorativeKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
+            card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
+            cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png')
+        };
+
+        textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
+        textures.floor.repeat.set(4, 4);
+        textures.wall.wrapS = textures.wall.wrapT = THREE.RepeatWrapping;
+        textures.wall.repeat.set(2, 2);
+
+        // Create Room 1
+        const roomSize = 15;
+        const wallHeight = 5;
+
+        const floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(roomSize, roomSize),
+            new THREE.MeshStandardMaterial({ map: textures.floor })
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = 0;
+        scene.add(floor);
+        worldObjects.push(floor);
+
+        const ceiling = new THREE.Mesh(
+            new THREE.PlaneGeometry(roomSize, roomSize),
+            new THREE.MeshStandardMaterial({ map: textures.wall })
+        );
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.y = wallHeight;
+        scene.add(ceiling);
+
+        const wallGeometry = new THREE.PlaneGeometry(roomSize, wallHeight);
+
+        const wallNorth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        wallNorth.position.set(0, wallHeight / 2, -roomSize / 2);
+        scene.add(wallNorth);
+        worldObjects.push(wallNorth);
+
+        const wallSouth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        wallSouth.position.set(0, wallHeight / 2, roomSize / 2);
+        wallSouth.rotation.y = Math.PI;
+        scene.add(wallSouth);
+        worldObjects.push(wallSouth);
+
+        const wallWest = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        wallWest.position.set(-roomSize / 2, wallHeight / 2, 0);
+        wallWest.rotation.y = Math.PI / 2;
+        scene.add(wallWest);
+        worldObjects.push(wallWest);
+
+        const wallEast = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        wallEast.position.set(roomSize / 2, wallHeight / 2, 0);
+        wallEast.rotation.y = -Math.PI / 2;
+        scene.add(wallEast);
+        worldObjects.push(wallEast);
+
+        // Red pulsing lights
+        const redLight1 = new THREE.PointLight(0xff0000, 2, 15);
+        redLight1.position.set(-3, wallHeight - 0.5, -3);
+        scene.add(redLight1);
+        redLight1.userData.pulseLight = true;
+        redLight1.userData.baseIntensity = 2;
+
+        const redLight2 = new THREE.PointLight(0xff0000, 2, 15);
+        redLight2.position.set(3, wallHeight - 0.5, 3);
+        scene.add(redLight2);
+        redLight2.userData.pulseLight = true;
+        redLight2.userData.baseIntensity = 2;
+
+        // Spotlight on key board
+        const keyBoardSpotlight = new THREE.SpotLight(0xffaa77, 3, 10, Math.PI / 6);
+        keyBoardSpotlight.position.set(-6, 3, 0);
+        keyBoardSpotlight.target.position.set(-roomSize / 2 + 0.1, 2, 0);
+        scene.add(keyBoardSpotlight);
+        scene.add(keyBoardSpotlight.target);
+
+        // Key board on wall
+        const keyBoard = new THREE.Mesh(
+            new THREE.PlaneGeometry(2, 1.5),
+            new THREE.MeshStandardMaterial({ map: textures.wall })
+        );
+        keyBoard.position.set(-roomSize / 2 + 0.05, 2, 0);
+        keyBoard.rotation.y = Math.PI / 2;
+        scene.add(keyBoard);
+
+        // Decorative keys
+        for (let i = 0; i < 5; i++) {
+            const decorKey = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.15, 0.15),
+                new THREE.MeshStandardMaterial({ map: textures.decorativeKey, transparent: true })
+            );
+            decorKey.position.set(-roomSize / 2 + 0.06, 2 + (i - 2) * 0.2, (i - 2) * 0.3);
+            decorKey.rotation.y = Math.PI / 2;
+            scene.add(decorKey);
+        }
+
+        // Collectible card
+        const collectibleCard = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.3, 0.4),
+            new THREE.MeshStandardMaterial({ map: textures.card, transparent: true })
+        );
+        collectibleCard.position.set(-roomSize / 2 + 0.07, 2, 0.8);
+        collectibleCard.rotation.y = Math.PI / 2;
+        scene.add(collectibleCard);
+        collectibleCard.userData.isCollectible = true;
+        collectibleCard.userData.itemType = 'card';
+        collectibleCard.userData.texture = textures.card;
+        interactiveObjects.push(collectibleCard);
+
+        // Card reader
+        const cardReader = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.5, 0.7),
+            new THREE.MeshStandardMaterial({ map: textures.cardReader, transparent: true })
+        );
+        cardReader.position.set(roomSize / 2 - 0.05, 1.5, 2);
+        cardReader.rotation.y = -Math.PI / 2;
+        scene.add(cardReader);
+        cardReader.userData.isCardReader = true;
+        interactiveObjects.push(cardReader);
+
+        // Exit door
+        const exitDoor = new THREE.Mesh(
+            new THREE.PlaneGeometry(2, 4),
+            new THREE.MeshStandardMaterial({ map: textures.door })
+        );
+        exitDoor.position.set(roomSize / 2 - 0.05, 2, 0);
+        exitDoor.rotation.y = -Math.PI / 2;
+        scene.add(exitDoor);
+        exitDoor.userData.isExitDoor = true;
+        exitDoor.userData.closed = true;
+        worldObjects.push(exitDoor);
+
+        const doorCollider = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 4, 2),
+            new THREE.MeshBasicMaterial({ visible: false })
+        );
+        doorCollider.position.set(roomSize / 2 - 0.15, 2, 0);
+        scene.add(doorCollider);
+        doorCollider.userData.doorCollider = true;
+        doorCollider.userData.door = exitDoor;
+        worldObjects.push(doorCollider);
+
+        // Mailbox
+        const mailbox = new THREE.Mesh(
+            new THREE.BoxGeometry(0.6, 0.8, 0.4),
+            new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.3 })
+        );
+        mailbox.position.set(3, 0.4, -5);
+        scene.add(mailbox);
+        mailbox.userData.isMailbox = true;
+        interactiveObjects.push(mailbox);
+        worldObjects.push(mailbox);
+
+        // Raycaster for clicks
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onClick(event) {
+            if (event.target !== renderer.domElement) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects);
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+
+                if (obj.userData.isCollectible && !obj.userData.collected) {
+                    obj.userData.collected = true;
+                    obj.visible = false;
+
+                    inventory.push({
+                        type: obj.userData.itemType,
+                        texture: obj.userData.texture,
+                        mesh: obj
+                    });
+                    updateInventoryUI();
+                    console.log('Collected:', obj.userData.itemType);
+                } else if (obj.userData.isCardReader) {
+                    const hasCard = inventory.some(item => item.type === 'card');
+                    if (hasCard) {
+                        const door = scene.children.find(child => child.userData.isExitDoor);
+                        if (door && door.userData.closed) {
+                            door.userData.closed = false;
+                            console.log('Door opening');
+                            const slideAnim = setInterval(() => {
+                                door.position.z += 0.1;
+                                if (door.position.z > 5) {
+                                    clearInterval(slideAnim);
+                                    const collider = worldObjects.find(w => w.userData.doorCollider && w.userData.door === door);
+                                    if (collider) {
+                                        worldObjects.splice(worldObjects.indexOf(collider), 1);
+                                        scene.remove(collider);
+                                    }
+                                }
+                            }, 16);
+                        }
+                    } else {
+                        console.log('Need card to open door');
+                    }
+                }
+            }
+        }
+
+        function updateInventoryUI() {
+            const panel = document.getElementById('inventory-panel');
+            panel.innerHTML = '';
+
+            inventory.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'inventory-item';
+                if (item.texture) {
+                    div.style.backgroundImage = `url(${item.texture.image.src})`;
+                }
+                panel.appendChild(div);
+            });
+        }
+
+        document.getElementById('backpack').addEventListener('click', () => {
+            const panel = document.getElementById('inventory-panel');
+            panel.classList.toggle('open');
+        });
+
+        // Mouse controls
+        function onMouseDown(event) {
+            if (event.button === 0) {
+                isMouseDown = true;
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+            }
+        }
+
+        function onMouseUp(event) {
+            if (event.button === 0) {
+                isMouseDown = false;
+            }
+        }
+
+        function onMouseMove(event) {
+            if (isMouseDown) {
+                const deltaX = event.clientX - previousMousePosition.x;
+                const deltaY = event.clientY - previousMousePosition.y;
+
+                yaw -= deltaX * 0.002;
+                pitch -= deltaY * 0.002;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+            }
+        }
+
+        document.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('click', onClick);
+
+        // Keyboard controls (W=backward, S=forward, A=right, D=left)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'w' || e.key === 'W') moveState.backward = true;
+            if (e.key === 's' || e.key === 'S') moveState.forward = true;
+            if (e.key === 'a' || e.key === 'A') moveState.right = true;
+            if (e.key === 'd' || e.key === 'D') moveState.left = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'w' || e.key === 'W') moveState.backward = false;
+            if (e.key === 's' || e.key === 'S') moveState.forward = false;
+            if (e.key === 'a' || e.key === 'A') moveState.right = false;
+            if (e.key === 'd' || e.key === 'D') moveState.left = false;
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function checkCollision(newPos) {
+            const playerBox = new THREE.Box3().setFromCenterAndSize(
+                newPos,
+                new THREE.Vector3(0.8, 4, 0.8)
+            );
+
+            for (const obj of worldObjects) {
+                if (obj.userData.doorCollider && obj.userData.door && !obj.userData.door.userData.closed) {
+                    continue;
+                }
+
+                const objBox = new THREE.Box3().setFromObject(obj);
+                if (playerBox.intersectsBox(objBox)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+            camera.quaternion.copy(quaternion);
+
+            const speed = 0.1;
+            const moveDir = new THREE.Vector3();
+
+            if (moveState.forward) moveDir.z += 1;
+            if (moveState.backward) moveDir.z -= 1;
+            if (moveState.left) moveDir.x += 1;
+            if (moveState.right) moveDir.x -= 1;
+
+            if (moveDir.length() > 0) {
+                moveDir.normalize();
+                moveDir.applyQuaternion(camera.quaternion);
+                moveDir.y = 0;
+                moveDir.normalize();
+
+                const newPos = camera.position.clone().add(moveDir.multiplyScalar(speed));
+                newPos.y = 2.5;
+
+                if (!checkCollision(newPos)) {
+                    camera.position.copy(newPos);
+                }
+            }
+
+            // Pulse red lights
+            scene.children.forEach(child => {
+                if (child.userData.pulseLight) {
+                    child.intensity = child.userData.baseIntensity + Math.sin(Date.now() * 0.003) * 0.5;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        console.log('Starting animation loop');
+        animate();
+    </script>
+</body>
+</html>
