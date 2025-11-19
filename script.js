@@ -1592,6 +1592,137 @@ function buildGardenInterior() {
         gardenObjects.push(treeGroup);
     });
 
+    // Additional bushes for fuller garden (avoid evidence, fountains, and pathways)
+    const additionalBushPositions = [
+        { x: -4, z: -8 }, { x: 4, z: -8 }, { x: -8, z: -1 },
+        { x: 8, z: -1 }, { x: -6, z: 4 }, { x: 6, z: 4 },
+        { x: -3, z: -5 }, { x: 3, z: -5 }, { x: -7, z: 7 },
+        { x: 7, z: 7 }
+    ];
+
+    additionalBushPositions.forEach(pos => {
+        const bushGroup = new THREE.Group();
+
+        const bushHeight = 0.7 + Math.random() * 0.7;
+        const bushRadius = 0.4 + Math.random() * 0.4;
+        const numPlanes = 6 + Math.floor(Math.random() * 3);
+        const scaleNoise = 0.9 + Math.random() * 0.2;
+
+        const hueShift = (Math.random() - 0.5) * 0.2;
+        const brightnessShift = 0.9 + Math.random() * 0.2;
+        const baseColor = new THREE.Color(0x6b8e5a);
+        baseColor.offsetHSL(hueShift, 0, (brightnessShift - 1) * 0.1);
+
+        const bushMaterial = new THREE.MeshStandardMaterial({
+            map: textures.bushTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            side: THREE.DoubleSide,
+            color: baseColor,
+            roughness: 0.8
+        });
+
+        for (let i = 0; i < numPlanes; i++) {
+            const angle = (Math.PI / numPlanes) * i;
+            const plane = new THREE.Mesh(
+                new THREE.PlaneGeometry(bushRadius * 2 * scaleNoise, bushHeight * scaleNoise),
+                bushMaterial
+            );
+            plane.position.y = bushHeight / 2;
+            plane.rotation.y = angle;
+            bushGroup.add(plane);
+        }
+
+        bushGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        bushGroup.userData.isBush = true;
+        bushGroup.userData.windOffset = Math.random() * Math.PI * 2;
+        bushGroup.userData.windSpeed = 0.15 + Math.random() * 0.05;
+        scene.add(bushGroup);
+        gardenObjects.push(bushGroup);
+
+        // Add flower cluster at bush base
+        const flowerClusterGroup = new THREE.Group();
+        const numFlowers = 3 + Math.floor(Math.random() * 4);
+
+        for (let f = 0; f < numFlowers; f++) {
+            const flowerSize = 0.12 + Math.random() * 0.08;
+            const flowerHue = Math.random();
+            const flowerColor = new THREE.Color().setHSL(flowerHue, 0.7, 0.7);
+
+            const flower = new THREE.Mesh(
+                new THREE.PlaneGeometry(flowerSize, flowerSize),
+                new THREE.MeshStandardMaterial({
+                    map: textures.flowerTexture,
+                    transparent: true,
+                    alphaTest: 0.5,
+                    side: THREE.DoubleSide,
+                    color: flowerColor,
+                    emissive: flowerColor,
+                    emissiveIntensity: 0.3
+                })
+            );
+            flower.position.set(
+                (Math.random() - 0.5) * bushRadius * 1.5,
+                0.05,
+                (Math.random() - 0.5) * bushRadius * 1.5
+            );
+            flower.rotation.x = -Math.PI / 2;
+            flower.rotation.z = Math.random() * Math.PI * 2;
+            flowerClusterGroup.add(flower);
+        }
+
+        flowerClusterGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(flowerClusterGroup);
+        gardenObjects.push(flowerClusterGroup);
+    });
+
+    // Additional trees for fuller garden
+    const additionalTreePositions = [
+        { x: -9, z: -5 }, { x: 9, z: -5 },
+        { x: -9, z: 5 }, { x: 9, z: 5 }
+    ];
+
+    additionalTreePositions.forEach(pos => {
+        const treeGroup = new THREE.Group();
+
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.15, 6, 8),
+            new THREE.MeshStandardMaterial({
+                color: 0x3e2a1f,
+                roughness: 0.95
+            })
+        );
+        trunk.position.y = 3;
+        treeGroup.add(trunk);
+
+        const leafLayers = 4;
+        for (let layer = 0; layer < leafLayers; layer++) {
+            const layerY = 4.5 + layer * 0.8;
+            const layerSize = 2.0 - layer * 0.3;
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const leaf = new THREE.Mesh(
+                    new THREE.PlaneGeometry(layerSize, layerSize * 1.2),
+                    new THREE.MeshStandardMaterial({
+                        color: 0x4a6b3a,
+                        transparent: true,
+                        opacity: 0.7,
+                        side: THREE.DoubleSide
+                    })
+                );
+                leaf.position.y = layerY;
+                leaf.rotation.y = angle;
+                leaf.rotation.x = (Math.random() - 0.5) * 0.4;
+                treeGroup.add(leaf);
+            }
+        }
+
+        treeGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(treeGroup);
+        gardenObjects.push(treeGroup);
+    });
+
     // Center fountain - smooth stone bowl with magical water
     const fountainGroup = new THREE.Group();
 
@@ -1668,42 +1799,290 @@ function buildGardenInterior() {
     scene.add(fountainGroup);
     gardenObjects.push(fountainGroup);
 
-    // BONE collectible (glowing, with texture, near bushes)
+    // Fountain #2 - Crystal Spiral Spring (front-left, ~3m from main)
+    const fountain2Group = new THREE.Group();
+
+    // Tall spiral crystal structure
+    const spiralHeight = 2.5;
+    const spiralRadius = 0.4;
+    const spiralSegments = 40;
+    const spiralGeometry = new THREE.BufferGeometry();
+    const spiralVertices = [];
+
+    for (let i = 0; i <= spiralSegments; i++) {
+        const t = i / spiralSegments;
+        const angle = t * Math.PI * 4; // 2 full rotations
+        const y = t * spiralHeight;
+        const r = spiralRadius * (1 - t * 0.3); // Taper upward
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+        spiralVertices.push(x, y, z);
+    }
+
+    spiralGeometry.setAttribute('position', new THREE.Float32BufferAttribute(spiralVertices, 3));
+    const spiralMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x88ddff,
+        emissive: 0x66ccff,
+        emissiveIntensity: 0.8,
+        transparent: true,
+        opacity: 0.7,
+        transmission: 0.5,
+        roughness: 0.1,
+        metalness: 0.3
+    });
+    const spiralPoints = [];
+    for (let i = 0; i < spiralVertices.length; i += 3) {
+        spiralPoints.push(new THREE.Vector3(spiralVertices[i], spiralVertices[i+1], spiralVertices[i+2]));
+    }
+    const spiralCrystal = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiralPoints), 40, 0.08, 8, false),
+        spiralMaterial
+    );
+    spiralCrystal.position.y = 0.3;
+    fountain2Group.add(spiralCrystal);
+
+    // Shallow white stone ring base
+    const fountain2Base = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.0, 1.1, 0.15, 24),
+        new THREE.MeshStandardMaterial({
+            map: textures.stoneTexture,
+            color: 0xf5f5f5,
+            roughness: 0.5
+        })
+    );
+    fountain2Base.position.y = 0.075;
+    fountain2Group.add(fountain2Base);
+
+    // Water pool
+    const fountain2Water = new THREE.Mesh(
+        new THREE.CircleGeometry(0.9, 32),
+        new THREE.MeshPhysicalMaterial({
+            map: textures.waterNormalTexture,
+            color: 0xccf5ff,
+            emissive: 0x66ddff,
+            emissiveIntensity: 0.4,
+            transmission: 0.9,
+            opacity: 1,
+            roughness: 0.05,
+            ior: 1.33
+        })
+    );
+    fountain2Water.rotation.x = -Math.PI / 2;
+    fountain2Water.position.y = 0.16;
+    fountain2Group.add(fountain2Water);
+    fountain2Group.userData.waterSurface = fountain2Water;
+
+    // Cyan + baby-blue emission glow
+    const fountain2Light = new THREE.PointLight(0x88eeff, 1.2, 10);
+    fountain2Light.position.y = 1.2;
+    fountain2Group.add(fountain2Light);
+
+    // Sparkle particles rising upward
+    const fountain2Particles = [];
+    for (let i = 0; i < 15; i++) {
+        const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.02, 4, 4),
+            new THREE.MeshBasicMaterial({
+                color: 0xccffff,
+                transparent: true,
+                opacity: 0.7
+            })
+        );
+        particle.position.set(
+            (Math.random() - 0.5) * 0.4,
+            0.3 + Math.random() * 0.5,
+            (Math.random() - 0.5) * 0.4
+        );
+        particle.userData.speed = 0.006 + Math.random() * 0.012;
+        particle.userData.resetY = 0.3;
+        particle.userData.floatOffset = Math.random() * Math.PI * 2;
+        fountain2Particles.push(particle);
+        fountain2Group.add(particle);
+    }
+    fountain2Group.userData.particles = fountain2Particles;
+
+    fountain2Group.position.set(gardenOffsetX - 3, 0, -3);
+    scene.add(fountain2Group);
+    gardenObjects.push(fountain2Group);
+
+    // Fountain #3 - Floating Orb Water Ring (front-right, ~3m from main)
+    const fountain3Group = new THREE.Group();
+
+    // Floating water sphere
+    const orbSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.6, 32, 32),
+        new THREE.MeshPhysicalMaterial({
+            map: textures.waterNormalTexture,
+            color: 0xddffff,
+            emissive: 0xaaccff,
+            emissiveIntensity: 0.6,
+            transmission: 0.95,
+            opacity: 1,
+            roughness: 0.02,
+            ior: 1.33,
+            thickness: 0.5,
+            transparent: true
+        })
+    );
+    orbSphere.position.y = 1.8;
+    fountain3Group.add(orbSphere);
+    fountain3Group.userData.orbSphere = orbSphere;
+
+    // Circular ring below
+    const ringGeometry = new THREE.TorusGeometry(1.2, 0.15, 16, 32);
+    const ringMesh = new THREE.Mesh(
+        ringGeometry,
+        new THREE.MeshStandardMaterial({
+            map: textures.stoneTexture,
+            color: 0xe8e8e8,
+            roughness: 0.4
+        })
+    );
+    ringMesh.position.y = 0.15;
+    ringMesh.rotation.x = Math.PI / 2;
+    fountain3Group.add(ringMesh);
+
+    // Water in ring
+    const ringWater = new THREE.Mesh(
+        new THREE.TorusGeometry(1.2, 0.12, 16, 32),
+        new THREE.MeshPhysicalMaterial({
+            map: textures.waterNormalTexture,
+            color: 0xccffff,
+            emissive: 0x88ddff,
+            emissiveIntensity: 0.5,
+            transmission: 0.9,
+            opacity: 1,
+            roughness: 0.05
+        })
+    );
+    ringWater.position.y = 0.16;
+    ringWater.rotation.x = Math.PI / 2;
+    fountain3Group.add(ringWater);
+
+    // Opal rainbow shimmer light (HSL color shift)
+    const fountain3Light = new THREE.PointLight(0xffffff, 1.0, 12);
+    fountain3Light.position.y = 1.8;
+    fountain3Group.add(fountain3Light);
+    fountain3Group.userData.rainbowLight = fountain3Light;
+    fountain3Group.userData.rainbowPhase = 0;
+
+    fountain3Group.position.set(gardenOffsetX + 3, 0, -3);
+    scene.add(fountain3Group);
+    gardenObjects.push(fountain3Group);
+
+    // Fountain #4 - Lotus Light Pool (behind main, ~3m away)
+    const fountain4Group = new THREE.Group();
+
+    // Circular shallow pool
+    const lotusPoolBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.4, 1.5, 0.2, 32),
+        new THREE.MeshStandardMaterial({
+            map: textures.stoneTexture,
+            color: 0xf8f0e8,
+            roughness: 0.6
+        })
+    );
+    lotusPoolBase.position.y = 0.1;
+    fountain4Group.add(lotusPoolBase);
+
+    // Water surface
+    const lotusWater = new THREE.Mesh(
+        new THREE.CircleGeometry(1.3, 32),
+        new THREE.MeshPhysicalMaterial({
+            map: textures.waterNormalTexture,
+            color: 0xfff5ee,
+            emissive: 0xffd4a3,
+            emissiveIntensity: 0.3,
+            transmission: 0.85,
+            opacity: 1,
+            roughness: 0.1
+        })
+    );
+    lotusWater.rotation.x = -Math.PI / 2;
+    lotusWater.position.y = 0.21;
+    fountain4Group.add(lotusWater);
+    fountain4Group.userData.waterSurface = lotusWater;
+
+    // Central lotus shapes (glowing petals)
+    for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const petal = new THREE.Mesh(
+            new THREE.CircleGeometry(0.25, 16),
+            new THREE.MeshStandardMaterial({
+                color: 0xffddee,
+                emissive: 0xffaacc,
+                emissiveIntensity: 0.8,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            })
+        );
+        petal.position.set(Math.cos(angle) * 0.4, 0.22, Math.sin(angle) * 0.4);
+        petal.rotation.x = -Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+        fountain4Group.add(petal);
+    }
+
+    // Central lotus core (gold + lilac)
+    const lotusCore = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 16, 16),
+        new THREE.MeshStandardMaterial({
+            color: 0xffd700,
+            emissive: 0xffaa00,
+            emissiveIntensity: 1.2
+        })
+    );
+    lotusCore.position.y = 0.3;
+    fountain4Group.add(lotusCore);
+
+    // Warm bloom light (gold + lilac tones)
+    const fountain4Light = new THREE.PointLight(0xffccff, 0.8, 10);
+    fountain4Light.position.y = 0.5;
+    fountain4Group.add(fountain4Light);
+
+    // Radiating ripple animation userData
+    fountain4Group.userData.ripplePhase = 0;
+
+    fountain4Group.position.set(gardenOffsetX, 0, 3);
+    scene.add(fountain4Group);
+    gardenObjects.push(fountain4Group);
+
+    // BONE collectible (soft mint glow, with texture, near bushes)
     const bone = new THREE.Mesh(
         new THREE.PlaneGeometry(0.5, 0.5),
         new THREE.MeshStandardMaterial({
             map: textures.boneTexture,
             transparent: true,
-            emissive: 0x88ff88,
-            emissiveIntensity: 1.6,
+            emissive: 0xaaffdd, // Soft mint glow
+            emissiveIntensity: 1.0,
             side: THREE.DoubleSide
         })
     );
     bone.position.set(gardenOffsetX - 4, 0.25, -6);
     bone.rotation.x = -Math.PI / 2; // Lay flat on ground
-    bone.rotation.z = Math.random() * Math.PI;
+    bone.rotation.z = Math.PI / 6; // Slight tilt for natural look
     scene.add(bone);
     bone.userData.isCollectible = true;
     bone.userData.itemType = 'bone';
-    bone.userData.texture = textures.evidence1;
+    bone.userData.texture = textures.boneBackpack; // Use bone icon texture
     bone.userData.isBone = true; // Flag for pulsing animation
     interactiveObjects.push(bone);
     gardenObjects.push(bone);
 
-    // Bone glow light
-    const boneLight = new THREE.PointLight(0xaaffaa, 0.5, 4);
+    // Bone glow light (mint)
+    const boneLight = new THREE.PointLight(0xaaffdd, 0.6, 4);
     boneLight.position.copy(bone.position);
+    boneLight.position.y = 0.3;
     scene.add(boneLight);
     bone.userData.glowLight = boneLight;
 
-    // FOOTPRINT collectible (glowing, on ground)
+    // FOOTPRINT collectible (pulsing cool-blue glow, on ground)
     const footprintMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(0.6, 0.8),
         new THREE.MeshStandardMaterial({
             map: textures.footprint,
             transparent: true,
-            emissive: 0xaaffaa,
-            emissiveIntensity: 1.0
+            emissive: 0x88ccff, // Cool-blue glow
+            emissiveIntensity: 1.4
         })
     );
     footprintMesh.rotation.x = -Math.PI / 2;
@@ -2483,6 +2862,28 @@ function animate() {
             const windIntensity = 0.15 + Math.sin(time * obj.userData.windSpeed + obj.userData.windOffset) * 0.05;
             obj.rotation.y = Math.sin(time * 0.0008 + obj.userData.windOffset) * windIntensity;
             obj.rotation.x = Math.sin(time * 0.0006 + obj.userData.windOffset) * (windIntensity * 0.5);
+        }
+
+        // Fountain #3 - Rainbow HSL color shift (very slow opal shimmer)
+        if (obj.userData.rainbowLight) {
+            obj.userData.rainbowPhase = (obj.userData.rainbowPhase + 0.0003) % 1;
+            const rainbowColor = new THREE.Color().setHSL(obj.userData.rainbowPhase, 0.6, 0.7);
+            obj.userData.rainbowLight.color.copy(rainbowColor);
+        }
+
+        // Fountain #3 - Orb rotation
+        if (obj.userData.orbSphere) {
+            obj.userData.orbSphere.rotation.y = time * 0.0003;
+            obj.userData.orbSphere.rotation.x = Math.sin(time * 0.0002) * 0.1;
+        }
+
+        // Fountain #4 - Radiating ripple animation every 4 seconds
+        if (obj.userData.ripplePhase !== undefined) {
+            obj.userData.ripplePhase = (time * 0.00025) % 1;
+            if (obj.userData.waterSurface) {
+                const rippleIntensity = Math.sin(obj.userData.ripplePhase * Math.PI * 2);
+                obj.userData.waterSurface.material.emissiveIntensity = 0.3 + rippleIntensity * 0.3;
+            }
         }
 
         // Bone pulsing glow animation
