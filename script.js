@@ -64,7 +64,7 @@ const textures = {
     evidence1: loadTexture('Screenshot 2025-11-17 at 14.12.36.png'),
     evidence2: loadTexture('Screenshot 2025-11-17 at 14.17.01.png'),
     evidence3: loadTexture('Screenshot 2025-11-17 at 14.18.31.png'),
-    gardenSoil: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/99e4555667f6736bd1a77eb5143396c6213feb6d/ca51356d700791cda042c52ae96bcca0.jpg'),
+    gardenGrass: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/10bd72d55c08bf6aa1d94153574f2cbfda0a1702/Screenshot%202025-11-18%20at%2021.19.28.png'),
     footprint: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/63b9e9a95c7e705c36df5553b89bb4bd083e5ea9/Screenshot_2025-11-18_at_19.23.01-removebg-preview.png'),
     footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png'),
     postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/7acf9ef3117d8abc7730149321b3794b6b01ecd4/Screenshot%202025-11-18%20at%2020.18.59.png')
@@ -74,8 +74,8 @@ textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
 textures.floor.repeat.set(4, 4);
 textures.wall.wrapS = textures.wall.wrapT = THREE.RepeatWrapping;
 textures.wall.repeat.set(2, 2);
-textures.gardenSoil.wrapS = textures.gardenSoil.wrapT = THREE.RepeatWrapping;
-textures.gardenSoil.repeat.set(6, 6);
+textures.gardenGrass.wrapS = textures.gardenGrass.wrapT = THREE.RepeatWrapping;
+textures.gardenGrass.repeat.set(6, 6);
 
 // Create Room 1
 const roomSize = 15;
@@ -292,6 +292,12 @@ scene.add(woodenDoorCollider);
 woodenDoorCollider.userData.woodenDoorCollider = true;
 woodenDoorCollider.userData.door = woodenDoor;
 worldObjects.push(woodenDoorCollider);
+
+// Garden trigger zone (invisible, right past the wooden door)
+const gardenTrigger = new THREE.Box3(
+    new THREE.Vector3(-roomSize / 2 - 2, 0, -2),
+    new THREE.Vector3(-roomSize / 2 - 0.5, 5, 2)
+);
 
 // Mailbox (cylinder with postbox texture)
 const mailboxGroup = new THREE.Group();
@@ -802,6 +808,9 @@ evidence3.userData.itemType = 'evidence3';
 evidence3.userData.texture = textures.evidence3;
 interactiveObjects.push(evidence3);
 
+// Build Garden Interior (in same scene, behind wooden door)
+buildGardenInterior();
+
 // GARDEN SCENE
 function buildGardenScene() {
     // Clear current scene
@@ -1027,6 +1036,258 @@ function buildGardenScene() {
     gardenObjects.push(feather);
 }
 
+// Build Garden Interior (greenhouse behind wooden door)
+function buildGardenInterior() {
+    const gardenOffsetX = -25; // Garden center X position (behind wooden door)
+    const gardenSize = 20;
+
+    // Garden ground with grass/moss texture
+    const groundGeometry = new THREE.PlaneGeometry(gardenSize, gardenSize, 32, 32);
+    const vertices = groundGeometry.attributes.position.array;
+    for (let i = 0; i < vertices.length; i += 3) {
+        vertices[i + 2] = Math.random() * 0.2 - 0.1; // Slight height variation
+    }
+    groundGeometry.attributes.position.needsUpdate = true;
+    groundGeometry.computeVertexNormals();
+
+    const ground = new THREE.Mesh(
+        groundGeometry,
+        new THREE.MeshStandardMaterial({ map: textures.gardenGrass })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(gardenOffsetX, 0, 0);
+    scene.add(ground);
+    worldObjects.push(ground);
+
+    // Glass walls (transparent greenhouse)
+    const glassMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.65,
+        metalness: 0.1,
+        roughness: 0.05,
+        side: THREE.DoubleSide
+    });
+
+    const wallHeight = 8;
+
+    // North glass wall
+    const glassNorth = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, wallHeight),
+        glassMaterial
+    );
+    glassNorth.position.set(gardenOffsetX, wallHeight / 2, -gardenSize / 2);
+    scene.add(glassNorth);
+
+    // South glass wall
+    const glassSouth = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, wallHeight),
+        glassMaterial
+    );
+    glassSouth.position.set(gardenOffsetX, wallHeight / 2, gardenSize / 2);
+    glassSouth.rotation.y = Math.PI;
+    scene.add(glassSouth);
+
+    // West glass wall
+    const glassWest = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, wallHeight),
+        glassMaterial
+    );
+    glassWest.position.set(gardenOffsetX - gardenSize / 2, wallHeight / 2, 0);
+    glassWest.rotation.y = Math.PI / 2;
+    scene.add(glassWest);
+
+    // East glass wall (near door entrance)
+    const glassEast = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, wallHeight),
+        glassMaterial
+    );
+    glassEast.position.set(gardenOffsetX + gardenSize / 2, wallHeight / 2, 0);
+    glassEast.rotation.y = -Math.PI / 2;
+    scene.add(glassEast);
+
+    // Glass ceiling panels
+    const ceilingGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, gardenSize),
+        glassMaterial
+    );
+    ceilingGlass.rotation.x = Math.PI / 2;
+    ceilingGlass.position.set(gardenOffsetX, wallHeight, 0);
+    scene.add(ceilingGlass);
+
+    // Metal frame structure (thin dark beams)
+    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.8, roughness: 0.3 });
+
+    // Vertical corner posts
+    const postPositions = [
+        [gardenOffsetX - gardenSize / 2, wallHeight / 2, -gardenSize / 2],
+        [gardenOffsetX + gardenSize / 2, wallHeight / 2, -gardenSize / 2],
+        [gardenOffsetX - gardenSize / 2, wallHeight / 2, gardenSize / 2],
+        [gardenOffsetX + gardenSize / 2, wallHeight / 2, gardenSize / 2]
+    ];
+    postPositions.forEach(pos => {
+        const post = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, wallHeight, 8),
+            frameMaterial
+        );
+        post.position.set(...pos);
+        scene.add(post);
+    });
+
+    // Warm sunlight from ceiling
+    const sunLight = new THREE.DirectionalLight(0xffffcc, 0.8);
+    sunLight.position.set(gardenOffsetX, wallHeight - 1, 0);
+    sunLight.target.position.set(gardenOffsetX, 0, 0);
+    scene.add(sunLight);
+    scene.add(sunLight.target);
+
+    // Soft ambient lighting (warm + green)
+    const gardenAmbient = new THREE.AmbientLight(0xaaff88, 0.6);
+    scene.add(gardenAmbient);
+
+    const warmGlow = new THREE.PointLight(0xffeeaa, 0.4, 30);
+    warmGlow.position.set(gardenOffsetX, 4, 0);
+    scene.add(warmGlow);
+
+    // 3D Flower bushes
+    const bushPositions = [
+        { x: -4, z: -6 }, { x: -2, z: -8 }, { x: 4, z: -7 },
+        { x: 6, z: -4 }, { x: -5, z: 5 }, { x: -2, z: 7 },
+        { x: 3, z: 6 }, { x: 5, z: 8 }, { x: -7, z: -2 },
+        { x: 7, z: 2 }, { x: -4, z: 0 }, { x: 4, z: -2 }
+    ];
+
+    bushPositions.forEach(pos => {
+        const bushGroup = new THREE.Group();
+
+        // Green foliage
+        const bushHeight = 0.8 + Math.random() * 0.6;
+        const bushRadius = 0.7 + Math.random() * 0.5;
+        const foliage = new THREE.Mesh(
+            new THREE.SphereGeometry(bushRadius, 10, 10),
+            new THREE.MeshStandardMaterial({ color: 0x3a7d44, roughness: 0.9 })
+        );
+        foliage.position.y = bushHeight;
+        foliage.scale.y = 0.7;
+        bushGroup.add(foliage);
+
+        // Colorful flowers
+        for (let i = 0; i < 10; i++) {
+            const flower = new THREE.Mesh(
+                new THREE.SphereGeometry(0.1, 8, 8),
+                new THREE.MeshStandardMaterial({
+                    color: [0xff69b4, 0xffff00, 0xff6347, 0x9370db, 0xffa500][Math.floor(Math.random() * 5)],
+                    emissive: [0xff69b4, 0xffff00, 0xff6347, 0x9370db, 0xffa500][Math.floor(Math.random() * 5)],
+                    emissiveIntensity: 0.3
+                })
+            );
+            const angle = (Math.PI * 2 * i) / 10;
+            flower.position.set(
+                Math.cos(angle) * bushRadius * 0.85,
+                bushHeight + Math.random() * 0.4,
+                Math.sin(angle) * bushRadius * 0.85
+            );
+            bushGroup.add(flower);
+        }
+
+        bushGroup.position.set(gardenOffsetX + pos.x, 0, pos.z);
+        scene.add(bushGroup);
+        gardenObjects.push(bushGroup);
+    });
+
+    // Center fountain with glowing water
+    const fountainGroup = new THREE.Group();
+
+    // Stone base
+    const fountainBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.6, 1.9, 0.5, 20),
+        new THREE.MeshStandardMaterial({ color: 0x8b7d6b, roughness: 0.7 })
+    );
+    fountainBase.position.y = 0.25;
+    fountainGroup.add(fountainBase);
+
+    // Water basin with glow
+    const waterBasin = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.4, 1.4, 0.3, 20),
+        new THREE.MeshStandardMaterial({
+            color: 0xaaffff,
+            emissive: 0x44ddff,
+            emissiveIntensity: 0.6,
+            transparent: true,
+            opacity: 0.75,
+            metalness: 0.2,
+            roughness: 0.05
+        })
+    );
+    waterBasin.position.y = 0.55;
+    fountainGroup.add(waterBasin);
+    fountainGroup.userData.waterBasin = waterBasin;
+
+    // Sparkle particles (gentle animation)
+    const particles = [];
+    for (let i = 0; i < 25; i++) {
+        const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.04, 6, 6),
+            new THREE.MeshBasicMaterial({ color: 0xddffff, transparent: true, opacity: 0.7 })
+        );
+        particle.position.set(
+            (Math.random() - 0.5) * 0.4,
+            0.7 + Math.random() * 0.6,
+            (Math.random() - 0.5) * 0.4
+        );
+        particle.userData.speed = 0.008 + Math.random() * 0.015;
+        particle.userData.resetY = 0.7;
+        particles.push(particle);
+        fountainGroup.add(particle);
+    }
+    fountainGroup.userData.particles = particles;
+
+    // Fountain glow light
+    const fountainLight = new THREE.PointLight(0xaaffff, 0.7, 10);
+    fountainLight.position.y = 0.7;
+    fountainGroup.add(fountainLight);
+
+    fountainGroup.position.set(gardenOffsetX, 0, 0);
+    scene.add(fountainGroup);
+    gardenObjects.push(fountainGroup);
+
+    // BONE collectible (half-hidden among bushes)
+    const bone = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.05, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xf5f5dc })
+    );
+    bone.position.set(gardenOffsetX - 4, 0.5, -6);
+    bone.rotation.y = Math.random() * Math.PI;
+    scene.add(bone);
+    bone.userData.isCollectible = true;
+    bone.userData.itemType = 'bone';
+    bone.userData.texture = textures.evidence1;
+    interactiveObjects.push(bone);
+    gardenObjects.push(bone);
+
+    // FOOTPRINT collectible (glowing, on ground)
+    const footprintMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.6, 0.8),
+        new THREE.MeshStandardMaterial({
+            map: textures.footprint,
+            transparent: true,
+            emissive: 0xaaffaa,
+            emissiveIntensity: 0.4
+        })
+    );
+    footprintMesh.rotation.x = -Math.PI / 2;
+    footprintMesh.position.set(gardenOffsetX + 3, 0.02, -4);
+    scene.add(footprintMesh);
+    footprintMesh.userData.isCollectible = true;
+    footprintMesh.userData.itemType = 'footprint';
+    footprintMesh.userData.texture = textures.footprintPhoto;
+    footprintMesh.userData.isFootprint = true; // Special flag for photo popup
+    interactiveObjects.push(footprintMesh);
+    gardenObjects.push(footprintMesh);
+
+    console.log('Garden interior built behind wooden door');
+}
+
 // Raycaster for clicks
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -1047,17 +1308,56 @@ function onClick(event) {
             // Collect item with lift animation
             obj.userData.collected = true;
 
-            const startY = obj.position.y;
-            let liftProgress = 0;
-            const liftAnim = setInterval(() => {
-                liftProgress += 0.05;
-                obj.position.y = startY + Math.sin(liftProgress * Math.PI) * 0.3;
+            // Special handling for footprint - show photo popup
+            if (obj.userData.isFootprint) {
+                // Brighten animation
+                const originalIntensity = obj.material.emissiveIntensity;
+                let brightenProgress = 0;
+                const brightenAnim = setInterval(() => {
+                    brightenProgress += 0.1;
+                    obj.material.emissiveIntensity = originalIntensity + Math.sin(brightenProgress * Math.PI) * 0.6;
 
-                if (liftProgress >= 1) {
-                    clearInterval(liftAnim);
-                    obj.visible = false;
-                }
-            }, 16);
+                    if (brightenProgress >= 1) {
+                        clearInterval(brightenAnim);
+                        obj.visible = false;
+
+                        // Show photo popup for 1 second
+                        const popup = document.createElement('div');
+                        popup.style.position = 'fixed';
+                        popup.style.top = '50%';
+                        popup.style.left = '50%';
+                        popup.style.transform = 'translate(-50%, -50%)';
+                        popup.style.width = '300px';
+                        popup.style.height = '400px';
+                        popup.style.backgroundImage = `url(${obj.userData.texture.image.src})`;
+                        popup.style.backgroundSize = 'contain';
+                        popup.style.backgroundRepeat = 'no-repeat';
+                        popup.style.backgroundPosition = 'center';
+                        popup.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                        popup.style.border = '3px solid white';
+                        popup.style.zIndex = '10000';
+                        popup.style.pointerEvents = 'none';
+                        document.body.appendChild(popup);
+
+                        setTimeout(() => {
+                            document.body.removeChild(popup);
+                        }, 1000);
+                    }
+                }, 16);
+            } else {
+                // Normal lift animation for other items
+                const startY = obj.position.y;
+                let liftProgress = 0;
+                const liftAnim = setInterval(() => {
+                    liftProgress += 0.05;
+                    obj.position.y = startY + Math.sin(liftProgress * Math.PI) * 0.3;
+
+                    if (liftProgress >= 1) {
+                        clearInterval(liftAnim);
+                        obj.visible = false;
+                    }
+                }, 16);
+            }
 
             inventory.push({
                 type: obj.userData.itemType,
@@ -1170,19 +1470,19 @@ document.addEventListener('mouseup', onMouseUp);
 document.addEventListener('mousemove', onMouseMove);
 document.addEventListener('click', onClick);
 
-// Keyboard controls (W=backward, S=forward, A=right, D=left)
+// Keyboard controls (W=forward, S=backward, A=left, D=right)
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'w' || e.key === 'W') moveState.backward = true;
-    if (e.key === 's' || e.key === 'S') moveState.forward = true;
-    if (e.key === 'a' || e.key === 'A') moveState.right = true;
-    if (e.key === 'd' || e.key === 'D') moveState.left = true;
+    if (e.key === 'w' || e.key === 'W') moveState.forward = true;
+    if (e.key === 's' || e.key === 'S') moveState.backward = true;
+    if (e.key === 'a' || e.key === 'A') moveState.left = true;
+    if (e.key === 'd' || e.key === 'D') moveState.right = true;
 });
 
 document.addEventListener('keyup', (e) => {
-    if (e.key === 'w' || e.key === 'W') moveState.backward = false;
-    if (e.key === 's' || e.key === 'S') moveState.forward = false;
-    if (e.key === 'a' || e.key === 'A') moveState.right = false;
-    if (e.key === 'd' || e.key === 'D') moveState.left = false;
+    if (e.key === 'w' || e.key === 'W') moveState.forward = false;
+    if (e.key === 's' || e.key === 'S') moveState.backward = false;
+    if (e.key === 'a' || e.key === 'A') moveState.left = false;
+    if (e.key === 'd' || e.key === 'D') moveState.right = false;
 });
 
 window.addEventListener('resize', () => {
@@ -1247,6 +1547,14 @@ function animate() {
         }
     }
 
+    // Check if player walked through wooden door into garden
+    if (currentScene === 'room1' && woodenDoor.userData.closed === false) {
+        if (gardenTrigger.containsPoint(camera.position)) {
+            console.log('Entered garden area');
+            currentScene = 'garden';
+        }
+    }
+
     // Flicker red lights (dramatic strobing effect)
     const time = Date.now();
     scene.children.forEach(child => {
@@ -1287,40 +1595,26 @@ function animate() {
         });
     });
 
-    // Garden animations
-    if (currentScene === 'garden') {
-        gardenObjects.forEach(obj => {
-            // Fountain water animations
-            if (obj.userData.particles) {
-                obj.userData.particles.forEach(particle => {
-                    particle.position.y += particle.userData.speed;
-                    if (particle.position.y > 2) {
-                        particle.position.y = particle.userData.resetY;
-                        particle.position.x = (Math.random() - 0.5) * 0.3;
-                        particle.position.z = (Math.random() - 0.5) * 0.3;
-                    }
-                });
-
-                // Animate water basin surface
-                const waterBasin = obj.userData.waterBasin;
-                if (waterBasin) {
-                    waterBasin.position.y = 0.55 + Math.sin(time * 0.002) * 0.02;
+    // Garden animations (always animate, since garden is in same scene)
+    gardenObjects.forEach(obj => {
+        // Fountain water animations
+        if (obj.userData.particles) {
+            obj.userData.particles.forEach(particle => {
+                particle.position.y += particle.userData.speed;
+                if (particle.position.y > 2) {
+                    particle.position.y = particle.userData.resetY;
+                    particle.position.x = (Math.random() - 0.5) * 0.4;
+                    particle.position.z = (Math.random() - 0.5) * 0.4;
                 }
-            }
+            });
 
-            // Feather bobbing animation
-            if (obj.userData && obj.userData.bobTime !== undefined) {
-                obj.userData.bobTime += 0.02;
-                obj.position.y = 0.8 + Math.sin(obj.userData.bobTime) * 0.1;
-
-                // Pulsing emissive
-                const mat = obj.material;
-                if (mat.emissiveIntensity !== undefined) {
-                    mat.emissiveIntensity = 1.5 + Math.sin(time * 0.003) * 0.5;
-                }
+            // Animate water basin surface (gentle ripple)
+            const waterBasin = obj.userData.waterBasin;
+            if (waterBasin) {
+                waterBasin.position.y = 0.55 + Math.sin(time * 0.002) * 0.02;
             }
-        });
-    }
+        }
+    });
 
     renderer.render(scene, camera);
 }
