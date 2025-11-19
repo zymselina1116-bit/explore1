@@ -78,7 +78,13 @@
             decorativeKey: loadTexture('Screenshot_2025-11-17_at_12.33.23-removebg-preview.png'),
             card: loadTexture('Screenshot_2025-11-17_at_12.30.02-removebg-preview (1).png'),
             cardReader: loadTexture('64a4a7a4f17dd4b4087b2c9feb3245e0-removebg-preview.png'),
-            goldenKey: loadTexture('70dc331664376a64a8050baa7c7744a6-removebg-preview.png')
+            goldenKey: loadTexture('70dc331664376a64a8050baa7c7744a6-removebg-preview.png'),
+            keyBoard: loadTexture('Screenshot 2025-11-17 at 14.39.55.png'),
+            room2Floor: loadTexture('Screenshot 2025-11-16 at 22.56.00.png'),
+            deskChair: loadTexture('Screenshot 2025-11-17 at 14.38.31.png'),
+            evidence1: loadTexture('Screenshot 2025-11-17 at 14.12.36.png'),
+            evidence2: loadTexture('Screenshot 2025-11-17 at 14.17.01.png'),
+            evidence3: loadTexture('Screenshot 2025-11-17 at 14.18.31.png')
         };
 
         textures.floor.wrapS = textures.floor.wrapT = THREE.RepeatWrapping;
@@ -171,7 +177,7 @@
         // Key board on wall (NORTH wall)
         const keyBoard = new THREE.Mesh(
             new THREE.PlaneGeometry(2, 1.5),
-            new THREE.MeshStandardMaterial({ map: textures.wall })
+            new THREE.MeshStandardMaterial({ map: textures.keyBoard })
         );
         keyBoard.position.set(0, 2, -roomSize / 2 + 0.05);
         keyBoard.rotation.y = 0;
@@ -188,31 +194,31 @@
             scene.add(decorKey);
         }
 
+        // Collectible card on key board (NORTH wall)
+        const collectibleCard = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.3, 0.4),
+            new THREE.MeshStandardMaterial({ map: textures.card, transparent: true })
+        );
+        collectibleCard.position.set(-0.6, 2.3, -roomSize / 2 + 0.07);
+        collectibleCard.rotation.y = 0;
+        scene.add(collectibleCard);
+        collectibleCard.userData.isCollectible = true;
+        collectibleCard.userData.itemType = 'card';
+        collectibleCard.userData.texture = textures.card;
+        interactiveObjects.push(collectibleCard);
+
         // Golden key on key board (collectible)
         const goldenKey = new THREE.Mesh(
             new THREE.PlaneGeometry(0.4, 0.3),
             new THREE.MeshStandardMaterial({ map: textures.goldenKey, transparent: true })
         );
-        goldenKey.position.set(0.8, 2.5, -roomSize / 2 + 0.07);
+        goldenKey.position.set(0.6, 2.3, -roomSize / 2 + 0.07);
         goldenKey.rotation.y = 0;
         scene.add(goldenKey);
         goldenKey.userData.isCollectible = true;
         goldenKey.userData.itemType = 'goldenKey';
         goldenKey.userData.texture = textures.goldenKey;
         interactiveObjects.push(goldenKey);
-
-        // Collectible card (on EAST wall, near exit door)
-        const collectibleCard = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.3, 0.4),
-            new THREE.MeshStandardMaterial({ map: textures.card, transparent: true })
-        );
-        collectibleCard.position.set(roomSize / 2 - 0.07, 2, 2.5);
-        collectibleCard.rotation.y = -Math.PI / 2;
-        scene.add(collectibleCard);
-        collectibleCard.userData.isCollectible = true;
-        collectibleCard.userData.itemType = 'card';
-        collectibleCard.userData.texture = textures.card;
-        interactiveObjects.push(collectibleCard);
 
         // Card reader
         const cardReader = new THREE.Mesh(
@@ -280,6 +286,127 @@
         mailbox.userData.isMailbox = true;
         interactiveObjects.push(mailbox);
         worldObjects.push(mailbox);
+
+        // ===== ROOM 2 =====
+        const room2Offset = 15; // Connected to Room 1's east wall
+
+        textures.room2Floor.wrapS = textures.room2Floor.wrapT = THREE.RepeatWrapping;
+        textures.room2Floor.repeat.set(4, 4);
+
+        // Room 2 floor
+        const room2Floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(roomSize, roomSize),
+            new THREE.MeshStandardMaterial({ map: textures.room2Floor })
+        );
+        room2Floor.rotation.x = -Math.PI / 2;
+        room2Floor.position.set(room2Offset, 0, 0);
+        scene.add(room2Floor);
+        worldObjects.push(room2Floor);
+
+        // Room 2 ceiling
+        const room2Ceiling = new THREE.Mesh(
+            new THREE.PlaneGeometry(roomSize, roomSize),
+            new THREE.MeshStandardMaterial({ map: textures.wall })
+        );
+        room2Ceiling.rotation.x = Math.PI / 2;
+        room2Ceiling.position.set(room2Offset, wallHeight, 0);
+        scene.add(room2Ceiling);
+
+        // Room 2 walls
+        const room2WallNorth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        room2WallNorth.position.set(room2Offset, wallHeight / 2, -roomSize / 2);
+        scene.add(room2WallNorth);
+        worldObjects.push(room2WallNorth);
+
+        const room2WallSouth = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        room2WallSouth.position.set(room2Offset, wallHeight / 2, roomSize / 2);
+        room2WallSouth.rotation.y = Math.PI;
+        scene.add(room2WallSouth);
+        worldObjects.push(room2WallSouth);
+
+        const room2WallEast = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ map: textures.wall }));
+        room2WallEast.position.set(room2Offset + roomSize / 2, wallHeight / 2, 0);
+        room2WallEast.rotation.y = -Math.PI / 2;
+        scene.add(room2WallEast);
+        worldObjects.push(room2WallEast);
+
+        // Blue ambient light for Room 2
+        const room2AmbientLight = new THREE.AmbientLight(0x3366ff, 0.6);
+        scene.add(room2AmbientLight);
+
+        // Blue ceiling lights for Room 2
+        const blueLight1 = new THREE.PointLight(0x4488ff, 3, 20);
+        blueLight1.position.set(room2Offset - 3, wallHeight - 0.5, -3);
+        scene.add(blueLight1);
+
+        const blueLight2 = new THREE.PointLight(0x4488ff, 3, 20);
+        blueLight2.position.set(room2Offset + 3, wallHeight - 0.5, 3);
+        scene.add(blueLight2);
+
+        const blueLight3 = new THREE.PointLight(0x4488ff, 3, 20);
+        blueLight3.position.set(room2Offset - 3, wallHeight - 0.5, 3);
+        scene.add(blueLight3);
+
+        const blueLight4 = new THREE.PointLight(0x4488ff, 3, 20);
+        blueLight4.position.set(room2Offset + 3, wallHeight - 0.5, -3);
+        scene.add(blueLight4);
+
+        // Laboratory desk
+        const labDesk = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 0.8, 0.8),
+            new THREE.MeshStandardMaterial({ map: textures.deskChair })
+        );
+        labDesk.position.set(room2Offset - 3, 0.4, -3);
+        scene.add(labDesk);
+        worldObjects.push(labDesk);
+
+        // Laboratory chair
+        const labChair = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.9, 0.5),
+            new THREE.MeshStandardMaterial({ map: textures.deskChair })
+        );
+        labChair.position.set(room2Offset - 3, 0.45, -2);
+        scene.add(labChair);
+        worldObjects.push(labChair);
+
+        // Evidence 1: On desk surface
+        const evidence1 = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.4, 0.4),
+            new THREE.MeshStandardMaterial({ map: textures.evidence1 })
+        );
+        evidence1.position.set(room2Offset - 3, 0.85, -3);
+        evidence1.rotation.x = -Math.PI / 2;
+        scene.add(evidence1);
+        evidence1.userData.isCollectible = true;
+        evidence1.userData.itemType = 'evidence1';
+        evidence1.userData.texture = textures.evidence1;
+        interactiveObjects.push(evidence1);
+
+        // Evidence 2: Wall poster
+        const evidence2 = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.6, 0.8),
+            new THREE.MeshStandardMaterial({ map: textures.evidence2 })
+        );
+        evidence2.position.set(room2Offset, 2.5, -roomSize / 2 + 0.05);
+        evidence2.rotation.y = 0;
+        scene.add(evidence2);
+        evidence2.userData.isCollectible = true;
+        evidence2.userData.itemType = 'evidence2';
+        evidence2.userData.texture = textures.evidence2;
+        interactiveObjects.push(evidence2);
+
+        // Evidence 3: On floor
+        const evidence3 = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.5, 0.5),
+            new THREE.MeshStandardMaterial({ map: textures.evidence3 })
+        );
+        evidence3.position.set(room2Offset + 4, 0.01, 4);
+        evidence3.rotation.x = -Math.PI / 2;
+        scene.add(evidence3);
+        evidence3.userData.isCollectible = true;
+        evidence3.userData.itemType = 'evidence3';
+        evidence3.userData.texture = textures.evidence3;
+        interactiveObjects.push(evidence3);
 
         // Raycaster for clicks
         const raycaster = new THREE.Raycaster();
