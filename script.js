@@ -32,6 +32,14 @@ const worldObjects = [];
 let currentScene = 'room1';
 const gardenObjects = [];
 
+// Evidence delivery system
+const droppedEvidence = [];
+const deliveryState = { bone: false, footprint: false };
+let selectedInventoryIndex = -1;
+let draggedEvidence = null;
+let isDragging = false;
+let finalLetterSpawned = false;
+
 let isMouseDown = false;
 let previousMousePosition = { x: 0, y: 0 };
 let yaw = 0;
@@ -68,6 +76,7 @@ const textures = {
     footprint: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/63b9e9a95c7e705c36df5553b89bb4bd083e5ea9/Screenshot_2025-11-18_at_19.23.01-removebg-preview.png'),
     footprintPhoto: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/5113b099b2a821e217e8c1b5f8e0ecaca65fd06c/Screenshot%202025-11-18%20at%2019.29.33.png'),
     postbox: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/7acf9ef3117d8abc7730149321b3794b6b01ecd4/Screenshot%202025-11-18%20at%2020.18.59.png'),
+    boneBackpack: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/2e5977ca4001f1acc52b14306639ed463c8fbf9b/cfa82b6e85ad9a31beb6df5c67e3aeb4-removebg-preview.png'),
     bushTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/1a447fbbb5aea7e6e56c4ca3dbe1b0aa73697c2c/Screenshot%202025-11-19%20at%2000.57.00.png'),
     flowerTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/bf0e2df20354a430956b68ac9c97e34963a2c5fb/934cf2913e8cfeb7be072f66db469185-removebg-preview.png'),
     glassFrameTexture: loadTexture('https://raw.githubusercontent.com/zymselina1116-bit/explore1/faf4c32b96cf87e28797e870b44d64edd85d7f4f/Screenshot%202025-11-19%20at%2001.02.50.png'),
@@ -1138,13 +1147,60 @@ function buildGardenInterior() {
     scene.add(sunLight);
     scene.add(sunLight.target);
 
-    // Soft ambient lighting (warm + green)
-    const gardenAmbient = new THREE.AmbientLight(0xaaff88, 0.6);
+    // Soft ambient lighting (warm + green) - BRIGHTER
+    const gardenAmbient = new THREE.AmbientLight(0xaaff88, 1.2);
     scene.add(gardenAmbient);
 
-    const warmGlow = new THREE.PointLight(0xffeeaa, 0.4, 30);
+    const warmGlow = new THREE.PointLight(0xffeeaa, 0.8, 30);
     warmGlow.position.set(gardenOffsetX, 4, 0);
     scene.add(warmGlow);
+
+    // Garden boundary colliders (invisible walls)
+    const boundaryMaterial = new THREE.MeshBasicMaterial({ visible: false });
+
+    // North boundary
+    const northBoundary = new THREE.Mesh(
+        new THREE.BoxGeometry(gardenSize, wallHeight, 0.5),
+        boundaryMaterial
+    );
+    northBoundary.position.set(gardenOffsetX, wallHeight / 2, -gardenSize / 2);
+    scene.add(northBoundary);
+    worldObjects.push(northBoundary);
+
+    // South boundary
+    const southBoundary = new THREE.Mesh(
+        new THREE.BoxGeometry(gardenSize, wallHeight, 0.5),
+        boundaryMaterial
+    );
+    southBoundary.position.set(gardenOffsetX, wallHeight / 2, gardenSize / 2);
+    scene.add(southBoundary);
+    worldObjects.push(southBoundary);
+
+    // West boundary
+    const westBoundary = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, wallHeight, gardenSize),
+        boundaryMaterial
+    );
+    westBoundary.position.set(gardenOffsetX - gardenSize / 2, wallHeight / 2, 0);
+    scene.add(westBoundary);
+    worldObjects.push(westBoundary);
+
+    // East boundary (with opening for door entrance)
+    const eastBoundaryNorth = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, wallHeight, 6),
+        boundaryMaterial
+    );
+    eastBoundaryNorth.position.set(gardenOffsetX + gardenSize / 2, wallHeight / 2, -7);
+    scene.add(eastBoundaryNorth);
+    worldObjects.push(eastBoundaryNorth);
+
+    const eastBoundarySouth = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, wallHeight, 6),
+        boundaryMaterial
+    );
+    eastBoundarySouth.position.set(gardenOffsetX + gardenSize / 2, wallHeight / 2, 7);
+    scene.add(eastBoundarySouth);
+    worldObjects.push(eastBoundarySouth);
 
     // 3D Flower bushes
     const bushPositions = [
@@ -1343,6 +1399,15 @@ function onClick(event) {
     if (intersects.length > 0) {
         const obj = intersects[0].object;
 
+        // Final letter click
+        if (obj.userData.isFinalLetter) {
+            showFinalMessage();
+            scene.remove(obj);
+            const idx = interactiveObjects.indexOf(obj);
+            if (idx > -1) interactiveObjects.splice(idx, 1);
+            return;
+        }
+
         if (obj.userData.isCollectible && !obj.userData.collected) {
             // Collect item with lift animation
             obj.userData.collected = true;
@@ -1465,9 +1530,38 @@ function updateInventoryUI() {
     inventory.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'inventory-item';
-        if (item.texture) {
+        div.dataset.index = index;
+
+        // Use bone backpack icon for bone, footprint photo for footprint
+        if (item.type === 'bone' && textures.boneBackpack) {
+            div.style.backgroundImage = `url(${textures.boneBackpack.image.src})`;
+        } else if (item.texture) {
             div.style.backgroundImage = `url(${item.texture.image.src})`;
         }
+
+        // Highlight if selected
+        if (index === selectedInventoryIndex) {
+            div.style.border = '3px solid yellow';
+            div.style.boxShadow = '0 0 10px yellow';
+        }
+
+        // Single click - select
+        div.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedInventoryIndex === index) {
+                selectedInventoryIndex = -1;
+            } else {
+                selectedInventoryIndex = index;
+            }
+            updateInventoryUI();
+        });
+
+        // Double click - drop to world
+        div.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            dropEvidenceToWorld(index);
+        });
+
         panel.appendChild(div);
     });
 }
@@ -1480,18 +1574,30 @@ document.getElementById('backpack').addEventListener('click', () => {
 // Mouse controls
 function onMouseDown(event) {
     if (event.button === 0) {
-        isMouseDown = true;
-        previousMousePosition = { x: event.clientX, y: event.clientY };
+        // Check for evidence dragging first
+        startDragEvidence(event);
+
+        if (!isDragging) {
+            isMouseDown = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        }
     }
 }
 
 function onMouseUp(event) {
     if (event.button === 0) {
+        endDragEvidence();
         isMouseDown = false;
     }
 }
 
 function onMouseMove(event) {
+    // Update drag if dragging evidence
+    if (isDragging) {
+        updateDragEvidence(event);
+        return;
+    }
+
     if (isMouseDown) {
         const deltaX = event.clientX - previousMousePosition.x;
         const deltaY = event.clientY - previousMousePosition.y;
@@ -1551,6 +1657,270 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Drop evidence from backpack to world
+function dropEvidenceToWorld(inventoryIndex) {
+    const item = inventory[inventoryIndex];
+    if (!item || (item.type !== 'bone' && item.type !== 'footprint')) return;
+
+    // Spawn 3D evidence near player's feet
+    const spawnPos = camera.position.clone();
+    spawnPos.y = 0.3;
+    spawnPos.add(new THREE.Vector3(0, 0, 1.5)); // In front of player
+
+    let evidenceMesh;
+
+    if (item.type === 'bone') {
+        evidenceMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.5, 0.5),
+            new THREE.MeshStandardMaterial({
+                map: textures.boneTexture,
+                transparent: true,
+                emissive: 0x88ff88,
+                emissiveIntensity: 1.2,
+                side: THREE.DoubleSide
+            })
+        );
+        evidenceMesh.rotation.x = -Math.PI / 2;
+    } else if (item.type === 'footprint') {
+        evidenceMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.6, 0.8),
+            new THREE.MeshStandardMaterial({
+                map: textures.footprint,
+                transparent: true,
+                emissive: 0xaaffaa,
+                emissiveIntensity: 0.8
+            })
+        );
+        evidenceMesh.rotation.x = -Math.PI / 2;
+    }
+
+    evidenceMesh.position.copy(spawnPos);
+    evidenceMesh.userData.evidenceType = item.type;
+    evidenceMesh.userData.isDraggable = true;
+    scene.add(evidenceMesh);
+    droppedEvidence.push(evidenceMesh);
+
+    // Lift animation
+    const startY = spawnPos.y - 0.5;
+    evidenceMesh.position.y = startY;
+    let liftProgress = 0;
+    const liftAnim = setInterval(() => {
+        liftProgress += 0.08;
+        evidenceMesh.position.y = startY + Math.sin(liftProgress * Math.PI) * 0.5 + 0.3;
+        if (liftProgress >= 1) {
+            clearInterval(liftAnim);
+            evidenceMesh.position.y = spawnPos.y;
+        }
+    }, 16);
+
+    // Remove from inventory
+    inventory.splice(inventoryIndex, 1);
+    selectedInventoryIndex = -1;
+    updateInventoryUI();
+
+    console.log('Dropped evidence:', item.type);
+}
+
+// Drag evidence with mouse
+function startDragEvidence(event) {
+    if (isDragging) return;
+
+    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
+    const intersects = raycaster.intersectObjects(droppedEvidence);
+
+    if (intersects.length > 0) {
+        draggedEvidence = intersects[0].object;
+        isDragging = true;
+        renderer.domElement.style.cursor = 'grabbing';
+    }
+}
+
+function updateDragEvidence(event) {
+    if (!isDragging || !draggedEvidence) return;
+
+    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
+
+    // Project to ground plane
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectPoint = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, intersectPoint);
+
+    if (intersectPoint) {
+        draggedEvidence.position.x = intersectPoint.x;
+        draggedEvidence.position.z = intersectPoint.z;
+    }
+}
+
+function endDragEvidence() {
+    if (!isDragging || !draggedEvidence) return;
+
+    // Check if dropped into mailbox
+    const mailboxPos = mailboxGroup.position;
+    const evidencePos = draggedEvidence.position;
+    const distance = Math.sqrt(
+        Math.pow(evidencePos.x - mailboxPos.x, 2) +
+        Math.pow(evidencePos.z - mailboxPos.z, 2)
+    );
+
+    if (distance < 1.5) {
+        // Evidence delivered!
+        deliverEvidence(draggedEvidence);
+    }
+
+    isDragging = false;
+    draggedEvidence = null;
+    renderer.domElement.style.cursor = 'default';
+}
+
+// Deliver evidence to mailbox
+function deliverEvidence(evidenceMesh) {
+    const evidenceType = evidenceMesh.userData.evidenceType;
+
+    // Sucked into mailbox animation
+    const mailboxPos = mailboxGroup.position.clone();
+    mailboxPos.y = 1.5;
+
+    let suckProgress = 0;
+    const suckAnim = setInterval(() => {
+        suckProgress += 0.1;
+        evidenceMesh.position.lerp(mailboxPos, 0.15);
+        evidenceMesh.scale.multiplyScalar(0.92);
+
+        if (suckProgress >= 1) {
+            clearInterval(suckAnim);
+            scene.remove(evidenceMesh);
+            droppedEvidence.splice(droppedEvidence.indexOf(evidenceMesh), 1);
+
+            // Mark as delivered
+            deliveryState[evidenceType] = true;
+            console.log(`${evidenceType} delivered!`);
+
+            // Check if both delivered
+            if (deliveryState.bone && deliveryState.footprint && !finalLetterSpawned) {
+                setTimeout(() => spawnFinalLetter(), 500);
+            }
+        }
+    }, 16);
+}
+
+// Spawn final letter from mailbox
+function spawnFinalLetter() {
+    finalLetterSpawned = true;
+
+    // Mailbox shake
+    const originalPos = mailboxGroup.position.clone();
+    let shakeTime = 0;
+    const shakeAnim = setInterval(() => {
+        shakeTime += 0.05;
+        mailboxGroup.position.x = originalPos.x + Math.sin(shakeTime * 30) * 0.05;
+        mailboxGroup.position.y = originalPos.y + Math.sin(shakeTime * 25) * 0.03;
+
+        if (shakeTime >= 0.4) {
+            clearInterval(shakeAnim);
+            mailboxGroup.position.copy(originalPos);
+
+            // Spawn letter
+            const letter = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.4, 0.6),
+                new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    emissive: 0xffffaa,
+                    emissiveIntensity: 0.3,
+                    roughness: 0.8
+                })
+            );
+            letter.position.set(
+                mailboxGroup.position.x,
+                mailboxGroup.position.y + 1.8,
+                mailboxGroup.position.z
+            );
+            letter.rotation.x = -Math.PI / 2;
+            letter.userData.isFinalLetter = true;
+            scene.add(letter);
+            interactiveObjects.push(letter);
+
+            // Float down animation
+            const targetY = 0.05;
+            let floatProgress = 0;
+            const floatAnim = setInterval(() => {
+                floatProgress += 0.02;
+                letter.position.y = mailboxGroup.position.y + 1.8 - floatProgress * 1.8;
+
+                if (letter.position.y <= targetY) {
+                    clearInterval(floatAnim);
+                    letter.position.y = targetY;
+                    console.log('Final letter landed - click to read');
+                }
+            }, 16);
+        }
+    }, 16);
+}
+
+// Show final message overlay
+function showFinalMessage() {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'final-message-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.5s';
+
+    // Message image
+    const messageImg = document.createElement('img');
+    messageImg.src = '/mnt/data/A_photograph_of_a_handwritten_note_features_a_clos.png';
+    messageImg.style.maxWidth = '80%';
+    messageImg.style.maxHeight = '70%';
+    messageImg.style.border = '3px solid white';
+    messageImg.style.boxShadow = '0 0 20px rgba(255,255,255,0.5)';
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.marginTop = '20px';
+    closeBtn.style.padding = '15px 40px';
+    closeBtn.style.fontSize = '18px';
+    closeBtn.style.backgroundColor = '#ffffff';
+    closeBtn.style.border = '2px solid #333';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.borderRadius = '5px';
+
+    closeBtn.addEventListener('click', () => {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(overlay);
+        }, 500);
+    });
+
+    overlay.appendChild(messageImg);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
+
+    // Fade in
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+    }, 10);
+
+    // Hide game UI
+    document.getElementById('backpack').style.display = 'none';
+    document.getElementById('inventory-panel').style.display = 'none';
+}
 
 function checkCollision(newPos) {
     const playerBox = new THREE.Box3().setFromCenterAndSize(
