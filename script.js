@@ -1155,14 +1155,111 @@ function buildGardenInterior() {
     glassWest.rotation.y = Math.PI / 2;
     scene.add(glassWest);
 
-    // East glass wall (near door entrance)
-    const glassEast = new THREE.Mesh(
-        new THREE.PlaneGeometry(gardenSize, wallHeight),
+    // East side - opaque interior wall with doorway opening (behind glass)
+    // This creates the Room1 entrance visible from Garden side
+    const doorWidth = 3; // Matches wooden door exactly
+    const doorHeight = 4.5; // Matches wooden door exactly
+    const doorCenterY = 2.25; // Matches wooden door center height
+
+    // Opaque wall material (same as Room1 walls)
+    const gardenInteriorWallMaterial = new THREE.MeshStandardMaterial({
+        map: textures.wall,
+        color: 0xff3333 // Red tint to match Room1
+    });
+
+    // Top wall segment (above doorway)
+    const eastWallTop = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, wallHeight - doorHeight - doorCenterY + wallHeight / 2),
+        gardenInteriorWallMaterial
+    );
+    const topSegmentHeight = wallHeight - doorHeight - doorCenterY + wallHeight / 2;
+    eastWallTop.position.set(
+        gardenOffsetX + gardenSize / 2 - 0.05,
+        doorCenterY + doorHeight / 2 + topSegmentHeight / 2,
+        0
+    );
+    eastWallTop.rotation.y = Math.PI / 2;
+    scene.add(eastWallTop);
+
+    // North wall segment (left of doorway)
+    const northSegmentWidth = (gardenSize - doorWidth) / 2;
+    const eastWallNorth = new THREE.Mesh(
+        new THREE.PlaneGeometry(northSegmentWidth, wallHeight),
+        gardenInteriorWallMaterial
+    );
+    eastWallNorth.position.set(
+        gardenOffsetX + gardenSize / 2 - 0.05,
+        wallHeight / 2,
+        -doorWidth / 2 - northSegmentWidth / 2
+    );
+    eastWallNorth.rotation.y = Math.PI / 2;
+    scene.add(eastWallNorth);
+
+    // South wall segment (right of doorway)
+    const eastWallSouth = new THREE.Mesh(
+        new THREE.PlaneGeometry(northSegmentWidth, wallHeight),
+        gardenInteriorWallMaterial
+    );
+    eastWallSouth.position.set(
+        gardenOffsetX + gardenSize / 2 - 0.05,
+        wallHeight / 2,
+        doorWidth / 2 + northSegmentWidth / 2
+    );
+    eastWallSouth.rotation.y = Math.PI / 2;
+    scene.add(eastWallSouth);
+
+    // Bottom wall segment (below doorway, if any)
+    if (doorCenterY - doorHeight / 2 > 0) {
+        const bottomSegmentHeight = doorCenterY - doorHeight / 2;
+        const eastWallBottom = new THREE.Mesh(
+            new THREE.PlaneGeometry(doorWidth, bottomSegmentHeight),
+            gardenInteriorWallMaterial
+        );
+        eastWallBottom.position.set(
+            gardenOffsetX + gardenSize / 2 - 0.05,
+            bottomSegmentHeight / 2,
+            0
+        );
+        eastWallBottom.rotation.y = Math.PI / 2;
+        scene.add(eastWallBottom);
+    }
+
+    // Outer glass panels (not covering doorway) - split around the opening
+    const glassEastTop = new THREE.Mesh(
+        new THREE.PlaneGeometry(gardenSize, wallHeight - doorHeight - doorCenterY + wallHeight / 2),
         glassMaterial
     );
-    glassEast.position.set(gardenOffsetX + gardenSize / 2, wallHeight / 2, 0);
-    glassEast.rotation.y = -Math.PI / 2;
-    scene.add(glassEast);
+    glassEastTop.position.set(
+        gardenOffsetX + gardenSize / 2,
+        doorCenterY + doorHeight / 2 + topSegmentHeight / 2,
+        0
+    );
+    glassEastTop.rotation.y = Math.PI / 2;
+    scene.add(glassEastTop);
+
+    const glassEastNorth = new THREE.Mesh(
+        new THREE.PlaneGeometry(northSegmentWidth, doorHeight),
+        glassMaterial
+    );
+    glassEastNorth.position.set(
+        gardenOffsetX + gardenSize / 2,
+        doorCenterY,
+        -doorWidth / 2 - northSegmentWidth / 2
+    );
+    glassEastNorth.rotation.y = Math.PI / 2;
+    scene.add(glassEastNorth);
+
+    const glassEastSouth = new THREE.Mesh(
+        new THREE.PlaneGeometry(northSegmentWidth, doorHeight),
+        glassMaterial
+    );
+    glassEastSouth.position.set(
+        gardenOffsetX + gardenSize / 2,
+        doorCenterY,
+        doorWidth / 2 + northSegmentWidth / 2
+    );
+    glassEastSouth.rotation.y = Math.PI / 2;
+    scene.add(glassEastSouth);
 
     // Glass ceiling panels
     const ceilingGlass = new THREE.Mesh(
