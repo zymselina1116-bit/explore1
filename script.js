@@ -106,7 +106,7 @@ const eastWallTop = new THREE.Mesh(
 eastWallTop.position.set(roomSize / 2, wallHeight - 0.25, 0);
 eastWallTop.rotation.y = -Math.PI / 2;
 scene.add(eastWallTop);
-worldObjects.push(eastWallTop);
+// NOT added to worldObjects - purely visual, no collision
 
 const eastWallNorth = new THREE.Mesh(
     new THREE.PlaneGeometry(4, wallHeight),
@@ -336,7 +336,7 @@ const room2WestWallTop = new THREE.Mesh(
 room2WestWallTop.position.set(room2Offset - roomSize / 2, wallHeight - 0.25, 0);
 room2WestWallTop.rotation.y = Math.PI / 2;
 scene.add(room2WestWallTop);
-worldObjects.push(room2WestWallTop);
+// NOT added to worldObjects - purely visual, no collision
 
 const room2WestWallNorth = new THREE.Mesh(
     new THREE.PlaneGeometry(4, wallHeight),
